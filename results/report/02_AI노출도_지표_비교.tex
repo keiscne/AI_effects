@@ -1,0 +1,358 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 — reference/ 소장 문헌 중 "AI 노출도(exposure)" 지표
+% 자체에 초점을 맞춰, 각 지표의 정의·산출공식·데이터·LLM 영향의 조작화 방식을
+% 상세 비교하는 작업 문헌(report/). 01_AI영향_실증연구_정리.tex §4(노출도 기반
+% 실증연구)를 심화한 후속 report.
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{주요 AI 노출도(Exposure) 지표 비교\\[2mm]
+\large --- 정의, 측정방식, 데이터, 그리고 LLM 영향의 조작화 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 본 문헌은 \texttt{01\_AI영향\_실증연구\_정리.tex}의 \S4(노출도 기반 실증연구)에서 개관 수준으로 다룬 AI 노출도(ex-ante exposure) 지표들을 심화해, 각 지표가 (1) AI의 영향을 어떻게 \emph{정의}하는지, (2) 그 정의를 구체적으로 어떤 \emph{산출공식}으로 계산하는지, (3) 어떤 \emph{데이터}를 사용하는지, (4) 특히 거대언어모형(LLM)의 영향을 어떻게 조작화(operationalize)하는지를 지표별로 상세히 비교한다. 검토 대상은 Felten, Raj, and Seamans의 AIOE(및 언어모델링 특화판), Webb의 특허텍스트 노출지수, Eloundou et al.의 GPT 노출 루브릭, Hampole et al.의 기업$\times$과업 임베딩 노출, 한국의 LLM 델파이 앙상블형 지수(KEIS/KISDI AIE, 한국노동연구원 SkillAIAssessment), 미국 지수의 한국 이식형 재계산(전병유 외, 한지우·오삼일), 그리고 이론적 노출과 실제 LLM 사용을 결합한 Massenkoff and McCrory의 관측노출(observed exposure)이다. 마지막으로 Bick et al.의 실제 genAI 채택률 대비 6개 노출점수의 설명력 비교 결과를 통해, ``노출 가능성''과 ``LLM의 실제 영향'' 사이의 간극을 정량적으로 짚는다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{서론}
+% ============================================================
+
+\texttt{01\_AI영향\_실증연구\_정리.tex}는 AI 영향에 관한 실증연구를 노출도·채택·실사용 세 갈래로 분류하고, 노출도 기반 연구들을 하나의 요약표(표 1)로 정리했다. 그러나 이 표는 각 지표가 실제로 \emph{어떤 수식으로} 노출점수를 산출하는지, 그리고 각 지표가 ``AI''라는 개념 안에서 \emph{LLM(거대언어모형)의 영향을 구체적으로 어떻게 포착}하는지를 깊이 다루지 못한다. 이는 본 프로젝트가 목표로 하는 exposure--usage 결합 분석(\texttt{data/proc/merged/})에서 어떤 노출지표를 채택·가공할지 결정하는 데 필수적인 정보다.
+
+본 문헌은 이 공백을 메우기 위해 별도로 작성하는 후속 report로, 다음 네 가지 축으로 각 지표를 해부한다.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{정의}: 무엇을 ``노출''로 규정하는가(대체가능성, 시간단축률, 텍스트 중복도 등).
+  \item \textbf{산출공식}: 정의를 어떤 수학적 절차로 점수화하는가.
+  \item \textbf{데이터}: 공식에 대입되는 원자료(크라우드소싱, 특허, LLM 프롬프팅 결과, 실사용 로그 등).
+  \item \textbf{LLM 영향의 조작화}: 지표가 만들어진 시점의 AI 기술(로봇·전통 ML·LLM)과, LLM 특유의 영향을 지표가 어떻게 구분·반영하는지.
+\end{enumerate}
+
+정리 순서는 방법론적 계보(crowdsourcing $\to$ 특허텍스트 $\to$ LLM 자체평가 $\to$ LLM 델파이 앙상블 $\to$ 이론노출+실사용 결합)를 따르며, 마지막에 전체 지표를 가로지르는 비교표와 LLM 영향 조작화 방식의 종합 비교를 제시한다.
+
+% ============================================================
+\section{노출도 지표의 방법론적 분류}
+\label{sec:taxonomy}
+% ============================================================
+
+노출도 지표는 ``누가 노출 여부를 판단하는가''를 기준으로 크게 다섯 갈래로 나뉜다.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{(A) 인간 크라우드소싱/전문가 평가}: 사람이 AI 응용과 직업능력 간의 관련성을 직접 평가(Felten, Raj, and Seamans).
+  \item \textbf{(B) 특허텍스트 매칭}: 특허문서와 직무기술서 텍스트의 중복도를 계산해 사람의 주관적 판단을 배제(Webb).
+  \item \textbf{(C) LLM 자체평가/분류}: LLM(GPT-4 등)이 직접 과업의 자동화 가능성을 판정(Eloundou et al.).
+  \item \textbf{(D) LLM 델파이 앙상블}: 복수의 LLM을 ``전문가 패널''로 삼아 합의된 점수를 도출(KEIS/KISDI AIE, 한국노동연구원 SkillAIAssessment).
+  \item \textbf{(E) 임베딩 매칭/이론노출+실사용 결합}: 텍스트 임베딩으로 실제 도입된 AI 응용을 과업에 연결하거나(Hampole et al.), 이론적 노출등급을 실제 LLM 사용 데이터로 게이팅(Massenkoff and McCrory).
+\end{itemize}
+
+표\,\ref{tab:taxonomy}은 이 다섯 갈래에 속하는 주요 지표를 정리한 것이며, \S\ref{sec:indices}에서 각 지표를 상세히 다룬다.
+
+\begin{longtable}{L{2.0cm}L{2.6cm}L{4.3cm}L{3.6cm}L{2.4cm}}
+\caption{노출도 지표의 방법론적 분류}\label{tab:taxonomy}\\
+\toprule
+\textbf{유형} & \textbf{대표 지표} & \textbf{판단 주체} & \textbf{핵심 데이터} & \textbf{시대적 위치}\\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{유형} & \textbf{대표 지표} & \textbf{판단 주체} & \textbf{핵심 데이터} & \textbf{시대적 위치}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+(A) 크라우드소싱 & Felten et al. AIOE(2021)/언어모델링판(2023) & Amazon MTurk 크라우드워커(약 2,000명) & EFF AI 응용 10종 $\times$ O*NET 52개 능력 & 전통 AI 전반(2023판은 LLM 특화)\\
+
+(B) 특허텍스트 & Webb(2020) & 없음(텍스트 알고리즘) & Google Patents $\times$ O*NET 과업문 동사-명사쌍 & 딥러닝 이전~초기(2020년 이전 특허)\\
+
+(C) LLM 자체평가 & Eloundou et al.(2023) & GPT-4 + 인간평가자 & O*NET DWA/과업 $\times$ GPT-4 판정 & LLM(GPT-3.5/4) 네이티브\\
+
+(D) LLM 델파이 & KEIS/KISDI AIE(2025), 한국노동연구원 SkillAIAssessment(2025) & 5~8개 오픈소스 LLM + GPT-4o/GPT-4-turbo 메타평가 & O*NET 과업문 / 한국숙련사전 6,558개 숙련 & LLM(2024~2025년 모델군) 네이티브\\
+
+(E) 임베딩/결합 & Hampole et al.(2025), Massenkoff and McCrory(2026) & LLM(Llama 3.1, 텍스트임베딩) + 실사용 데이터 & 이력서·채용공고 임베딩 / Anthropic Economic Index & 실제 도입·실사용 결합\\
+\end{longtable}
+
+% ============================================================
+\section{지표별 상세 검토}
+\label{sec:indices}
+% ============================================================
+
+\subsection{Felten, Raj, and Seamans AIOE (2021) 및 언어모델링 특화판 (2023)}
+\label{sec:felten}
+
+\textbf{정의.} AIOE(AI Occupational Exposure)는 특정 직업이 요구하는 능력(ability)들이 현재의 AI 응용(application)과 얼마나 관련되어 있는지를 측정한다. 대체·보완 여부에는 불가지론적(agnostic)이며, ``관련성''만을 측정한다는 점이 핵심이다 \parencite{felten-2021-occupational-industry-and-geographic-exposure}.
+
+\textbf{산출공식.} 먼저 AI 응용 $i$($i=1,\dots,10$: 전략게임, 실시간 비디오게임, 이미지 인식, 시각질의응답, 이미지 생성, 독해, \textbf{언어모델링}, 번역, 음성인식, 악기트랙인식)와 O*NET 능력 $j$($j=1,\dots,52$) 간 크라우드소싱 관련성 점수 $x_{ij}\in\{0,1\}$을 이용해 능력 수준 노출도를 구한다.
+\begin{equation}
+A_{j} = \sum_{i=1}^{10} x_{ij}
+\label{eq:felten1}
+\end{equation}
+직업 $k$의 AIOE는 능력별 노출도 $A_j$를 해당 직업 내 능력의 보급도(prevalence) $L_{jk}$와 중요도(importance) $I_{jk}$로 가중평균한다.
+\begin{equation}
+AIOE_k = \frac{\sum_{j=1}^{52} A_{j}\, L_{jk}\, I_{jk}}{\sum_{j=1}^{52} L_{jk}\, I_{jk}}
+\label{eq:felten2}
+\end{equation}
+이렇게 산출한 774개 직업(6자리 SOC)의 점수를 평균 0, 표준편차 1로 표준화한다. 산업 단위(AIIE)는 AIOE를 4자리 NAICS 산업의 2019년 고용비중으로, 지역 단위(AIGE)는 AIIE를 카운티 산업고용으로 가중평균해 집계한다.
+
+\textbf{언어모델링 특화판(2023).} 10개 응용 각각에 가중치 $\alpha_i\in\{0,1\}$를 부여해 식 \eqref{eq:felten1}을 일반화한다.
+\begin{equation}
+A_{j}^{\alpha} = \sum_{i=1}^{10} \alpha_i\, x_{ij}
+\label{eq:felten3}
+\end{equation}
+언어모델링 응용의 $\alpha_i$만 1로 두고 나머지 9개를 0으로 설정하면, ``언어모델링(=LLM)에만 노출된'' 능력 수준 지수가 되고, 이를 식 \eqref{eq:felten2}와 동일한 방식으로 직업 단위로 집계한다 \parencite{felten-2023-how-will-language-modelers-like-chatgpt}. 원본 AIOE와의 상관계수는 0.979로 매우 높으나, 순위는 상당히 재배열된다(예: 원본 1위 산업이었던 증권업이 언어모델링 기준 2위로, 법률서비스업이 1위로 교체).
+
+\textbf{데이터.} O*NET 24.3(774개 직업, 52개 능력), Amazon MTurk 설문(응용당 약 200명, 총 약 2,000명), NAICS 산업고용(2019), BLS OEWS 임금(2021, 언어모델링판 검증용).
+
+\textbf{LLM 영향의 조작화.} 원본(2021)은 AI를 10개 응용의 \emph{집합}으로 정의하므로 LLM은 ``언어모델링'' 응용 1개로만 포착되고, 이미지 인식·번역·음성인식 등 비-LLM 응용과 합산된다. 2023년판은 이 집합에서 언어모델링 응용만 분리($\alpha_i$를 원핫벡터로 설정)해 ChatGPT류 LLM에 특화된 노출도를 처음으로 별도 산출했다는 점에서, ``일반 AI 노출''에서 ``LLM 노출''을 분리해낸 최초의 사례에 해당한다. 다만 이는 여전히 2018년 이전 크라우드소싱 데이터(사람이 판단한 언어모델링 응용의 능력 관련성)에 기반하므로, GPT-3.5/4 이후 LLM의 실제 성능 향상은 반영하지 못한다.
+
+\subsection{Webb (2020) 특허텍스트 노출지수}
+\label{sec:webb}
+
+\textbf{정의.} 특정 기술(소프트웨어·산업용로봇·AI)을 설명하는 특허 제목의 텍스트와, 직업의 과업을 설명하는 O*NET 텍스트 간 동사-명사 조합의 중복 정도를 노출도로 정의한다. 사람의 주관적 판단이 아니라 텍스트 알고리즘으로 산출된다는 점이 방법론적 특징이다 \parencite{webb-2020-impact-artificial-intelligence-labor}.
+
+\textbf{산출공식.} 특허 제목·O*NET 과업문 각각에서 dependency parsing으로 동사-목적어 쌍을 추출·표제어화하고, WordNet 개념위계로 명사를 그룹화해 동사별 명사집합 $S_k$(동사 $k$가 취하는 목적어들의 집합)를 구성한다. 직업 $i$의 노출점수는 다음과 같이 산출한다.
+\begin{equation}
+\text{Exposure}_i = \frac{\sum_{k} w_{k,i} \sum_{c \in S_k} rf^t_c}{\sum_{k} w_{k,i}\,\lvert\{c : c \in S_k\}\rvert}
+\label{eq:webb}
+\end{equation}
+여기서 $w_{k,i}$는 과업 $k$가 직업 $i$ 내에서 갖는 가중치(O*NET 빈도·중요도·관련성의 평균), $rf^t_c$는 명사 $c$가 시점 $t$의 해당 기술 특허 제목에 등장한 상대빈도다. 이 동일한 절차를 소프트웨어·로봇·AI 특허 각각에 적용해 세 개의 독립적 노출지수를 얻는다.
+
+이렇게 얻은 노출지수를 실제 고용·임금 변화에 연결하는 회귀식은 다음과 같다.
+\begin{equation}
+\Delta y_{o,i,t} = \alpha_i + \beta\, \text{Exp}_o + \gamma Z_o + \varepsilon_{o,i,t}
+\label{eq:webb-reg}
+\end{equation}
+$y$는 고용비중의 DHS 변화(Davis-Haltiwanger-Schuh 1996) 또는 실질임금 로그차분, $\alpha_i$는 산업고정효과, $Z_o$는 오프쇼어링가능성·교육수준·평균임금(2차항) 등 통제변수다.
+
+\textbf{데이터.} Google Patents Public Data(IFI CLAIMS, 특허 제목·CPC 코드), O*NET(964개 직업), IPUMS 미국 Census 1960--2000/ACS 2000--2018(occ1990dd 직업분류).
+
+\textbf{LLM 영향의 조작화.} Webb의 ``AI'' 정의는 특허 제목에 ``supervised learning'', ``reinforcement learning'', ``neural network'', ``deep learning'' 키워드가 포함되는지로 판별한다. 2020년 발표 당시(특허 데이터는 그 이전 축적분) LLM(트랜스포머 기반 대규모 언어모델)은 이 키워드 체계에 명시적으로 포함되지 않으므로, Webb 지수는 \textbf{LLM 특유의 영향을 구분하지 못하며} 전통적 지도학습·강화학습·신경망 전반의 노출도를 측정한다. 한국의 후속연구(한지우·오삼일 2023, 산업연구원 2024)가 이 지수를 그대로 이식해 ``AI 노출도''로 사용하는 것은, 엄밀히는 LLM 이전 세대 AI 기술의 노출도를 측정한다는 한계를 내포한다.
+
+\subsection{Eloundou et al. (2023) GPT 노출 루브릭}
+\label{sec:eloundou}
+
+\textbf{정의.} LLM 또는 LLM 기반 시스템에 접근했을 때, 동등한 품질을 유지하면서 특정 작업활동(DWA)이나 과업을 완료하는 데 필요한 시간을 50\% 이상 줄일 수 있는지 여부로 노출을 정의한다 \parencite{eloundou-2023-gpts-are-gpts-an-early}. Webb·Felten과 달리 ``AI 일반''이 아니라 \textbf{처음부터 LLM(GPT 계열)의 능력을 기준으로} 설계된 지표다.
+
+\textbf{산출공식.} 노출 등급은 4단계로 구성된다: E0(노출 없음), E1(ChatGPT/OpenAI playground 등 LLM 단독 접근만으로 50\% 이상 시간단축), E2(LLM 기반 응용프로그램을 추가로 개발해야 노출, 이미지 능력 제외), E3(이미지 능력 결합 시 노출). 이로부터 세 가지 노출 지수를 정의한다.
+\begin{align}
+\beta &= E1 \quad \text{(직접노출, 하한)}\label{eq:eloundou-beta}\\
+\zeta &= E1 + 0.5\times E2 \quad \text{(보완투자 필요성을 절반 가중)}\label{eq:eloundou-zeta}\\
+\phi &= E1 + E2 \quad \text{(최대노출, 상한)}\label{eq:eloundou-phi}
+\end{align}
+각 과업/DWA에 대해 인간평가자와 GPT-4 분류자가 독립적으로 이 등급을 부여하며(모델-인간 일치율 80\%대), 과업단위 점수를 직업 내 시간비중으로 가중평균해 직업단위 지수로 집계한다.
+
+\textbf{데이터.} O*NET 27.2(1,016개 직업, 19,265개 과업, 2,087개 DWA), BLS Occupational Employment/Wage(2020--2021).
+
+\textbf{LLM 영향의 조작화.} 노출의 판정 기준 자체가 ``LLM 접근 시 시간단축률''이므로, LLM 영향을 지표 정의의 중심에 둔 최초의 대규모 노출지수다. 다만 (i) 판정 시점의 LLM 능력(2023년 초 GPT-4 수준)에 고정되어 이후 모델 성능 향상을 반영하지 못하고, (ii) ``이론적으로 가능한'' 시간단축이지, 실제 근로자가 그렇게 사용하고 있는지는 측정하지 않는다는 한계가 있다. 이 두 번째 한계는 \S\ref{sec:massenkoff}의 관측노출(observed exposure)이 정면으로 다룬다.
+
+\subsection{Hampole et al. (2025) 기업$\times$과업 임베딩 노출}
+\label{sec:hampole}
+
+\textbf{정의.} 기업이 \emph{실제로 도입한} AI 응용이 어떤 O*NET 과업을 대체하는지를, 이력서에 명시된 AI 관련 직무기술과 과업 텍스트 간 임베딩 유사도로 판정한다 \parencite{hampole-2025-artificial-intelligence-and-the-labor}. 노출 \emph{가능성}이 아니라 노출의 \emph{실제 발생 여부}(직무기술서에 등장했는지)에 가깝다는 점에서 노출도-채택 지표의 경계에 위치한다.
+
+\textbf{산출공식.} 이력서 직무기술에서 AI 키워드를 탐지한 뒤 Llama 3.1 70B로 구체적 AI 응용 문구를 추출하고, 텍스트 임베딩(GTE-Large)의 코사인 유사도가 전체 분포 상위 95백분위를 초과하는 응용-과업 쌍만 노출로 인정한다(희소성 제약). 이렇게 얻은 과업단위 노출을 O*NET 과업중요도로 가중평균해 직종의 평균노출 $m$을, 그 분산으로 노출의 집중도 $C$를 구성한다. 이 두 통계량은 Acemoglu and Restrepo(2018)의 과업기반 모형에서 각각 노동수요를 직접 낮추는 항(평균노출)과, 노출이 일부 과업에 쏠릴수록 과업재배치를 통해 그 감소효과를 상쇄하는 항(집중도)으로 도출된다(원논문 2.1절 식 13--17). 기업단위로는 여기에 $\log(1+\text{기업 AI응용 수})$를 곱해 도입강도를 반영한다.
+
+\textbf{데이터.} Revelio Labs 이력서(약 5,800만 건)·채용공고(약 1,400만 건), O*NET 28.3(약 2만 개 과업), Compustat(상장기업 재무).
+
+\textbf{LLM 영향의 조작화.} Hampole et al.은 특정 세대 기술(로봇·전통 ML·LLM)을 사전에 구분하지 않는다. 대신 이력서에 실제로 기재된 AI 응용을 텍스트 그대로 추출하므로, 2022년 말 생성형 AI 확산 이전 표본(2014--2023년)에서는 자연히 전통적 ML·데이터분석 도구가 다수를 차지하고 LLM 관련 응용은 후반부에 국한된다. 즉 LLM 여부를 직접 코딩하지는 않지만, 실제 채용시장에 등장한 문구를 그대로 사용하므로 시간이 지나면 자동으로 LLM 응용 비중이 늘어나는 방식으로 LLM 영향을 \emph{암묵적으로} 흡수한다. 저자들도 2023년까지의 표본이 생성형 AI 확산 대부분을 포함하지 못한다는 한계를 명시한다.
+
+\subsection{한국의 LLM 델파이 앙상블형 지수: KEIS/KISDI AIE}
+\label{sec:aie}
+
+\textbf{정의.} 단일 LLM(예: GPT-4)에 의존할 경우 발생하는 블랙박스성·비재현성·모델별 편향 문제를 극복하기 위해, 복수의 오픈소스 LLM을 ``델파이 전문가 패널''로 삼아 과업별 AI 노출도(0--1)를 합의 산출한다. 한국고용정보원(노희용·손녕선·이학기, 「자동화 및 인공지능 기술발전에 따른 고용구조 변화 분석」 제5장, \citealp{keis-2025-ai-job-exposure-labor-demand})과 정보통신정책연구원(손녕선·노희용, \citealp{son-2025-llm-based-ai-job-exposure-measurement})이 동일한 방법론으로 사실상 동일한 결과물을 각각의 보고서에 게재했다.
+
+\textbf{산출공식.} 절차는 다음과 같다.
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{후보 선정}: 8개 오픈소스 LLM(Deepseek-R1, Falcon, Hermes3, Gemma3, Llama3.3, Mistral-small, Phi4, QWQ2.5)에 동일한 4개 직업(고노출: Financial and Investment Analysts, Tax Preparers; 저노출: Athletes and Sports Competitors, Chefs and Head Cooks)을 반복 30회 프롬프팅해, 산포지표(IQR, 변동계수 CV, 절대편차 MAD)와 산출근거 텍스트의 코사인 유사도를 기준으로 일관성이 낮은 3개 모델(Falcon, QWQ2.5, Deepseek-R1)을 제외한다.
+  \item \textbf{원점수 산출}: 남은 5개 모델을 O*NET 923개 직업의 모든 과업에 적용해, 각 모델이 과업별 \texttt{Degree\_of\_exposure}(0.0--1.0)와 \texttt{AI\_impact}(complementary/substitution/neutral) 라벨을 산출한다.
+  \item \textbf{메타평가}: GPT-4o가 5개 모델의 점수와 근거를 입력받아 논리적 일관성을 검토해 최종 점수를 산출하되, 두 시나리오로 병행 제시한다: $\text{AIE}_{S1}$(5개 결과 종합), $\text{AIE}_{S2}$(5개 결과 중 GPT-4o가 가장 신뢰하는 1개 모델 선택).
+  \item \textbf{집계}: 직업단위 점수는 직업 내 과업단위 점수의 단순(비가중) 평균이다.
+\end{enumerate}
+5개 모델 간 평균 표준편차는 0.109에 불과하고, $\text{AIE}_{S1}$과 5개 모델 단순평균 간 상관계수는 0.996으로 메타평가가 원점수 분포를 크게 왜곡하지 않음을 시사한다.
+
+\textbf{데이터.} O*NET 29.3 Task Statements(923개 직업, 직업당 약 20--30개 과업). 한국 적용 시 5단계 하이브리드 크로스워크(문자열 유사도 $\to$ BERT 임베딩 의미유사도 $\to$ 전문가 검토)로 한국 직업명을 O*NET에 매칭한다.
+
+\textbf{LLM 영향의 조작화.} 이 지표군의 특징은 LLM이 \emph{측정도구이자 동시에 측정대상}이라는 이중적 위치에 있다는 점이다 --- 델파이 패널을 구성하는 LLM들 자신의 판단 능력이 곧 ``AI가 이 과업을 얼마나 대체할 수 있는가''에 대한 평가 결과가 된다. Eloundou et al.(단일 GPT-4 분류자)과 달리 모델 편향을 앙상블로 완화하려는 시도이지만, 궁극적으로 노출점수의 타당성은 여전히 ``현재 세대 LLM의 자기 능력 평가가 신뢰할 만한가''라는 순환적 가정에 의존한다. AIE와 Eloundou $\zeta$ 간 상관계수는 0.721로 비교적 높으나(\citealp{son-2025-llm-based-ai-job-exposure-measurement}, 4장), 고노출 구간에서는 두 지표의 괴리가 커진다.
+
+\subsection{GPT-4 델파이 숙련노출: SkillAIAssessment}
+\label{sec:skillai}
+
+\textbf{정의.} 직업을 과업이 아니라 \emph{숙련(skill)의 합}으로 재정의하고, 개별 숙련이 AI로 인해 얼마나 시간이 절감되는지를 0--100점 척도로 측정한다. 한국노동연구원의 두 보고서(장지연·심지환, 「인공지능 시대의 숙련」제2장, \citealp{chang-2025-ai-era-skills}; 장지연, 「AI 기반 제조업 혁신과 고용」제2장, \citealp{noh-2025-ai-based-manufacturing-innovation-employment})가 동일한 자체 개발 평가도구 \texttt{SkillAIAssessment}를 사용한다.
+
+\textbf{산출공식.} GPT-4(-turbo) 기반의 \texttt{SkillAIAssessment} 클래스가 5인의 가상 전문가 패널을 시뮬레이션하고, 이 패널이 3라운드 델파이 절차(각 라운드마다 이전 라운드 응답을 참고해 재평가·수렴)를 거쳐 숙련별 시간절감률 점수(0--100)에 합의한다. 점수 구간은 0--20(자동화 어려움), 20--50(일부 보조), 50--80(대폭 보조), 80--100(전면 자동화)으로 해석된다. 이 절차를 한국숙련사전의 6,558개 숙련 전체에 적용한다. 기업 단위 AI 도입 여부는 별도로 Babina et al.(2020) 방법론을 차용해 구인공고에 AI 관련 숙련이 요구되는지로 식별한다(노출도 자체와는 다른 채택 지표).
+
+\textbf{데이터.} 한국노동연구원 「한국숙련사전」(대분류 29/중분류 116/소분류 445, 총 6,558개 숙련), 고용보험DB(피보험자 이력, 2021.1--2024.12), 구인공고(AI 숙련 요구 여부 식별용).
+
+\textbf{LLM 영향의 조작화.} \S\ref{sec:aie}의 AIE와 마찬가지로 LLM(GPT-4-turbo)이 노출도의 산출 도구이자, 그 자체가 자동화 능력을 지닌 대상이라는 이중적 위치를 갖는다. 차이점은 (i) 단일 모델(GPT-4-turbo)의 가상 다중인격 시뮬레이션(5인 가상 패널)이라는 점에서 \S\ref{sec:aie}의 실제 이종 모델 앙상블보다 모델 다양성이 낮고, (ii) 평가 단위가 과업이 아니라 숙련(skill)이라는 점에서 O*NET 체계와 다른 자체 분류체계(한국숙련사전)를 사용한다는 점이다. 저자들 스스로 인간 전문가 패널과의 비교검증 결과를 제시하지 못했다는 한계를 인정한다.
+
+\subsection{한국 이식형 재계산: Cheon et al. (2022), Han and Oh (2023)}
+\label{sec:korean-transplant}
+
+앞의 세 지표(\S\ref{sec:felten}--\ref{sec:eloundou})는 모두 미국 자료로 구축되었으나, 한국의 초기 연구들은 새 지표를 만드는 대신 \emph{동일한 산출공식을 한국 자료에 재적용}하는 방식을 취했다. 이는 방법론적으로는 새로운 유형이 아니라 \S\ref{sec:felten}·\ref{sec:webb}의 ``이식(transplant)''이지만, 데이터가 한국 자료로 바뀌면서 LLM 영향의 조작화 방식도 함께 달라지므로 별도로 정리한다.
+
+\textbf{전병유·정준호·장지연 (2022) --- AIOE-KR.} Felten et al.의 AI 응용--O*NET 능력 연계표(식 \eqref{eq:felten1}) 중 한국 조사에서 매칭 가능한 15개 능력 변수로 축소한 뒤, 한국고용정보원 「한국직업정보 재직자조사」(2020년, 537개 직업)의 능력 수준·중요도 응답으로 식 \eqref{eq:felten2}와 동일한 가중평균을 계산한다. 즉 미국의 크라우드소싱 응용-능력 매트릭스는 그대로 가져오되($x_{ij}$ 고정), 능력의 보급도·중요도 가중치($L_{jk}, I_{jk}$)만 한국 재직자조사로 대체하는 하이브리드 방식이다. 언어모델링 응용을 포함한 10개 응용을 모두 사용하므로(2023년 언어모델링 특화판 이전 시점), LLM 영향은 여전히 ``AI 응용 10종 중 하나''로만 존재한다.
+
+\textbf{한지우·오삼일 (2023) --- Webb-KR.} Webb의 특허텍스트 노출지수(식 \eqref{eq:webb})를 그대로 사용하되, O*NET 직업분류를 ISCO를 경유해 KSCO(한국표준직업분류)로 크로스워크한다. 특허텍스트 자체는 미국 원자료(Google Patents)를 그대로 쓰므로, 이 지수 역시 \S\ref{sec:webb}에서 지적한 대로 \textbf{LLM 특유의 영향을 구분하지 못한다} --- 오히려 AI 노출지수 자체의 실제 고용·임금 효과는 추정하지 않고, 산업용 로봇·소프트웨어 노출지수의 실제 추정효과(같은 KLIPS 자료로 직접 추정)를 ``AI에도 유사한 탄력성이 적용될 것''이라는 가정 하에 유추 적용하는 2단계 구조를 취한다.
+
+\subsection{Massenkoff and McCrory (2026) 관측노출(Observed Exposure)}
+\label{sec:massenkoff}
+
+\textbf{정의.} 앞의 모든 지표가 ``LLM이 이론적으로 할 수 있는가''를 묻는다면, 관측노출은 여기에 ``실제로 업무에서 그렇게 쓰이고 있는가''라는 조건을 추가로 부과한다. Eloundou et al.의 이론적 노출등급($\beta$, \S\ref{sec:eloundou})과 Anthropic Economic Index의 실제 Claude 사용 데이터를 결합해, 이론상 노출 가능한 과업 중 실제로 업무 맥락에서 사용되는 과업만을 ``노출''로 인정한다 \parencite{massenkoff-2026-labor-market-impacts-of-ai}.
+
+\textbf{산출공식.} 과업 $t$의 가중 업무사용량은 Claude.ai에서 업무 관련으로 분류된 사용량과 1P API 트래픽(업무 여부 무관 전량 포함)의 합이다.
+\begin{equation}
+\text{WorkUsage}_t = \text{ClaudeWorkUsage}_t + \text{APIUsage}_t
+\end{equation}
+과업은 $\text{WorkUsage}_t \geq 100$(전체 트래픽의 0.0025%에 해당)이라는 엄격한 게이트를 통과해야 커버된 것으로 인정된다. 과업단위 노출은 다음과 같이 정의된다.
+\begin{equation}
+\tilde{r}_t = \mathbb{1}\{\text{WorkUsage}_t \geq 100\} \times \mathbb{1}\{\beta_t \geq 0.5\} \times \alpha_t
+\label{eq:massenkoff-task}
+\end{equation}
+여기서 $\beta_t$는 Eloundou et al.의 과업별 이론노출등급(0.5 이상이면 게이트 통과), $\alpha_t$는 자동화 정도에 따른 가중치다.
+\begin{equation}
+\alpha_t = \frac{1}{2} + \frac{1}{2}\,\text{AutomationShare}_t
+\end{equation}
+즉 완전자동화 사용만 있으면 $\alpha_t=1$, 보완적(augmentative) 사용만 있으면 $\alpha_t=0.5$가 된다. 직업 단위 관측노출은 과업단위 노출을 O*NET 시간비중 $w_t$로 가중평균한다.
+\begin{equation}
+R_o = \frac{\sum_t w_t\, \tilde{r}_t}{\sum_t w_t}
+\label{eq:massenkoff-occ}
+\end{equation}
+
+\textbf{데이터.} O*NET(약 800개 직업), Anthropic Economic Index(2025년 8월·11월 릴리스), Eloundou et al.(2023)의 과업별 $\beta$ 등급, CPS 패널, BLS 고용전망(2024--2034).
+
+\textbf{LLM 영향의 조작화.} 이 지표는 \S\ref{sec:eloundou}의 이론노출과 실사용 데이터를 명시적으로 곱하는 구조이므로, ``LLM이 할 수 있는 일''과 ``LLM이 실제로 하고 있는 일''의 간극을 직접 정량화한다. 실제로 Computer \& Mathematical 직군은 이론상 94\%가 노출 가능하지만 관측노출은 33\%에 불과해, 이론노출을 그대로 쓸 경우 LLM의 실제 영향을 상당히 과대추정할 수 있음을 보여준다. 이는 본 프로젝트가 목표로 하는 exposure--usage 결합 분석과 방법론적으로 가장 가까운 선례에 해당한다.
+
+% ============================================================
+\section{지표 간 종합 비교}
+\label{sec:comparison}
+% ============================================================
+
+표\,\ref{tab:formulas}는 \S\ref{sec:indices}에서 다룬 지표들의 핵심 공식과 데이터를 한눈에 비교한 것이다.
+
+\begin{longtable}{L{2.0cm}L{2.0cm}L{3.7cm}L{3.9cm}L{3.3cm}}
+\caption{노출도 지표별 핵심 공식·데이터 비교}\label{tab:formulas}\\
+\toprule
+\textbf{지표} & \textbf{방법유형} & \textbf{핵심 산출식} & \textbf{데이터} & \textbf{산출물 스케일}\\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{지표} & \textbf{방법유형} & \textbf{핵심 산출식} & \textbf{데이터} & \textbf{산출물 스케일}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Felten et al. AIOE(2021/2023) & (A) 크라우드소싱 & 식\eqref{eq:felten1}--\eqref{eq:felten3}: 응용-능력 관련성$\times$능력 보급도$\cdot$중요도 가중평균 & EFF 10대 응용, O*NET 52능력, MTurk 설문 & 표준화 점수(평균0, sd1), 직업/산업/지역\\
+
+Webb(2020) & (B) 특허텍스트 & 식\eqref{eq:webb}: 특허-과업 동사명사쌍 중복도 가중평균 & Google Patents, O*NET 964직업 & 백분위 순위, 3개 기술(SW/로봇/AI)\\
+
+Eloundou et al.(2023) & (C) LLM 자체평가 & 식\eqref{eq:eloundou-beta}--\eqref{eq:eloundou-phi}: E1/E2 등급 가중합 & O*NET 27.2, GPT-4+인간평가자 & 0--1 비율($\beta,\zeta,\phi$), 직업/과업\\
+
+KEIS/KISDI AIE & (D) LLM 델파이 & 5개 LLM 원점수 $\to$ GPT-4o 메타평가(S1/S2) & O*NET 29.3, 8개 LLM 프롬프팅 & 0--1 점수, 923개 직업\\
+
+SkillAIAssessment & (D) LLM 델파이(단일모델 가상패널) & GPT-4(-turbo) 5인 가상전문가 3라운드 수렴 & 한국숙련사전 6,558개 숙련 & 0--100 시간절감률, 숙련단위\\
+
+Hampole et al.(2025) & (E) 임베딩 매칭 & 임베딩 코사인유사도(상위 95백분위 게이트)$\to$평균노출$m$·집중도$C$ & Revelio 이력서·공고, O*NET 28.3 & 평균노출/집중도, 기업$\times$직종\\
+
+AIOE-KR(2022) & (A)의 이식 & 식\eqref{eq:felten2}(응용-능력 매트릭스 고정, 가중치만 한국화) & 한국 재직자조사(2020) & AIOE와 동일 스케일\\
+
+Webb-KR(2023) & (B)의 이식 & 식\eqref{eq:webb}(원자료 그대로, 분류체계만 KSCO 변환) & Webb 원자료 + KLIPS & Webb와 동일 스케일\\
+
+관측노출(2026) & (E) 이론$\times$실사용 결합 & 식\eqref{eq:massenkoff-task}--\eqref{eq:massenkoff-occ}: $\beta$ 게이트$\times$실사용량 게이트$\times$자동화가중 & O*NET, Anthropic Economic Index, Eloundou $\beta$ & 0--1 비율, 직업단위\\
+\end{longtable}
+
+% ============================================================
+\section{LLM의 영향을 각 지표는 어떻게 정의·활용하는가}
+\label{sec:llm-focus}
+% ============================================================
+
+\subsection{세대 구분: AI 일반에서 LLM 특화로}
+
+지표들을 시간순으로 나열하면, ``AI''라는 포괄적 개념 안에서 LLM의 영향이 점차 분리·전면화되는 흐름이 뚜렷하다.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{LLM 비특정(Pre-LLM) 단계}: Felten et al.(2021)의 원본 AIOE(언어모델링을 10개 응용 중 하나로만 포함)와 Webb(2020)의 특허텍스트 지수(지도학습·강화학습·신경망 일반을 포괄, 트랜스포머/LLM 특정 키워드 없음)가 이에 해당한다. 두 지표 모두 LLM이 본격적으로 상용화되기 이전(2018~2020년 자료)에 구축되어, ``AI 노출도''라는 이름 아래 사실상 로봇·전통 ML의 영향을 더 많이 반영한다.
+  \item \textbf{LLM 특화(LLM-specific) 단계}: Felten et al.(2023)이 원본 응용-능력 매트릭스에서 언어모델링 응용만 분리한 것이 과도기적 사례이고, Eloundou et al.(2023)은 애초에 ``LLM 접근 시 시간단축률''을 정의 그 자체로 삼아 완전히 LLM 중심으로 설계됐다.
+  \item \textbf{LLM-평가자화(LLM-as-judge) 단계}: KEIS/KISDI AIE(\S\ref{sec:aie})와 SkillAIAssessment(\S\ref{sec:skillai})는 한 걸음 더 나아가, LLM 자신을 노출도 \emph{측정도구}로 사용한다. 이는 측정대상(LLM의 자동화 능력)과 측정도구(LLM의 판단력)가 동일한 기술적 실체라는 점에서 개념적으로 독특하다.
+  \item \textbf{이론$\times$실사용 결합 단계}: Massenkoff and McCrory(2026, \S\ref{sec:massenkoff})는 여기서 다시 한 번 전환해, LLM의 \emph{이론적} 능력(Eloundou $\beta$)에 실제 LLM \emph{사용} 데이터(Anthropic Economic Index)를 곱함으로써, 노출도 지표를 순수한 사전적(ex-ante) 개념에서 사후적(ex-post) 관측치와 결합된 하이브리드로 전환시킨다.
+\end{enumerate}
+
+\subsection{노출점수가 실제 LLM 채택을 얼마나 설명하는가: Bick et al. (2026)의 벤치마크}
+
+지표들이 LLM의 영향을 이론적으로 어떻게 정의하는지와 별개로, 그 정의가 \emph{실제 LLM 채택 패턴}을 얼마나 잘 설명하는지는 별도의 실증적 질문이다. \textcite{bick-2026-what-work-does-generative}는 미국 Real-Time Population Survey(RPS)에 2025년 8월부터 추가된 과업단위(O*NET DWA) genAI 채택 자기보고 지수를 이용해, 6개 기존 노출점수가 실제 채택률의 분산을 얼마나 설명하는지 직접 비교했다. 표\,\ref{tab:bick}은 그 결과다.
+
+\begin{longtable}{L{3.2cm}L{2.0cm}L{2.0cm}L{6.7cm}}
+\caption{노출점수의 실제 genAI 채택률 설명력 \parencite{bick-2026-what-work-does-generative}}\label{tab:bick}\\
+\toprule
+\textbf{노출점수} & \textbf{상관 $\rho$} & \textbf{$R^2$} & \textbf{비고}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{노출점수} & \textbf{상관 $\rho$} & \textbf{$R^2$} & \textbf{비고}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Eloundou et al. $\alpha$(직접노출) & 0.212 & 0.045 & 가장 엄격한 등급(E1)만 반영, 설명력 최저 수준\\
+Eloundou et al. $\beta$(가중노출) & 0.634 & 0.402 & \S\ref{sec:eloundou}의 $\zeta$에 해당하는 가중등급\\
+Eloundou et al. $\zeta$(최대노출) & 0.704 & 0.496 & 6개 지표 중 상위권\\
+Brynjolfsson et al.(2018) SML & 0.077 & 0.006 & 6개 중 설명력 최저\\
+Webb(2020) & 0.477 & 0.228 & 특허텍스트 기반, 중간 수준\\
+Felten et al.(2021) AIOE & 0.727 & 0.529 & 6개 중 설명력 최고\\
+\end{longtable}
+
+가장 설명력이 높은 Felten AIOE조차 실제 채택률 분산의 절반 남짓($R^2=0.529$)만을 설명하며, 근로자 개인 수준으로 내려가면 노출점수의 설명력(조정 $R^2$ 0.08 내외)은 직업 고정효과 자체가 설명하는 변이(조정 $R^2$ 0.176)의 절반에도 못 미친다. 즉 \textbf{어떤 노출점수도 ``이 직업/과업이 LLM에 노출되어 있다''는 사실만으로 ``실제로 LLM이 그만큼 쓰이고 있다''는 것을 보장하지 못한다} --- Bick et al.은 이 잔여 변이의 상당 부분이 개인별 학습(learning) 효과(과거 사용 경험, 동료 확산)로 설명됨을 준실험적으로 보인다. 이는 \S\ref{sec:massenkoff}의 관측노출이 이론노출에 실사용 게이트를 추가로 부과하는 것과 정확히 같은 문제의식이며, \S\ref{sec:felten}--\ref{sec:massenkoff}에서 다룬 여덟 개 지표 중 어느 것을 택하더라도 ``노출''과 ``실제 영향'' 사이에는 본 프로젝트가 실사용(usage) 데이터로 메워야 할 간극이 남는다는 점을 실증적으로 뒷받침한다.
+
+\subsection{챗로그 기반 실사용 측정치와의 괴리}
+
+Bick et al.(2026)은 나아가 Anthropic·OpenAI·Microsoft의 챗로그 기반 과업점유율 측정치(\S\ref{sec:felten}--\ref{sec:massenkoff}의 사전적 노출점수가 아니라 \S6의 실사용 데이터에 해당)와 RPS 서베이 기반 채택률 간의 상관도 낮음을 보고한다(RPS--Anthropic $\rho=0.34$, RPS--OpenAI $\rho=0.11$, RPS--Microsoft $\rho=0.10$). 원인은 챗로그 분류기가 사용자의 실제 직업 맥락을 모른 채 대화 내용만으로 과업을 추정하기 때문에, ``문서 편집'' 같은 범용 활동에 과대분류되는 경향이 있어서다(OpenAI 챗로그의 15.1\%가 이 범주로 분류되나, 실제 그 과업을 보유한 근로자는 응답자의 2.4\%에 불과). 이는 노출도 지표뿐 아니라 \emph{실사용} 데이터 간에도 측정 방식에 따라 상당한 괴리가 존재함을 보여주며, 본 프로젝트의 exposure--usage 결합 설계 시 어느 실사용 데이터원을 택하는지에 따라서도 결과가 민감할 수 있음을 시사한다.
+
+% ============================================================
+\section{결론: 본 프로젝트에 대한 시사점}
+% ============================================================
+
+여덟 개 지표를 관통하는 핵심 긴장은, \textbf{노출도의 판정 주체가 사람에서 텍스트 알고리즘으로, 다시 LLM 자신으로 옮겨가는 동안에도}, ``이론적으로 가능한 노출''과 ``실제로 발생하는 영향'' 사이의 간극은 좁혀지지 않는다는 점이다. Bick et al.(2026)의 벤치마크(\S\ref{sec:comparison})가 보여주듯 가장 설명력이 높은 지표조차 실제 채택 변이의 절반 남짓만을 설명하며, Massenkoff and McCrory(2026)의 관측노출은 이 간극을 명시적으로 정량화하는 유일한 사례다.
+
+이는 본 프로젝트가 \texttt{data/proc/merged/}에서 exposure와 usage를 결합할 때 다음을 시사한다.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{어느 노출지표를 기준으로 삼을지가 결과에 영향을 미친다}: Eloundou $\zeta$·Felten AIOE처럼 실제 채택과의 상관이 상대적으로 높은 지표를 우선 후보로 검토하되(표\,\ref{tab:bick}), Webb·전통 AIOE처럼 LLM 특유의 영향을 구분하지 못하는 지표는 ``AI 일반''과 ``생성형 AI/LLM''을 구분해야 하는 본 프로젝트의 목적에는 한계가 있다.
+  \item \textbf{이론노출을 실사용 게이트로 교정하는 접근(Massenkoff and McCrory 2026)이 본 프로젝트의 방법론적 벤치마크로 가장 적합하다}: 이론노출($\times$실사용 게이트) $\to$ 관측노출이라는 구조는, 국내 자료(고용보험DB, KISDI 채용공고)와 실사용 데이터(한국은행 가계조사, 또는 향후 확보 가능한 실사용 로그)를 결합할 때 그대로 벤치마크할 수 있다.
+  \item \textbf{한국 자료로 노출지표를 이식할 때는 원본 지표가 어느 세대의 AI를 반영하는지 명시해야 한다}: 전병유 외(2022)·한지우·오삼일(2023)처럼 미국의 pre-LLM 지표를 그대로 이식하는 경우, ``AI 노출도''라는 명칭이 실제로는 로봇·전통 ML 노출도에 가깝다는 점을 매칭 키(\texttt{log.md})에 명시할 필요가 있다.
+\end{enumerate}
+
+\clearpage
+\printbibliography
+
+\end{document}

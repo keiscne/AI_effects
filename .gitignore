@@ -1,0 +1,22 @@
+# 원본(raw) 데이터: 외부에서 받은 원본 그대로, 저장소 규모상 git 미추적
+/data/raw/
+
+# 가공(processed) 데이터: do 파일 실행 결과물이므로 재현 가능, git 미추적
+/data/proc/
+
+# 참고문헌 PDF 원본: 저작권·용량(수백MB) 문제로 git 미추적 (정리노트·bib만 연동)
+/reference/papers/
+
+# 컴파일된 보고서 산출물(pdf/docx): .tex/.md 소스에서 재생성 가능
+/results/report/*.pdf
+/results/report/*.docx
+/results/paper/*.pdf
+/results/paper/*.docx
+
+# 로컬 도구 설정
+/.claude/
+/.obsidian/
+
+# OS/에디터 캐시
+.DS_Store
+Thumbs.db
