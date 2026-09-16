@@ -1,0 +1,177 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 — 04_한국AI실증연구_방법론계보.tex에서 Felten(2021) 계승으로
+% 분류한 한국 실증연구 8편만을 대상으로, AIOE-KR 산출 시 미국-한국 직업분류
+% 매칭(크로스워크)을 거쳤는지, 아니면 매칭 없이 한국 자료에 방법론을 직접
+% 적용했는지를 세분류한다.
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+
+\title{Felten(2021) 계승 한국 연구의 직업분류 매칭 여부\\[1mm]
+\large --- AIOE-KR은 미국-한국 직업 매칭으로 만들어지는가, 한국 자료에 직접 적용해 만들어지는가 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent \texttt{04\_한국AI실증연구\_방법론계보.tex}에서 \citet{felten-2021-occupational-industry-and-geographic-exposure}의 AIOE를 계승한다고 분류한 한국 실증연구 8편을 대상으로, AIOE-KR을 산출하는 절차를 더 세밀하게 들여다본다. 기준은 (1) 미국 직업분류(O*NET/SOC) 기준으로 산출된 AIOE 점수를 미국-한국 직업분류 매칭(크로스워크)을 거쳐 한국 직업에 이식했는지, 아니면 (2) 애초에 미국-한국 직업 매칭 없이 Felten의 AI응용-능력 연계표(응용-능력 관련성 행렬)만 차용하고 한국 고유의 직업별 능력 조사자료에 직접 적용해 한국 직업 단위로 AIOE를 새로 산출했는지이다. 검토 결과 8편 전원이 (2) 유형에 해당하며, (1) 유형 --- 즉 \citet{webb-2020-impact-artificial-intelligence-labor} 계승 연구에서 반복적으로 나타나는 ``O*NET$\to$ISCO$\to$KSCO'' 식의 직업분류 크로스워크 --- 에 해당하는 사례는 발견되지 않았다. 이 차이는 Felten 방법론 고유의 구조(능력 단위 연계표와 직업 단위 능력 프로파일의 분리 가능성)에서 비롯된다는 점을 논증한다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{서론과 분류 기준}
+% ============================================================
+
+\texttt{04\_한국AI실증연구\_방법론계보.tex}는 한국 AI 실증연구 29편을 Felten(2021)$\cdot$Webb(2020)$\cdot$Eloundou(2023)$\cdot$그 외 네 계보로 분류했다. 이 중 Felten 계승 연구 8편은 모두 ``AIOE''라는 이름의 지표를 사용하지만, 정작 그 AIOE가 한국 직업에 어떻게 부여되었는지 --- 즉 ``미국에서 산출된 점수를 한국 직업에 이식했는지'' 아니면 ``한국 자료로 처음부터 다시 계산했는지'' --- 는 해당 문헌에서 다루지 않았다. 본 문헌은 이 8편만을 대상으로 이 질문에 답한다.
+
+구분 기준은 다음과 같다.
+
+\begin{itemize}
+  \item \textbf{유형 (1) 직업분류 매칭형}: 미국 직업분류(O*NET-SOC) 단위로 이미 산출되어 있는 AIOE 점수를, 국제표준직업분류(ISCO) 등을 경유해 한국표준직업분류(KSCO)나 한국고용직업분류(KECO)로 크로스워크(1:N 매칭$\cdot$가중평균 등)한 뒤 그대로 가져와 쓰는 방식. 이 경우 ``미국 직업의 AIOE 값''과 ``그 값이 매핑된 한국 직업''이 분리되어 있으며, 한국 고유의 직업별 능력 조사는 필요하지 않다.
+  \item \textbf{유형 (2) 직접 적용형}: 직업분류 간 매칭 없이, Felten et al.의 AI응용(10종)-능력(52종) 관련성 행렬(즉 ``어떤 AI응용이 어떤 인간 능력과 관련 있는가''라는 기술-능력 연계표)만 그대로 가져오고, 그 연계표를 한국 고유의 직업별 능력 조사(재직자조사 등)에 직접 적용해 한국 직업을 단위로 AIOE를 처음부터 다시 계산하는 방식. 이 경우 한국 직업은 애초에 미국 직업과 매칭된 적이 없으며, ``능력''이라는 중간 단위에서만 미국(O*NET 52개 능력)과 한국(재직자조사 15\textasciitilde 19개 능력변수) 간 축소$\cdot$변환이 이루어진다.
+\end{itemize}
+
+두 유형의 결정적 차이는 \emph{무엇이 국가 간에 이전되는가}이다. 유형 (1)은 ``직업별 최종 점수''가 이전되고, 유형 (2)는 ``능력 단위의 연계표(가중치)''만 이전되며 최종 점수는 한국 자료로 새로 계산된다. 이 구분은 \S\ref{sec:contrast}에서 다루듯, 왜 Felten 계승 연구와 Webb 계승 연구가 이식 방식에서 체계적으로 갈리는지를 설명하는 열쇠이기도 하다.
+
+% ============================================================
+\section{Felten(2021) 원 방법론에서 ``능력''과 ``직업''의 분리 구조}
+% ============================================================
+
+\citet{felten-2021-occupational-industry-and-geographic-exposure}의 AIOE 산출식은 두 단계로 분리된다.
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{능력 단위 노출도}: AI응용 $i$($i=1,\dots,10$)와 O*NET 능력 $j$($j=1,\dots,52$) 간 크라우드소싱 관련성 점수 $x_{ij}\in\{0,1\}$을 이용해 $A_j = \sum_i x_{ij}$를 구한다. 이 $A_j$는 특정 국가$\cdot$직업과 무관하게, ``능력 $j$가 현재의 AI 기술 10종과 얼마나 관련되는가''만을 나타내는 범용 가중치다.
+  \item \textbf{직업 단위 집계}: 직업 $k$의 AIOE는
+  \[
+  \text{AIOE}_k = \frac{\sum_j (A_j \cdot L_{jk} \cdot I_{jk})}{\sum_j (L_{jk} \cdot I_{jk})}
+  \]
+  로, 그 직업이 각 능력을 얼마나 필요로 하는가(보급도 $L_{jk}$, 중요도 $I_{jk}$)를 가중치로 삼아 1단계의 $A_j$를 평균한다. $L_{jk}$$\cdot$$I_{jk}$는 국가별 직업능력 조사(미국은 O*NET, 한국은 재직자조사)에서 직접 얻어지는 값이다.
+\end{enumerate}
+
+이 구조 덕분에 1단계($A_j$, 능력-응용 연계표)는 어느 국가에 적용하든 재사용할 수 있는 반면, 2단계($L_{jk}$, $I_{jk}$, 직업의 능력 프로파일)는 국가마다 고유한 직업능력 조사 자료가 있으면 그 나라 직업 분류로 곧바로 다시 계산할 수 있다. 즉 \textbf{직업분류를 매칭할 필요 자체가 없다} --- 한국에 O*NET과 유사한 직업능력 조사(재직자조사)가 있는 한, 미국 직업과 매칭하지 않고도 한국 직업 537개(또는 그 상위 분류)에 대해 AIOE를 직접 산출할 수 있다. 이는 \citet{webb-2020-impact-artificial-intelligence-labor}의 특허텍스트 지수(직업 과업문 자체가 미국 O*NET 텍스트이므로, 한국에 적용하려면 반드시 한국 직업을 미국 직업에 매칭시켜 그 텍스트를 빌려와야 하는 구조, \texttt{04\_한국AI실증연구\_방법론계보.tex} \S4 참조)와 근본적으로 다른 지점이다.
+
+% ============================================================
+\section{Felten 계승 연구 8편의 직업분류 매칭 여부}
+% ============================================================
+
+\begin{longtable}{L{2.4cm}L{1.7cm}L{3.5cm}L{3.3cm}L{3.7cm}}
+\caption{Felten(2021) 계승 연구 8편의 AIOE 산출 방식}\label{tab:main}\\
+\toprule
+\textbf{문헌} & \textbf{유형} & \textbf{직업 자료(한국 고유)} & \textbf{능력변수 매칭(참고)} & \textbf{직업분류 매칭 여부}\\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{유형} & \textbf{직업 자료(한국 고유)} & \textbf{능력변수 매칭(참고)} & \textbf{직업분류 매칭 여부}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{cheon-2022-ai-employment-wage-effects} &
+(2) 직접 적용형 &
+한국직업정보 재직자조사(2020, 537개 직업, N$\approx$16{,}244) &
+O*NET 52개 능력 $\to$ 한국 조사 15개 능력변수로 축소 &
+없음 --- 한국 537개 직업에 능력연계표를 직접 적용해 AIOE-KR을 처음 산출\\
+
+\citet{chang-2024-ai-development-employment-effects} 3장(전병유) &
+(2) 직접 적용형 &
+한국직업정보 재직자조사(2020) &
+상동(전병유 공통 저자, 15개 능력변수 기반 확장) &
+없음 --- 재직자조사 기반으로 AIOE$\cdot$Adj\_AIOE$\cdot$Social\_AIOE$\cdot$GPT Exposure를 병행 산출\\
+
+\citet{kiet-2025-ai-occupational-employment-effect} &
+(2) 직접 적용형 &
+한국직업정보 재직자조사(2020, 537개 직업) $\to$ KECO 소분류 136개로 단순평균 연계 &
+O*NET 52개 능력 $\to$ 한국 조사 19개 능력변수로 확장(전병유 외 15개+4개 추가) &
+없음 --- 미국 직업과의 매칭 없이 재직자조사 직업을 KECO로 자체 집계\\
+
+\citet{han-2025-ai-diffusion-youth-employment-decline} &
+(2) 직접 적용형(재사용) &
+지역별고용조사(2024 상반기, KECO/KSIC 기준 업종 내 직업분포) &
+별도 재산출 없음(기존 AIOE-KR 계열 재사용으로 추정) &
+없음 --- 업종(KSIC 중분류 75개) 내 한국 직업분포로 AIOE를 가중평균해 업종 지표로 전환\\
+
+\citet{bok-2026-youth-employment-decline-ai-career-ladder} &
+(2) 직접 적용형(재사용) &
+한진수$\cdot$오삼일(2025)과 동일 &
+상동 &
+없음 --- 한진수$\cdot$오삼일(2025) 방법을 최신 자료로 연장\\
+
+\citet{bok-2025-rapid-ai-diffusion-productivity-effects} &
+(2) 직접 적용형(재사용) &
+가계조사 응답자 직업중분류(지역별고용조사 기준 층화) &
+별도 재산출 없음 &
+없음 --- 가계조사 응답자의 한국 직업코드에 기존 AIOE-KR을 매칭해 상관관계만 검증\\
+
+\citet{noh-2025-ai-labor-coexistence} 2장(이환웅) &
+(2) 직접 적용형(재사용) &
+고용보험 전수DB 직업코드(KECO) &
+별도 재산출 없음 &
+없음 --- 고용보험DB의 한국 직업코드에 AIOE-KR을 연결해 상위/하위 30\% 구분\\
+
+\citet{cheon-2025-ai-exposure-vs-ai-adoption} &
+(2) 직접 적용형(재사용) &
+지역고용조사$\cdot$재직자조사 결합, KECO 4자리 451개 직업 &
+전병유 외(2022)의 15개 능력변수 연계표를 그대로 재사용 &
+없음 --- ``전병유 외(2022)가 산출한 한국형 AIOE를 재사용''함을 본문에 명시\\
+
+\end{longtable}
+
+% ============================================================
+\section{원 산출(1차 계산)과 재사용의 구분}
+% ============================================================
+
+표 \ref{tab:main}에서 ``직업분류 매칭 여부''는 8편 모두 ``없음''으로 동일하지만, AIOE-KR을 \textbf{직접 계산했는지} 아니면 \textbf{이미 계산된 시리즈를 가져다 썼는지}는 갈린다. 이는 사용자가 요청한 두 유형 구분과는 다른 축이지만, ``직접 적용형''이 실제로 어떻게 반복 재생산되는지를 보여주므로 함께 정리한다.
+
+\begin{itemize}
+  \item \textbf{원 산출(재직자조사에서 직접 계산)}: \citet{cheon-2022-ai-employment-wage-effects}이 15개 능력변수로 최초 산출했고, \citet{kiet-2025-ai-occupational-employment-effect}가 19개 능력변수로 독자 재계산했다. \citet{chang-2024-ai-development-employment-effects} 3장도 동일한 재직자조사 자료로 AIOE를 산출한다고 명시하나, 전병유가 두 논문(2022, 2024)의 공통 저자여서 근본적으로 같은 15개 능력변수 연계표에 기반한 것으로 판단된다(원문에 ``새로 산출''이라는 명시적 표현은 없음).
+  \item \textbf{재사용(기존 AIOE-KR 계열을 직업코드로 연결만 함)}: \citet{han-2025-ai-diffusion-youth-employment-decline}$\cdot$\citet{bok-2026-youth-employment-decline-ai-career-ladder}$\cdot$\citet{bok-2025-rapid-ai-diffusion-productivity-effects}$\cdot$\citet{noh-2025-ai-labor-coexistence} 2장$\cdot$\citet{cheon-2025-ai-exposure-vs-ai-adoption}은 모두 자체적으로 AIOE를 재계산하지 않고, 이미 산출되어 있는 ``직업단위 AIOE-KR''에 자신의 분석 자료(고용보험DB, 국민연금, 가계조사 등)의 한국 직업코드를 연결하는 방식을 취한다. 이 중 \citet{cheon-2025-ai-exposure-vs-ai-adoption}만 원 출처(전병유 외 2022)를 본문에 명시했고, 나머지 4편은 ``Felten et al.(2021)의 AIOE''라고만 표기해 정확히 어느 논문의 산출물을 재사용했는지는 원문상 특정하기 어렵다(다만 한국은행 조사국 계열 3편이 서로를 직접 인용하는 연구 계보이므로, 최초 산출은 계열 내부 어딘가 --- 사실상 전병유 외(2022)의 방법론을 계승한 자체 재계산 --- 로 추정된다).
+\end{itemize}
+
+이 구분과 무관하게, \textbf{재계산이든 재사용이든 8편 전원이 ``미국 직업과 매칭된 값을 가져오는'' 방식이 아니라 ``한국 직업코드에 (직접 계산했거나 이미 계산되어 있는) 한국형 AIOE를 붙이는'' 방식}이라는 점에서는 공통적이다. 즉 재사용 논문들도 유형 (1)(미국-한국 직업분류 매칭)이 아니라 유형 (2)의 연장선에 있다.
+
+% ============================================================
+\section{왜 유형 (1) 사례가 없는가: Webb 계열과의 대조}\label{sec:contrast}
+% ============================================================
+
+\texttt{04\_한국AI실증연구\_방법론계보.tex} \S4에서 다룬 Webb(2020) 계승 연구 3편(한지우$\cdot$오삼일 2023, 김진성 2025, 송단비 외 2024 4장)은 정확히 유형 (1)에 해당하는 절차를 밟는다: \citet{han-2023-ai-and-labor-market-change}은 ``미국직업분류(O*NET)$\to$국제표준직업분류(ISCO)$\to$한국표준직업분류(KSCO, 소분류)로 변환''한다고 명시하며, 이는 Webb의 노출점수가 애초에 ``미국 특허텍스트와 O*NET 과업문의 중복도''로 산출되어 특정 미국 직업에 고정된 값이기 때문이다. 한국에 이를 적용하려면 한국 직업을 미국 직업에 강제로 대응시키는 것 외에는 방법이 없다.
+
+반면 Felten의 AIOE는 \S2에서 보였듯 ``능력''이라는 중간 단위를 경유하기 때문에, 한국에 자체 직업능력 조사(재직자조사)만 있으면 직업분류를 매칭하지 않고도 한국 직업 단위로 지표를 다시 만들 수 있다. 8편 전원이 유형 (2)로 수렴한 것은 우연이 아니라, 이 구조적 차이가 만든 필연적 결과로 해석할 수 있다. 다시 말해 \textbf{``직업분류 매칭이 필요한가''는 지표 선택의 문제가 아니라, 그 지표가 능력(ability) 단위로 분해 가능한가 아니면 직업(occupation) 단위에서 텍스트로 고정되어 있는가라는 방법론 내재적 속성의 문제}다.
+
+% ============================================================
+\section{결론: 본 프로젝트에 대한 시사점}
+% ============================================================
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{AIOE-KR은 ``번역''이 아니라 ``재계산''이다}: Felten 계열 8편 어디에도 미국 직업의 AIOE 값을 한국 직업에 그대로 옮겨온 사례가 없다. 본 프로젝트가 향후 새로운 노출지표를 한국에 이식할 때, 그 지표가 능력$\cdot$과업 단위로 분해 가능한지(Felten형, 재계산 용이) 아니면 직업 단위 텍스트에 고정되어 있는지(Webb형, 크로스워크 필요)를 먼저 판별하는 것이 실무적으로 중요하다.
+  \item \textbf{``재사용'' 5편이 어느 원 산출물을 쓰는지는 원문만으로 확정하기 어렵다}: 한국은행 조사국 계열 논문들이 ``Felten et al.(2021)의 AIOE''라고만 인용하고 정확한 1차 산출 논문(전병유 외 2022 혹은 그 자체 재계산)을 명시하지 않는 경우가 많아, \texttt{log.md}에 추후 원 저자 확인이 필요한 항목으로 남겨둔다.
+  \item \textbf{능력변수 매칭의 이질성}: 15개(전병유 외 2022, 장지연 외 2024) vs. 19개(장재기$\cdot$김동근 2025) 능력변수 축소판이 공존하므로, 서로 다른 논문의 AIOE-KR 수치를 직접 비교하려면 이 능력변수 정의 차이도 함께 고려해야 한다.
+\end{enumerate}
+
+\printbibliography
+
+\end{document}
