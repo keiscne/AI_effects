@@ -91,3 +91,18 @@
   - `reference/papers/cheon-2025-ai-exposure-vs-ai-adoption.pdf`, `reference/notes/cheon-2025-ai-exposure-vs-ai-adoption.md`를 `D:/econ-wiki/papers/local/`, `D:/econ-wiki/sources/`에서 복사(econ-wiki에 이미 존재하던 노트를 그대로 가져옴, 내용 수정 없음).
   - `reference/references.bib`: `cheon-2025-ai-exposure-vs-ai-adoption` citation key 신규 등재(`chang-2026-skill-network-ai-era` 다음, `eloundou-2023-gpts-are-gpts-an-early` 앞에 알파벳순 삽입).
   - 이 논문은 본 저장소의 핵심 문제의식(exposure vs. usage/adoption 괴리)과 직접 맞닿는 문헌: 기존 AIOE류 노출지수(AI가 할 수 있는 일)와 실제 한국 AI 기업 355개의 서비스텍스트를 LLM 매칭한 AI Firm Exposure(AIFE, 실제 적용도) 간 상관이 0.35에 불과함을 실증 — 향후 `03_AI개념_세흐름_분류.tex` 등 report에 반영 검토 필요(아직 미반영).
+- `D:\research\AI_effects`를 git 저장소로 초기화하고 GitHub `https://github.com/keiscne/AI_effects`에 연동(사용자 요청).
+  - `.gitignore` 작성: `data/raw/`, `data/proc/`(재현 가능한 가공물), `reference/papers/`(저작권 PDF, 259MB), 컴파일된 `results/*/*.pdf`·`*.docx`, `.claude/`, `.obsidian/` 제외.
+  - `CLAUDE.md`, `log.md`, `reference/notes/`(59편), `reference/references.bib`, `results/report/*.tex`·`*.md` 소스를 초기 커밋(로컬 git 사용자 정보는 이 저장소에 한정해 keiscne@gmail.com으로 설정, 전역 config는 미변경) 후 원격이 비어 있음을 확인하고 `main` 브랜치로 push.
+  - 이후 연동 방식은 표준 git 워크플로(수정 후 수동 add/commit/push)이며 자동 감시·자동 push 파이프라인은 구축하지 않음.
+
+## 2026-09-17
+
+- 신규 report `04_한국AI실증연구_방법론계보.tex`/`.md`/`.docx`/`.pdf` 작성(사용자 요청: 한국 AI 실증연구들을 (1) Felten(2021) (2) Webb(2020) (3) Eloundou(2023) 방법론 계승 여부 (4) 그 외 방법론 기준으로 분류하고, 각 논문이 해당 방법론을 어떻게 활용했는지 정리).
+  - `02_AI노출도_지표_비교.tex`가 "지표" 단위로 8개 노출지수를 심화 비교한 것과 달리, 본 report는 "논문" 단위로 시각을 바꿔 동일 지표(특히 AIOE-KR)를 재사용하는 국내 문헌들이 서로 다른 실증전략(셀 회귀/삼중차분/혼합로짓 등)을 쓸 때 결론이 어떻게 달라지는지에 초점.
+  - 분류 대상: `reference/notes/`의 한국 AI 노동시장 실증연구 29편 전체(이번 세션에 처음 전문을 읽은 22편 포함, 기존 대화에서 이미 읽은 cheon-2022/cheon-2025/felten-2021/report02 7편 재활용). Felten 계열 8편, Webb 계열 3편, Eloundou 계열 7편(실질, 장 분리 중복 제외), 그 외 방법론 13편, 순수 방법론 리뷰 1편(이학기 외 2024 3장)으로 분류.
+  - 분류 판단기준: Eloundou 계열은 원 논문의 E0–E3 루브릭을 직접 쓰는 경우(`cheon-2025`의 AIOE_by_GPT)뿐 아니라, "LLM이 과업/숙련의 자동화가능성을 직접 판정"한다는 핵심 아이디어를 계승해 독자적인 델파이·앙상블로 변형한 경우(한국노동연구원 SkillAIAssessment 계열, KEIS/KISDI 8개 LLM 델파이 계열)까지 포함해 넓게 정의. `nam-2026`(KDI)은 Eloundou의 노출개념을 5축으로 재정의하는 독자 지표(AI score)를 만들어 방법론적으로 크게 갈라지므로 Eloundou 계승이 아닌 "기타"로 분류하되 개념적 연원만 본문에 명시.
+  - 경계 사례(한 보고서 안에서 장마다 다른 계보 사용)를 §7에 별도 정리: `cheon-2025`(Felten+Eloundou+기타), `chang-2024`(Felten+기타), `kiet-2024-ai-labor-market-industry`(Webb+기타), `chang-2025-ai-era-skills`(Eloundou+기타 숙련네트워크).
+  - `.tex`: report 01–03과 동일한 xelatex+kotex+biblatex(authoryear) preamble 재사용. longtable 8개(원조방법론 요약, Felten/Webb/Eloundou/기타1·2·3 계승연구, 29편 종합) 모두 열 폭 합을 사전에 인쇄영역(A4, margin 2.2cm 기준 16.6cm) 이내로 설계.
+  - `.docx`/`.pdf`: report 01–03과 동일한 HTML 중간본(`report04.html`) → Word COM 변환 → `word/document.xml`의 tblW/tblGrid/tcW를 인쇄영역 9026twips(A4, 좌우 여백 각 1440twips)에 맞춰 비율대로 재계산·`tblLayout=fixed` 적용 → 재압축 → Word COM 재저장 및 PDF 출력(총 13페이지). 이번에는 `[xml]$xml = Get-Content -Raw` 캐스트가 인코딩 문제로 XML 파싱에 실패하는 신규 이슈를 발견 — `System.Xml.XmlDocument.Load(path)`로 파일을 직접 로드하는 방식으로 전환해 해결(향후 report의 docx 파이프라인에도 이 방식 적용 필요).
+  - 검증: `Windows.Data.Pdf`로 PDF 전체 13페이지를 이미지 렌더링해 8개 표 모두 페이지 폭 안에 정상적으로 들어오고 잘리지 않음을 육안 확인(특히 4열 표와 29편 종합표의 2열 표 모두 확인).

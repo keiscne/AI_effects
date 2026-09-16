@@ -1,0 +1,481 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 — 한국 AI 노동시장 실증연구 29편을 노출도 측정
+% 방법론의 계보(Felten 2021 / Webb 2020 / Eloundou 2023 / 그 외)에 따라
+% 분류하고, 각 논문이 해당 방법론을 구체적으로 어떻게 활용·변형했는지 정리.
+% 02_AI노출도_지표_비교.tex(지표 단위 비교)의 자매편으로, 시각을 "지표"에서
+% "논문"으로 옮겨 동일 지표를 재사용하는 국내 문헌들의 실증전략 차이를 다룬다.
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+
+\title{한국 AI 실증연구의 방법론 계보\\[1mm]
+\large --- Felten(2021)·Webb(2020)·Eloundou(2023) 계승 연구와 그 외 방법론의 분류 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent \texttt{reference/notes/}에 수록된 한국 AI 노동시장 실증연구 29편을, AI 노출도·도입을 측정하는 데 사용한 방법론의 계보에 따라 (1) \citet{felten-2021-occupational-industry-and-geographic-exposure}의 크라우드소싱 기반 AIOE를 활용·계승하는 연구, (2) \citet{webb-2020-impact-artificial-intelligence-labor}의 특허텍스트 노출지수를 활용·계승하는 연구, (3) \citet{eloundou-2023-gpts-are-gpts-an-early}의 LLM 직접판정 방식을 활용·계승하는 연구, (4) 이 세 계보와 무관한 그 외 방법론(기업 설문·행정자료 기반 도입 직접측정, 텍스트마이닝, 실태조사, 실험연구, 자체 개발 복합지표 등) 연구로 분류하고, 각 논문이 해당 방법론을 구체적으로 어떻게 적용·변형했는지 정리한다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{서론}
+% ============================================================
+
+\texttt{02\_AI노출도\_지표\_비교.tex}가 노출도 ``지표'' 자체의 산출공식·데이터·LLM 영향 조작화 방식을 지표 단위로 비교했다면, 본 문헌은 시각을 바꾸어 ``논문'' 단위로 한국의 AI 노동시장 실증연구를 훑는다. 즉 동일한 지표(예: AIOE-KR)를 여러 논문이 서로 다른 실증전략(셀 회귀, 삼중차분, 혼합로짓 등)으로 재사용하는 경우, 지표 자체의 특성이 아니라 ``이 논문이 이 방법론을 가져와 무엇을 어떻게 추가로 분석했는가''에 초점을 맞춘다.
+
+분류 기준은 다음 네 갈래다.
+
+\begin{itemize}
+  \item \textbf{(1) Felten(2021) 계승}: \citet{felten-2021-occupational-industry-and-geographic-exposure}의 AI응용-O*NET 능력 연계표 기반 AIOE(또는 그 확장판)를 직접 구축·재사용하는 연구.
+  \item \textbf{(2) Webb(2020) 계승}: \citet{webb-2020-impact-artificial-intelligence-labor}의 특허텍스트 동사-명사 중복도 기반 노출지수(또는 그 한국 이식판)를 직접 구축·재사용하는 연구.
+  \item \textbf{(3) Eloundou(2023) 계승}: LLM이 과업·숙련의 자동화/보완 가능성을 직접 판정하는 방식(\citet{eloundou-2023-gpts-are-gpts-an-early}의 E0--E3 루브릭 자체, 또는 이를 원용·확장한 GPT 델파이·앙상블 방법론)을 사용하는 연구.
+  \item \textbf{(4) 그 외}: 위 세 계보의 노출지표를 사용하지 않고, 기업·근로자 설문의 AI 도입 자기보고, 구인공고·사업보고서 텍스트마이닝, 행정통계 전수조사, 실험실 실험, 자체 개발 복합지표 등으로 AI의 영향을 측정하는 연구.
+\end{itemize}
+
+한 논문이 여러 장(章)에 걸쳐 서로 다른 방법론을 병행하는 경우(예: \citet{cheon-2025-ai-exposure-vs-ai-adoption}가 AIOE·AIOE\_by\_GPT·AIFE 세 지표를 모두 구축, \citet{chang-2024-ai-development-employment-effects}가 3장은 Felten·4장은 구인공고 기반 도입식별을 사용)가 다수 있어, 이런 ``경계 사례''는 \S\ref{sec:boundary}에서 별도로 정리한다. 순수 방법론 리뷰 문헌(\citet{lee-2024-generative-ai-labor-market-measurement})도 \S\ref{sec:boundary}에 포함한다.
+
+% ============================================================
+\section{세 원조 방법론 요약}
+% ============================================================
+
+세 방법론의 정의·산출공식·데이터는 \texttt{02\_AI노출도\_지표\_비교.tex} \S3.1--3.3에서 상세히 다뤘으므로, 여기서는 분류 기준으로 쓰이는 핵심만 요약한다.
+
+\begin{longtable}{L{3.0cm}L{4.8cm}L{3.5cm}L{4.0cm}}
+\caption{세 원조 방법론 요약}\\
+\toprule
+\textbf{방법론} & \textbf{핵심 아이디어} & \textbf{판정 주체} & \textbf{원 데이터}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{방법론} & \textbf{핵심 아이디어} & \textbf{판정 주체} & \textbf{원 데이터}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{felten-2021-occupational-industry-and-geographic-exposure} AIOE &
+AI응용 10종과 O*NET 능력 52개 간 관련성을, 직업이 요구하는 능력의 보급도·중요도로 가중평균 &
+인간 크라우드워커(Amazon MTurk) &
+EFF AI응용 10종 $\times$ O*NET 52능력\\
+
+\citet{webb-2020-impact-artificial-intelligence-labor} &
+AI 특허 제목과 직업 과업문의 동사-명사 조합 중복도 &
+텍스트 알고리즘(사람 판단 없음) &
+Google Patents, O*NET 과업문\\
+
+\citet{eloundou-2023-gpts-are-gpts-an-early} &
+LLM 접근 시 과업 수행시간을 50\% 이상 단축할 수 있는지 여부(E0--E3 등급) &
+LLM(GPT-4) + 인간평가자 &
+O*NET DWA/과업, GPT-4 판정\\
+
+\end{longtable}
+
+% ============================================================
+\section{Felten(2021) 계승 연구}
+% ============================================================
+
+Felten AIOE는 한국 실증연구가 가장 먼저, 가장 널리 이식한 지표다. 2022년 최초 이식(\citet{cheon-2022-ai-employment-wage-effects}) 이후 2024\textasciitilde 2026년에 걸쳐 능력변수 확장(\citet{kiet-2025-ai-occupational-employment-effect}), 업종 단위 집계(\citet{han-2025-ai-diffusion-youth-employment-decline}, \citet{bok-2026-youth-employment-decline-ai-career-ladder}), 개인-연도 패널 삼중차분(\citet{noh-2025-ai-labor-coexistence}), 기업단위 집계(\citet{chang-2024-ai-development-employment-effects} 6장)까지 응용 형태가 다양화되었다. 아래 8편은 모두 Felten et al.의 AI응용-능력 연계표(또는 그 직접 파생물)를 노출지표의 근간으로 사용한다.
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{Felten(2021) AIOE 계승 연구}\label{tab:felten}\\
+\toprule
+\textbf{문헌} & \textbf{AIOE 활용 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{AIOE 활용 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{cheon-2022-ai-employment-wage-effects} &
+Felten 응용-능력 매트릭스를 한국 재직자조사 15개 능력변수로 재계산(AIOE-KR 최초 구축) &
+고용보험DB 지역$\times$직업 셀(2015--2019), OLS &
+AIOE는 고용증가와 유의한 정(+), 임금상승률과는 비유의; 임금수준 프리미엄은 유의\\
+
+\citet{chang-2024-ai-development-employment-effects} 3장 &
+AIOE에 더해 보완성 조정(Adj\_AIOE)·사회적숙련 조정(Social\_AIOE)·GPT Exposure를 병행 산출·비교 &
+재직자조사(2020) 임금회귀, Pizzinelli·Gmyrek 방법 병행 &
+AIOE $+0.0384^{***}$, Adj\_AIOE $-0.0656^{***}$로 부호 반전; GPT Exposure는 역U자형\\
+
+\citet{kiet-2025-ai-occupational-employment-effect} &
+Felten 방법을 19개 능력변수(15개+4개 추가)로 확장, 매칭 정확도 개선 &
+고용보험 사업장-피보험자 패널(2010--2019), 사업장·연도 FE &
+AIOE 1\%$\uparrow$$\to$고용 $-2.36\%^{***}$; 사분위·35개 중분류 직종별 이질효과 최초 분리\\
+
+\citet{han-2025-ai-diffusion-youth-employment-decline} &
+국민연금 가입자수를 업종(중분류 75개) 내 직업분포로 AIOE 가중평균 &
+국민연금 가입자수(2019.7--2025.7), 삼중차분(DDD) &
+청년일자리 감소의 98.6\%가 AI 고노출업종에서 발생; AI 보완도 높은 업종은 감소 없음\\
+
+\citet{bok-2026-youth-employment-decline-ai-career-ladder} &
+한진수·오삼일(2025)과 동일 AIOE 방법을 최신자료로 연장 &
+국민연금 가입자수 확장, DDD + 강건성(대안지수) &
+청년일자리 $-28.5$만개 중 94\%가 고노출업종; 자동화 활용 업종만 감소, 증강 업종은 제한적\\
+
+\citet{bok-2025-rapid-ai-diffusion-productivity-effects} &
+Felten AIOE를 가계조사 응답과 연결해 노출도-활용률 상관관계 검증(보조적 사용) &
+전국 대표표본 가계조사(N=5{,}512) &
+AIOE-AI활용률 상관 기울기 $27.92^{***}$(양의 상관), 노출도가 높을수록 활용률도 높음\\
+
+\citet{noh-2025-ai-labor-coexistence} 2장 &
+AIOE 상위/하위 30\% 이분 후 개인-연도 패널에 적용 &
+고용보험 전수DB(2019--2024, 약 4{,}120만 관측치), 삼중차분(DDD) &
+총효과: 고용 비유의, 임금 유의한 정(+)($+0.0009\sim0.0012$); DDD Net AI Effect는 전 지표 비유의\\
+
+\citet{cheon-2025-ai-exposure-vs-ai-adoption} &
+AIOE-KR을 AIOE\_by\_GPT·AIFE와 나란히 재구축, 상관관계 비교 &
+지역고용조사·재직자조사 결합 &
+AIOE-AIFE 상관계수 0.35에 불과 --- 기술적 노출과 실제 적용의 괴리 실증\\
+
+\end{longtable}
+
+Felten 계열 내부에서도 결합되는 종속자료(고용보험DB vs. 국민연금 vs. 가계조사)와 식별전략(셀 회귀 vs. DDD vs. 상관분석)이 뚜렷이 갈린다. 특히 동일한 AIOE-KR을 사용하고도 \citet{noh-2025-ai-labor-coexistence}(개인-연도 패널, DDD)는 ``AI 노출도가 고용·임금 불평등을 구조적으로 심화시켰다는 증거는 없다''는 결론을, \citet{kiet-2025-ai-occupational-employment-effect}(사업장 패널, FE)는 ``AIOE가 높을수록 고용이 유의하게 감소한다''는 상반된 결론을 낸다 --- 분석단위(사업장 vs. 개인)와 식별전략(FE vs. DDD)의 차이가 결과의 방향 자체를 바꿀 수 있음을 보여주는 사례다.
+
+% ============================================================
+\section{Webb(2020) 계승 연구}
+% ============================================================
+
+Webb 특허텍스트 지수는 Felten 계열보다 이식 사례가 적다(3편). 원 지수가 로봇·소프트웨어·AI 세 기술을 동시에 산출한다는 특징이 한국 이식 연구에도 그대로 이어져, AI 노출효과를 로봇·소프트웨어의 실측 효과에 유추 적용하는 2단계 구조가 반복된다.
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{Webb(2020) 특허텍스트 지수 계승 연구}\label{tab:webb}\\
+\toprule
+\textbf{문헌} & \textbf{Webb 지수 활용 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{Webb 지수 활용 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{han-2023-ai-and-labor-market-change} &
+Webb 특허텍스트 지수를 O*NET$\to$ISCO$\to$KSCO로 변환(Webb-KR 최초 구축), AI 자체 효과는 소프트웨어 지수의 실측 탄력성을 유추 적용 &
+한국노동패널(KLIPS) 직업-산업-연도 셀(2000 vs. 2021) 횡단면 차분 &
+로봇 노출 10pctile$\uparrow$$\to$고용 $-11.7$\%p$\cdot$임금 $-4.6$\%p; 소프트웨어는 $-7$\%p$\cdot$$-2$\%p; AI는 후자를 유추 적용\\
+
+\citet{kim-2025-youth-job-choice-ai-exposure} &
+한지우·오삼일(2023)의 Webb-KR 지수를 그대로 차용(KSCO$\to$KECO 변환) &
+고용보험 피보험자 이력DB(2022, N=101{,}028 청년), 계층적 베이즈 혼합로짓 &
+AI 노출도가 높을수록 청년 구직자의 해당 직업 선택확률이 유의하게 감소(고졸이하에서 감소폭 최대)\\
+
+\citet{kiet-2024-ai-labor-market-industry} 4장 &
+Webb(2019) AI·소프트웨어·로봇 노출지수(순위값)를 직종별사업체노동력조사에 결합, Acemoglu et al.(2022) 방법론 원용 &
+직종별사업체노동력조사(2012, 2022), 횡단면 차분회귀 &
+AI 노출 1단위$\uparrow$$\to$총고용 $-0.43\%^{*}$(로봇 $-0.90\%$보다 약함); 대졸·박사급 구인은 오히려 유의하게 증가($+1.17\%^{***}$)\\
+
+\end{longtable}
+
+Webb 계열의 공통된 특징은 ``AI 노출도가 로봇·소프트웨어 노출도보다 고용에 미치는 부정적 영향이 작거나, 오히려 고학력 구인을 늘린다''는 패턴이 반복 관찰된다는 점이다(\citet{han-2023-ai-and-labor-market-change}의 고학력·고소득 집중 노출, \citet{kiet-2024-ai-labor-market-industry}의 대졸·박사 구인 증가). 이는 \S\ref{tab:felten}의 Felten 계열이 보이는 ``고노출 직종 청년고용 감소''와 표면적으로 배치되는 것처럼 보이나, 두 계열이 서로 다른 노출개념(Felten: 능력-응용 관련성 전반, Webb: 특허텍스트상 자동화 패턴)을 측정한다는 점에서 직접 비교에는 주의가 필요하다.
+
+% ============================================================
+\section{Eloundou(2023) 계승 연구}
+% ============================================================
+
+Eloundou 계열은 ``LLM이 과업의 자동화 가능성을 직접 판정한다''는 원형 아이디어가 한국에서는 크게 두 갈래로 분화했다: (i) GPT-4에 직접 프롬프팅하는 원형에 가까운 방식, (ii) 복수 LLM을 ``델파이 패널''로 묶어 판정의 재현성·편향 문제를 완화하려는 앙상블 확장판. 후자가 한국 문헌에서는 더 큰 비중을 차지한다.
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{Eloundou(2023) LLM 직접판정 계승 연구}\label{tab:eloundou}\\
+\toprule
+\textbf{문헌} & \textbf{Eloundou 방식 활용 형태} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{Eloundou 방식 활용 형태} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{cheon-2025-ai-exposure-vs-ai-adoption} AIOE\_by\_GPT &
+GPT-4 API에 Eloundou와 유사한 프롬프트(``10년 내 핵심업무 재구조화 가능성만 노출로 간주'')를 직접 적용 &
+한국고용직업분류 451개 직업 DWA 텍스트 &
+AIOE\_by\_GPT-AIFE(실제적용) 상관 0.31에 불과, AIOE와의 상관은 0.08로 더 낮음\\
+
+\citet{chang-2026-ai-technology-diffusion-employment} &
+Eloundou의 이론틀을 차용한 GPT-4 ``5인 전문가 패널'' 역할수행+델파이 3라운드(SkillAIAssessment)를 전 산업에 적용 &
+고용보험DB 직종 소분류(2021--2024), 구인공고 AI도입 식별 결합 &
+2022.11 이후 청년층·정보통신업·사무직·전문직에서 고용 정체·감소 조짐(회귀표 미제시, 지수 그래프 기반)\\
+
+\citet{chang-2025-ai-era-skills} 2장 &
+동일 SkillAIAssessment(GPT-4-turbo, 5인 가상패널, 3라운드 델파이)를 한국숙련사전 6{,}558개 숙련 전체에 적용 &
+IT 구인공고(2021, 2024) 결합, 숙련 네트워크 지표(SOD$\cdot$PageRank)와 교차분석 &
+AI 노출도 최대 89점(빌드·테스트·배포 자동화)$\cdot$최소 7점(수영 강습); 노출도-네트워크 중심성 상관은 낮음(역설)\\
+
+\citet{chang-2026-skill-network-ai-era} &
+장지연 외(2025) 2장의 SkillAIAssessment 결과를 요약·재인용, 전이가능성 지표와 결합 &
+동일 데이터, 마코프 전이모형 &
+AI/ML 숙련이 IT를 넘어 금융·제조업으로 확산되는 전이가능성 패턴 실증\\
+
+\citet{noh-2025-ai-based-manufacturing-innovation-employment} 2장 &
+동일 SkillAIAssessment를 제조업 특화 재적용 &
+고용보험DB(2021--2024), 준사건연구(2022.11=100 지수) &
+제조업 AI 도입률 약 23\%(전산업 32\%보다 낮음); AI 도입기업 숙련수요 1위는 정보기술, 미도입기업은 제조$\cdot$생산\\
+
+\citet{keis-2025-ai-job-exposure-labor-demand} &
+8개 오픈소스 LLM을 델파이 전문가 패널로, GPT-4o를 메타평가자로 사용(Eloundou와 비교가능성 위해 O*NET$\cdot$단일라운드 방식 채택) &
+O*NET 923개 직업, 한국 채용공고(KISDI) 크로스워크 패널회귀 &
+장기차분모형에서 AI노출도 계수 $-2.168^{***}$(채용공고 증가율 감소); 직업FE 미포함 모형은 스퓨리어스 양(+)\\
+
+\citet{son-2025-llm-based-ai-job-exposure-measurement} &
+위와 동일 방법론(8개 LLM 델파이+GPT-4o 메타평가)의 원 산출 보고서, Eloundou 결과와 직접 상관분석 &
+O*NET 923개 직업 &
+AIE\_S1-Eloundou $\beta$(가중노출) 상관 0.721로 최고, $\alpha$(직접노출)와는 0.463\\
+
+\end{longtable}
+
+Eloundou 계열에서 뚜렷한 것은 ``동일 방법론(SkillAIAssessment)을 하나의 연구팀(장지연 외)이 전 산업(\citet{chang-2026-ai-technology-diffusion-employment})$\cdot$숙련 네트워크(\citet{chang-2025-ai-era-skills}/\citet{chang-2026-skill-network-ai-era})$\cdot$제조업(\citet{noh-2025-ai-based-manufacturing-innovation-employment}) 세 갈래로 반복 적용''하는 계보와, ``KEIS/KISDI가 독자적으로 8개 LLM 델파이 앙상블을 O*NET에 적용''하는 계보가 별개로 존재한다는 점이다. 두 계보 모두 Eloundou와의 ``비교가능성''을 설계 목표로 명시하지만, 정작 Eloundou의 원 루브릭(E0--E3, $\beta$/$\zeta$/$\phi$)을 그대로 쓰는 논문은 \citet{cheon-2025-ai-exposure-vs-ai-adoption}뿐이고 나머지는 모두 독자적인 델파이$\cdot$역할수행 변형이다.
+
+% ============================================================
+\section{그 외 방법론 연구}
+% ============================================================
+
+노출지표 세 계보 어디에도 속하지 않는 연구는 크게 (a) 기업$\cdot$근로자 설문 또는 행정자료로 AI ``도입'' 여부를 직접 관측하는 연구, (b) 텍스트마이닝$\cdot$전수조사로 도입을 식별하는 연구, (c) 실험연구, (d) 자체 개발 복합지표$\cdot$숙련 네트워크 분석으로 나뉜다.
+
+\subsection{기업 설문$\cdot$행정자료 기반 AI 도입 직접측정}
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{AI 도입 직접측정(설문$\cdot$행정자료) 연구}\label{tab:other1}\\
+\toprule
+\textbf{문헌} & \textbf{도입 측정 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{도입 측정 방식} & \textbf{결합 데이터·실증전략} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{kiet-2021-ai-adoption-productivity} &
+기업활동조사 AI 활용 문항(도입 더미) &
+기업활동조사(2017--2019) 패널 IV(ai\_firm\_ratio$\cdot$BIM 도구변수) &
+전체 샘플 비유의; 복수사업체 보유 기업만 생산성 $+15\%$ 유의\\
+
+\citet{kiet-2024-ai-adoption-firms-policy} &
+동일 방식 문항, 패널 확장 &
+기업활동조사(2017--2022), TWFE &
+AI 도입의 생산성 효과 통계적으로 비유의; 도입률 5\% 미만\\
+
+\citet{kiet-2024-ai-labor-market-industry} 3장 &
+기업활동조사 AI 도입 더미 &
+기업활동조사(2017--2021), 표준DID+다기간DID(Callaway-Sant'Anna) &
+표준DID 전 항목 비유의; 다기간DID는 약한 양(+)이나 기업속성 반영 시 약화\\
+
+\citet{kim-2025-ai-adoption-firm-performance} &
+기업활동조사 AI/4차산업혁명기술 도입 문항 &
+기업활동조사(2017--2023) 균형패널, TWFE+사건연구 &
+부가가치 $+7.6\%^{***}$$\cdot$매출 $+4.0\%^{**}$ 유의, TFP$\cdot$1인당매출은 비유의(생산성 역설)\\
+
+\citet{lee-2025-ai-adoption-determinants-performance} &
+사업체패널조사(WPS) 2023년 신규 AI 설문(OECD 동일 문항) &
+WPS 7--10차, CRE패널프로빗+Callaway-Sant'Anna DID &
+직접고용 전체효과 $+0.1635^{***}$, 경영성과(매출$\cdot$부가가치$\cdot$TFP)는 대부분 비유의\\
+
+\citet{kim-2021-ai-adoption-status-major-industries} &
+5대 산업 368개 기업 면대면 실태조사(자기보고 도입여부) &
+한국갤럽 조사(2021) &
+전체 도입률 14.7\%(EU 약 42\% 대비 저조), 도입기업 87.0\%가 긍정적 성과 보고\\
+
+\citet{spri-2024-ai-industry-survey} &
+AI 산업 기업 2{,}517개 전수조사(국가승인통계) &
+국가승인통계 실태조사 &
+전산업 AI 도입률 6.4\%(2022년 4.5\%$\to$2023년 6.4\%); AI산업 매출 5.6조원\\
+
+\citet{bok-2026-ai-adoption-productivity-effects} &
+가계조사 자기보고 업무시간 절감$\cdot$업무처리량 변화(도입 대신 ``실제 사용''의 산출 전환 측정) &
+가계조사(2025.5--6, N=5{,}512), WLS 회귀 &
+시간절감 3.8\%이나 시간절감-처리량 증가 상관 0.00(``생산성 단절'')\\
+
+\end{longtable}
+
+\subsection{텍스트마이닝 기반 도입 식별}
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{텍스트마이닝 기반 AI 도입 식별 연구}\label{tab:other2}\\
+\toprule
+\textbf{문헌} & \textbf{텍스트마이닝 방식} & \textbf{데이터} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{텍스트마이닝 방식} & \textbf{데이터} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{seo-2025-ai-adoption-characteristics-business-reports} &
+사업보고서 ``사업의 내용'' 텍스트의 AI 키워드 포함 여부로 기업 단위 도입 식별 &
+DART 사업보고서 38{,}522건(2010--2024) &
+AI 도입률 2010년 13.5\%$\to$2024년 53.7\%(2016$\cdot$2022년 전후 가속)\\
+
+\citet{chang-2024-ai-development-employment-effects} 4장 &
+온라인 구인공고(사람인$\cdot$잡코리아)의 AI 숙련수요를 Babina et al.(2020) 방식으로 기업 도입 판정 &
+구인공고(2017--2023)+고용보험DB, 132{,}608개 사업체 &
+AI 도입기업이 미도입기업보다 관리직$\cdot$전문직$\cdot$사무직 신규채용도 더 많음(대체 가설과 배치)\\
+
+\citet{chang-2026-ai-technology-diffusion-employment}/\citet{noh-2025-ai-based-manufacturing-innovation-employment} 2장 &
+동일 Babina et al.(2020) 방식 구인공고 기반 도입식별(\S\ref{tab:eloundou}의 Eloundou 계열 SkillAIAssessment와 병행 사용) &
+고용보험DB+구인공고 &
+도입기업 청년고용이 2023년 기점 정체, 미도입기업은 안정적 증가 유지\\
+
+\end{longtable}
+
+\subsection{실험연구$\cdot$자체 개발 복합지표}
+
+\begin{longtable}{L{2.6cm}L{4.6cm}L{3.9cm}L{4.1cm}}
+\caption{실험연구 및 자체 개발 지표 연구}\label{tab:other3}\\
+\toprule
+\textbf{문헌} & \textbf{방법론} & \textbf{데이터} & \textbf{핵심 발견}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{방법론} & \textbf{데이터} & \textbf{핵심 발견}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{min-2025-productivity-gains-generative-ai} &
+2$\times$2 온라인 실험실 실험(분업 유무$\times$생성형AI 활용 유무) &
+온라인 실험 참가자 N=553 &
+AI가 분업을 소멸시키는 경로와 분업의 부정적효과를 상쇄하는 경로 모두 확인, 생산성 증분 유사\\
+
+\citet{nam-2026-ai-macroeconomic-impact-analysis} &
+Eloundou 노출개념을 5축(측정가능성$\cdot$데이터가용성$\cdot$맥락의존성$\cdot$판단필요성$\cdot$에이전트화가능성)으로 분해한 자체 AI score 개발 &
+Workpedia 537개 직업 6{,}824개 단위과업, 기업활동조사 패널IV, Hulten 정리 &
+10년 TFP 기여 1.5\textasciitilde 3.5\%(연 0.15\textasciitilde 0.35\%p); 자동화 실질 영향권은 단순노출 대비 크게 축소\\
+
+\citet{chang-2022-deep-learning-job-classification-system} &
+워크넷 구인공고 800만 건에 Bi-LSTM$\cdot$KoBERT 딥러닝 적용, 직업분류 인프라 구축(노출도 측정 자체는 아님) &
+워크넷 구인공고(1999--2021) &
+KoBERT 기준 정확도 0.75; 후속 AIOE-KECO 매칭 등 인프라 연구의 기초\\
+
+\citet{chang-2025-ai-era-skills} 3$\cdot$4$\cdot$5장 &
+숙련 네트워크 분석(Louvain 커뮤니티, Gould-Fernandez 브로커리지, 임베딩 매칭) --- Eloundou 계열과 무관한 별도 방법론 &
+KNOW 재직자조사, IT 구인공고, 대학 AI강좌 477개 &
+브로커리지 상위 숙련(엑셀$\cdot$PPT$\cdot$문서작성)의 임금프리미엄 유의; 구조적 공백 지수와 임금 음(-)의 관계\\
+
+\citet{cheon-2025-ai-exposure-vs-ai-adoption} AIFE &
+Fenoaltea et al.(2024) AI Startup Exposure(AISE) 계열 --- AI 기업 서비스텍스트와 과업텍스트 LLM 매칭 &
+AI 대표기업 51개+스타트업 339개(실사용 355개) &
+AIFE는 중간임금층(데이터관리$\cdot$행정지원)에서 최고, 고숙련 편향 통념과 배치\\
+
+\end{longtable}
+
+% ============================================================
+\section{복수 방법론에 걸친 경계 사례}\label{sec:boundary}
+% ============================================================
+
+일부 문헌은 한 보고서 안에서 서로 다른 장(章)이 서로 다른 계보의 방법론을 사용한다. 이런 경우 원 텍스트의 장 구분을 그대로 살려 표 \ref{tab:felten}--\ref{tab:other3}에 중복 등재했다. 아래는 이 경계 사례를 한 곳에 모아 정리한 것이다.
+
+\begin{itemize}
+  \item \textbf{\citet{cheon-2025-ai-exposure-vs-ai-adoption}(전병유$\cdot$신영민 2025)}: AIOE(\S3, Felten 계승) $\cdot$ AIOE\_by\_GPT(\S5, Eloundou 계승) $\cdot$ AIFE(\S6.3, 기타/Fenoaltea 계열) 세 지표를 한 논문 안에서 나란히 구축해 상관관계(0.08/0.31/0.35)를 직접 비교한다는 점에서, 세 계보를 잇는 본 분류체계의 ``표준 사례''에 해당한다.
+  \item \textbf{\citet{chang-2024-ai-development-employment-effects}(장지연 외 2024)}: 3장(전병유)은 Felten AIOE 확장판(\S3), 4장은 구인공고 기반 도입식별(\S6.2), 5장은 기업활동조사 패널IV 생산성 분석(\S6.1), 6장은 3장의 AIOE를 사업체 단위로 집계해 내부노동시장 지표와 결합 --- 사실상 본 보고서 전체가 ``노출도(Exposure)''와 ``도입률(Adoption)''을 의도적으로 병행 비교하는 설계다.
+  \item \textbf{\citet{kiet-2024-ai-labor-market-industry}(송단비 외 2024)}: 3장은 기업활동조사 AI 도입더미 DID(\S6.1), 4장은 Webb(2019) 노출지수 회귀(\S4) --- 분석단위(기업 vs. 직종)에 따라 방법론을 의도적으로 분리했다.
+  \item \textbf{\citet{chang-2025-ai-era-skills}(장지연 외 2025)}: 2장은 SkillAIAssessment(\S5, Eloundou 계승), 3$\cdot$4$\cdot$5장은 숙련 네트워크 분석(\S6.3, Eloundou 계열과 무관)으로 절반씩 나뉜다.
+  \item \textbf{\citet{lee-2024-generative-ai-labor-market-measurement} 3장}: 유일하게 실증분석이 아니라 Felten$\cdot$Webb$\cdot$Eloundou$\cdot$Gmyrek et al.(2023) 네 계열의 수식$\cdot$프롬프트를 원문 수준으로 재정리한 방법론 리뷰 챕터다. 본 보고서의 분류체계와 거의 동일한 4분류(전문가서베이/알고리즘/LLM+인간/LLM만)를 독립적으로 제시하고 있어, \S1의 분류기준이 국내 문헌에서도 이미 통용되던 구분임을 보여준다.
+\end{itemize}
+
+% ============================================================
+\section{종합: 29편 한눈에 보기}
+% ============================================================
+
+\begin{longtable}{L{6.2cm}L{9.5cm}}
+\caption{한국 AI 실증연구 29편의 방법론 계보 종합}\label{tab:summary}\\
+\toprule
+\textbf{문헌} & \textbf{주 계보}\\
+\midrule
+\endfirsthead
+\multicolumn{2}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{주 계보}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\citet{cheon-2022-ai-employment-wage-effects} & Felten\\
+\citet{chang-2024-ai-development-employment-effects} & Felten + 기타(도입식별$\cdot$생산성IV)\\
+\citet{kiet-2025-ai-occupational-employment-effect} & Felten\\
+\citet{han-2025-ai-diffusion-youth-employment-decline} & Felten\\
+\citet{bok-2026-youth-employment-decline-ai-career-ladder} & Felten\\
+\citet{bok-2025-rapid-ai-diffusion-productivity-effects} & Felten(보조 사용)\\
+\citet{noh-2025-ai-labor-coexistence} 2장 & Felten\\
+\citet{cheon-2025-ai-exposure-vs-ai-adoption} & Felten + Eloundou + 기타(AIFE)\\
+\citet{han-2023-ai-and-labor-market-change} & Webb\\
+\citet{kim-2025-youth-job-choice-ai-exposure} & Webb\\
+\citet{kiet-2024-ai-labor-market-industry} & Webb(4장) + 기타(3장 도입DID)\\
+\citet{chang-2026-ai-technology-diffusion-employment} & Eloundou + 기타(구인공고 도입식별)\\
+\citet{chang-2025-ai-era-skills} & Eloundou(2장) + 기타(3$\cdot$4$\cdot$5장 숙련네트워크)\\
+\citet{chang-2026-skill-network-ai-era} & Eloundou\\
+\citet{noh-2025-ai-based-manufacturing-innovation-employment} 2장 & Eloundou\\
+\citet{keis-2025-ai-job-exposure-labor-demand} & Eloundou\\
+\citet{son-2025-llm-based-ai-job-exposure-measurement} & Eloundou\\
+\citet{kiet-2021-ai-adoption-productivity} & 기타(기업설문+IV)\\
+\citet{kiet-2024-ai-adoption-firms-policy} & 기타(기업설문+TWFE)\\
+\citet{kim-2025-ai-adoption-firm-performance} & 기타(기업설문+TWFE)\\
+\citet{lee-2025-ai-adoption-determinants-performance} & 기타(사업체패널설문+DID)\\
+\citet{kim-2021-ai-adoption-status-major-industries} & 기타(실태조사)\\
+\citet{spri-2024-ai-industry-survey} & 기타(전수조사)\\
+\citet{bok-2026-ai-adoption-productivity-effects} & 기타(가계조사 자기보고)\\
+\citet{seo-2025-ai-adoption-characteristics-business-reports} & 기타(텍스트마이닝)\\
+\citet{min-2025-productivity-gains-generative-ai} & 기타(실험연구)\\
+\citet{nam-2026-ai-macroeconomic-impact-analysis} & 기타(자체 복합지표+거시모형)\\
+\citet{chang-2022-deep-learning-job-classification-system} & 기타(인프라: 직업분류 딥러닝)\\
+\citet{lee-2024-generative-ai-labor-market-measurement} 3장 & (방법론 리뷰, 4계보 모두 다룸)\\
+
+\end{longtable}
+
+세 계보(Felten$\cdot$Webb$\cdot$Eloundou)에 속하는 연구가 실질 15편(장을 나눠 표에 중복 등재된 경우를 하나로 셈), 그 외 방법론이 13편, 순수 리뷰가 1편이다. Felten 계열이 8편으로 가장 많고, Eloundou 계열이 7편으로 빠르게 늘고 있으며(2025\textasciitilde 2026년에 집중, 대부분 GPT 델파이 변형), Webb 계열은 3편에 그친다.
+
+% ============================================================
+\section{결론: 본 프로젝트에 대한 시사점}
+% ============================================================
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{동일 지표, 상반된 결론}: \S\ref{tab:felten}에서 확인했듯 동일한 AIOE-KR을 사용해도 분석단위$\cdot$식별전략에 따라 고용효과의 방향과 유의성이 갈린다(\citet{kiet-2025-ai-occupational-employment-effect}의 유의한 음(-) vs. \citet{noh-2025-ai-labor-coexistence}의 비유의). \texttt{data/proc/merged/}에서 exposure 지표를 결합할 때, 지표 선택만큼이나 분석단위(사업장/개인/직종)와 식별전략의 선택이 결과를 좌우할 수 있음에 유의해야 한다.
+  \item \textbf{Eloundou 계열의 국내 토착화}: 원 논문의 E0--E3 루브릭을 그대로 쓰는 사례(\citet{cheon-2025-ai-exposure-vs-ai-adoption})보다, ``LLM 델파이 패널''로 변형해 재현성$\cdot$편향 문제를 완화하려는 독자 방법론(KEIS/KISDI의 8개 LLM 앙상블, 한국노동연구원의 SkillAIAssessment)이 더 많다는 점은, 향후 본 프로젝트가 LLM 기반 노출지표를 자체 구축할 경우 국내에 이미 두 개의 경쟁하는 델파이 프로토콜이 존재함을 뜻한다.
+  \item \textbf{``노출''과 ``도입''의 병행 설계가 모범 사례}: \citet{chang-2024-ai-development-employment-effects}$\cdot$\citet{chang-2025-ai-era-skills}$\cdot$\citet{cheon-2025-ai-exposure-vs-ai-adoption}처럼 하나의 연구가 노출지표(exposure)와 실제 채택 지표(adoption/사용)를 의도적으로 병행 구축$\cdot$비교하는 설계가, 본 프로젝트가 지향하는 exposure--usage 결합 분석과 가장 근접한 국내 선례다.
+  \item \textbf{기타 방법론(13편)의 일관된 메시지}: 기업 설문$\cdot$행정자료 기반 도입 직접측정 연구들은 거의 예외 없이 ``AI 도입이 고용을 줄이지 않으며 매출$\cdot$부가가치는 늘리지만 TFP$\cdot$노동생산성에는 유의한 효과가 없다''는 생산성 역설(productivity paradox)로 수렴한다(\citet{kiet-2021-ai-adoption-productivity}, \citet{kiet-2024-ai-adoption-firms-policy}, \citet{kim-2025-ai-adoption-firm-performance}, \citet{lee-2025-ai-adoption-determinants-performance}). 이는 exposure 기반 연구들의 ``직종별 차별적 고용효과'' 발견과 결이 달라, 두 계열의 자료원(직종 노출지표 vs. 기업 도입 설문)이 서로 다른 층위의 현상을 포착하고 있을 가능성을 시사한다.
+\end{enumerate}
+
+\printbibliography
+
+\end{document}
