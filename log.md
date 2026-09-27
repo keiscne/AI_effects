@@ -212,3 +212,14 @@
   - 비교표(표 8.1): GLOBAL 절감시간은 V5·V6 모두 세부직업 가능, KR 사용량은 V5 대분류 권장·V6 세부직업 가능(해석 주의), KR 절감시간은 V5 불가·V6 대분류만.
   - V5 SOC 대분류 잠정 집계표(scratchpad awk 계산, do 파일 재현 전 잠정치로 표기) 수록.
   - `.docx`/`.pdf`: 기존 docx를 새로 만들지 않고, Word COM으로 기존 파일의 "참고문헌" 제목 바로 앞에 §8만 삽입(원본 report 09 HTML 중간본의 CSS를 그대로 쓴 §8 HTML 조각을 `Range.InsertFile`로 삽입). 새 표 3개(표 7–9, docx 쪽은 기존 표 1–6에 이어 번호 부여)는 기존 표와 같이 폭 100%·고정 레이아웃(`tblW` 5000 pct, `tblLayout fixed`, grid 합 9027twips)으로 맞추고 열 폭을 셀 단위로 지정. PDF 재출력(8→11페이지). 검증: (1) Word로 원본·수정본 본문 텍스트를 비교해 §8을 뺀 나머지가 원본과 글자 단위로 동일함을 확인, (2) PDF 7–11쪽을 이미지로 렌더링해 표 7–9가 페이지 폭 안에 들어오는 것을 확인. 원본은 scratchpad에 백업.
+- OpenAI Signals 원자료 다운로드(사용자 요청: https://openai.com/ko-KR/signals/ 의 사용량 데이터를 받아 정리).
+  - 새 데이터 소스 폴더 2개 생성(CLAUDE.md의 소스별 하위 폴더 규칙, raw/proc 대칭):
+    - `data/raw/usage/openai_signals/signals_v2.0/`: `data-download-csv.zip`(원본 보관)과 압축 해제본 `public_release_csv/`(CSV 25개 + README.pdf), `data-dictionary.pdf`. 빈 `data/proc/usage/openai_signals/` 생성.
+    - `data/raw/exposure/openai_ai_jobs_transition_framework/release_2026_06_01/`: 같은 다운로드 페이지의 AI Jobs Transition Framework 직업 분류(`ai-job-transition-framework-data-download.zip`과 압축 해제본). 사용량이 아니라 직업별 AI 영향 분류라서 usage가 아닌 exposure 아래에 둠. 빈 `data/proc/exposure/openai_ai_jobs_transition_framework/` 생성.
+    - 각 소스 폴더에 `_download_manifest.md`(URL, 서버 Last-Modified, MD5, 라이선스, 인용) 작성. zip 안의 macOS 메타데이터(`__MACOSX/`)는 풀지 않음(삭제).
+  - 출처: https://openai.com/signals/data-download/ (다운로드일 2026-09-27). 파일 URL `https://cdn.openai.com/signals/data-download-csv.zip`(Last-Modified 2026-08-06), `.../signals/data-dictionary.pdf`(2026-08-06), `.../signals/ai-job-transition-framework-data-download.zip`(2026-06-01). 라이선스 CC BY 4.0.
+  - 수집 방법: openai.com 페이지는 Cloudflare가 봇 요청을 막아(HTTP 403) WebFetch·단순 curl이 실패. 쿠키를 유지하는 브라우저형 curl 요청으로 페이지를 받아 링크를 확인했고, 파일 자체(cdn.openai.com)는 차단 없이 받음.
+  - 받지 않은 것: Signals 웹페이지 차트용 JSON 5개(CSV와 값 중복), Enterprise Signals(다운로드 파일 없음, 웹 차트만).
+  - 확인한 내용: 소비자 ChatGPT 메시지 월 30만 건, 2024.7–2026.6(24개월), 점유율·순위만(건수 없음), 차등정보보호 잡음(공개 1회당 ε=1)과 유효 100건 이하 셀 억제. 한국(`KR`)은 국가 단위 파일 9개 모두 포함(연령×주제 93%, 성별×주제 57% 칸, 나머지는 전 칸). 직업(SOC)·절감시간 없음, O*NET IWA는 미국만. AJTF는 923개 O*NET-SOC 직업, 4개 archetype, README의 조인 키 이름(`onet_soc_code`)과 실제 열 이름(`occupation_code`)이 다름.
+  - `reference/references.bib`에 데이터 인용용 `@misc` 2개 추가: `openai-2026-signals-v2`(OpenAI가 제시한 권장 인용), `openai-2026-ai-jobs-transition-framework`. 논문이 아니라 데이터셋이므로 `reference/papers/`·`notes/`와 econ-wiki에는 추가하지 않음.
+- 신규 report `12_OpenAI_Signals_데이터구조.tex`/`.md` 작성: Signals v2.0의 방법론, CSV 25개 구성, 한국 가용성, AEI(V5·V6)와의 비교, AJTF 요약, 시사점(한국 직업별 사용량은 여전히 AEI 필요, Signals는 업무 비중·용도 구성 월별 시계열로 보완). `.docx`/`.pdf`는 만들지 않음.

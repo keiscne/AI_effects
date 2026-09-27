@@ -1,0 +1,214 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- OpenAI Signals v2.0(ChatGPT 소비자 사용 데이터, 2024.7--2026.6)과
+% AI Jobs Transition Framework 직업 분류 데이터의 파일 구성, 방법론, 한국 가용성,
+% AEI와의 비교를 원자료와 데이터 사전으로 확인해 정리한 작업 노트(report/).
+% 원자료: data/raw/usage/openai_signals/, data/raw/exposure/openai_ai_jobs_transition_framework/
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{OpenAI Signals 데이터의 구조와 활용 가능성\\[2mm]
+\large --- 파일 구성, 방법론, 한국 가용성, 그리고 AEI와의 비교 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent OpenAI는 2026년부터 ``Signals''라는 이름으로 ChatGPT 소비자 사용 데이터를 CC BY 4.0 라이선스로 공개하고 있다. 본 노트는 2026년 9월 27일에 내려받은 \textbf{Signals v2.0}\parencite{openai-2026-signals-v2}(2024년 7월--2026년 6월, 월별 24개월)의 파일 구성과 방법론을 원자료와 데이터 사전(data dictionary)으로 확인하고, 같은 페이지에서 제공되는 \textbf{AI Jobs Transition Framework}\parencite{openai-2026-ai-jobs-transition-framework} 직업 분류 데이터를 함께 정리한다. 핵심은 다음과 같다. (1) Signals는 매월 소비자 ChatGPT 메시지 30만 건을 LLM 분류기로 분류해 \textbf{업무 관련 여부, 주제(7개), Ask/Do/Express, 연령, 이름 기반 성별}의 점유율을 국가별(최대 135개국)로 공개한다. 한국(\texttt{KR})도 모든 국가 단위 파일에 24개월 전부 들어 있다. (2) 그러나 \textbf{직업(SOC) 분류와 절감시간은 없고}, 과업에 가까운 O*NET IWA(중간 업무활동) 분류는 \textbf{미국만} 공개된다. 대화 건수도 없이 차등정보보호(differential privacy) 잡음이 들어간 점유율만 있다. (3) 따라서 Signals는 한국의 직업별 사용량을 직접 주지는 못하며, AEI로 만든 한국 직업별 지표를 \textbf{업무 사용 비중$\cdot$용도 구성의 시계열}로 보완하는 자료로 쓰는 것이 적절하다. (4) AI Jobs Transition Framework는 미국 O*NET-SOC 923개 직업을 4개 유형(AI와 함께 성장, 재편, 자동화 위험 높음, 당장 변화 적음)으로 나눈 \textbf{노출도 계열 분류}이며, 한국 직업분류에 연계해 쓸 수 있다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{자료 개요}
+% ============================================================
+
+\begin{itemize}
+  \item \textbf{공개 페이지}: \url{https://openai.com/signals/} (한국어판 \url{https://openai.com/ko-KR/signals/}). 데이터와 방법론은 ``Data and methodology'' 페이지(\texttt{/signals/data-download/})에서 받는다.
+  \item \textbf{버전}: Signals v2.0. 데이터 사전 서버 날짜 2026-08-06.
+  \item \textbf{라이선스}: CC BY 4.0. 권장 인용은 \textcite{openai-2026-signals-v2}이다.
+  \item \textbf{로컬 위치}:
+  \begin{itemize}
+    \item \texttt{data/raw/usage/openai\_signals/signals\_v2.0/} --- \texttt{data-download-csv.zip}, 압축을 푼 \texttt{public\_release\_csv/}(CSV 25개), \texttt{data-dictionary.pdf}
+    \item \texttt{data/raw/exposure/openai\_ai\_jobs\_transition\_framework/release\_2026\_06\_01/} --- 직업 분류 CSV와 README
+    \item 각 폴더의 \texttt{\_download\_manifest.md}에 URL, 서버 날짜, MD5를 기록했다.
+  \end{itemize}
+  \item \textbf{웹에만 있는 자료}: Enterprise Signals(기업용 ChatGPT 사용, 산업$\cdot$직무별)는 페이지 안 차트로만 공개되고 내려받을 파일이 없다. Signals 웹페이지의 차트용 JSON은 CSV와 값이 겹쳐 받지 않았다.
+\end{itemize}
+
+% ============================================================
+\section{방법론 (데이터 사전 기준)}
+% ============================================================
+
+\begin{longtable}{L{3.0cm}L{11.6cm}}
+\caption{Signals v2.0 방법론 요약}\label{tab:method}\\
+\toprule
+항목 & 내용 \\
+\midrule
+\endhead
+모집단 & 소비자 ChatGPT(Free, Plus, Pro, Go) 메시지. 신고 연령 18세 이상 계정만 \\
+제외 & 기업용(Enterprise 등) 메시지, Codex, 계정 삭제자, 학습 데이터 사용 거부자 \\
+표본 & 매월 메시지 30만 건(v1.1부터, 이전 기간도 소급 확대). 모든 시계열이 같은 전세계 표본에서 나온다 \\
+분석 단위 & \textbf{메시지}(대화가 아님) \\
+가중치 & 일(day) 단위 가중치로 월 안의 날짜별 구성을 실제에 맞춤(최대 1.5) \\
+분류 & LLM 분류기가 자동 분류. 연구자는 원문을 보지 않음. 분류 프롬프트 전문은 데이터 사전 9절에 수록 \\
+성별 & 이름 기반 추정(특정 성별 비중 95\% 초과 이름만). 자기 보고가 아님 \\
+공개 형태 & 점유율(\texttt{share\_of\_messages}, 0--1) 또는 1인당 사용 순위(\texttt{rank}). \textbf{건수는 없음} \\
+반올림 & 소수 셋째 자리(IWA 파일은 다섯째 자리). 그래서 월별 합이 정확히 1이 되지 않음 \\
+차등정보보호 & 셀 단위 가우시안 잡음 추가. 공개 1회당 ($\varepsilon=1$, $\delta=1/N$). 2025년 12월 이전 자료는 세 번 재공개되어 누적 $\varepsilon=4$ \\
+셀 억제 & 가중치$\cdot$잡음 반영 후 유효 메시지 수가 100 이하인 칸은 공개하지 않음(v2.0에서 도입) \\
+\bottomrule
+\end{longtable}
+
+변경 이력: v1.1(2026년 1--3월 추가, 월 표본 10만$\to$30만 건, 업무/학업/기타 분류 추가, 국가 순위를 분기별로 변경), v2.0(2026년 4--6월 추가, 셀 억제 도입, 국가별 세분 시계열 8개 추가, 월 0.5\% 미만 메시지 제거에 따른 소급 수정).
+
+% ============================================================
+\section{파일 구성}
+% ============================================================
+
+\begin{longtable}{L{1.8cm}L{4.4cm}L{3.0cm}L{2.2cm}L{1.9cm}L{1.3cm}}
+\caption{Signals v2.0 CSV 25개 (파일명 접두어 \texttt{share\_of\_messages\_by\_} 생략)}\label{tab:files}\\
+\toprule
+구분 & 파일 & 차원 & 지역 & 기간 & 한국 \\
+\midrule
+\endhead
+업무 여부 & \texttt{work\_related\_month} & 업무(1)/비업무(0) & 전세계 & 24개월 & --- \\
+ & \texttt{work\_related\_country\_month} & 같음 & 135개국 & 24개월 & ○ \\
+ & \texttt{work\_related\_plan\_type\_month} & $\times$ 요금제 4종 & 전세계 & 22개월 & --- \\
+ & \texttt{work\_schoolwork\_month} & 업무/학업/기타 & 전세계 & 24개월 & --- \\
+주제 & \texttt{topic\_month} & 주제 7개 & 전세계 & 24개월 & --- \\
+ & \texttt{topic\_country\_month} & 같음 & 134개국 & 24개월 & ○ \\
+ & \texttt{topic\_work\_related\_month} & P(주제 | 업무 여부) & 전세계 & 24개월 & --- \\
+ & \texttt{topic\_work\_related\_country\_month} & 같음 & 125개국 & 24개월 & ○ \\
+ & \texttt{work\_related\_topic\_month} & P(업무 여부 | 주제) & 전세계 & 24개월 & --- \\
+의도 & \texttt{work\_related\_ask\_do\_express\_month} & 업무 여부 $\times$ Ask/Do/Express & 전세계 & 24개월 & --- \\
+ & \texttt{work\_related\_ask\_do\_express\_country\_month} & 같음 & 125개국 & 24개월 & ○ \\
+연령 & \texttt{age\_group\_month} & 연령 6구간 & 전세계 & 24개월 & --- \\
+ & \texttt{age\_group\_country\_month} & 같음 & 124개국 & 24개월 & ○ \\
+ & \texttt{age\_group\_topic\_month} & 주제별 연령 구성 & 전세계 & 24개월 & --- \\
+ & \texttt{age\_group\_topic\_country\_month} & 같음 & 92개국 & 24개월 & △ 93\% \\
+성별(이름) & \texttt{global\_...\_by\_gender\_month} & 남성형/여성형 & 전세계 & 24개월 & --- \\
+ & \texttt{gender\_country\_month} & 같음 & 119개국 & 24개월 & ○ \\
+ & \texttt{gender\_topic\_month} & 주제별 성별 구성 & 전세계 & 24개월 & --- \\
+ & \texttt{gender\_topic\_country\_month} & 같음 & 86개국 & 24개월 & △ 57\% \\
+순위 & \texttt{country\_quarter\_rank} & 1인당 사용 순위 & 150개국(분기별 143--148) & 6분기 & ○ \\
+미국 & \texttt{usa\_...\_by\_onet\_iwa\_month} & O*NET IWA 165개 & 미국 & 24개월 & --- \\
+ & \texttt{usa\_share\_of\_work\_related\_...\_by\_onet\_iwa\_month} & 업무 메시지 중 IWA 구성 & 미국 & 24개월 & --- \\
+ & \texttt{usa\_...\_by\_state\_2025\_rank} & 주별 1인당 순위 & 미국 51개 주 & 2025년 & --- \\
+ & \texttt{usa\_...\_by\_topic\_2025}, \texttt{usa\_...\_by\_topic\_state\_2025} & 주제 구성(전국, 주별) & 미국 & 2025년 & --- \\
+\bottomrule
+\end{longtable}
+
+주제 7개는 Writing, Practical Guidance, Seeking information, Technical help, Multimedia, Self-expression, Other/Unknown이다. 세부 분류(예: computer\_programming, tutoring\_or\_teaching)를 묶은 것이며 대응표는 데이터 사전 5절 각주에 있다. 연령은 18--24, 25--34, 35--44, 45--54, 55--64, 65+의 6구간이다. 기간 24개월은 2024.7--2026.6, 요금제 파일은 2024.9부터, 순위는 2025Q1--2026Q2다. 한국 열의 ○는 모든 칸이 있음을, △는 셀 억제로 일부 칸이 빠졌음을 뜻한다.
+
+\texttt{topic\_work\_related\_month}와 \texttt{work\_related\_topic\_month}는 이름이 비슷하지만 조건부 방향이 반대인 서로 다른 파일이다. 미국 IWA 파일 두 개도 분모(전체 메시지 / 업무 메시지)가 다른 서로 다른 파일이다.
+
+% ============================================================
+\section{한국 데이터}
+% ============================================================
+
+국가 단위 파일 9개 모두에 한국(\texttt{country="KR"})이 들어 있다. 한국 칸이 일부 빠지는 파일은 세 차원을 교차한 두 개(연령$\times$주제, 성별$\times$주제)뿐이다(셀 억제). 한국 행으로 할 수 있는 것은 다음과 같다.
+\begin{itemize}
+  \item 업무 관련 메시지 비중의 월별 추이(24개월)
+  \item 업무/비업무별 주제 구성, Ask/Do/Express 구성
+  \item 연령$\cdot$성별 구성과 1인당 사용 순위(분기)
+\end{itemize}
+
+예시로 업무 관련 비중을 보면, 한국은 2024년 7월 55.3\%에서 2026년 6월 32.1\%로, 전세계는 51.3\%에서 30.4\%로 낮아졌다. 한국의 1인당 사용 순위는 2025년 1분기 57위(148개국 중)에서 2026년 2분기 25위(147개국 중)로 올라갔다. 이 수치는 원자료를 직접 집계한 참고값이며, 분석에 쓸 때는 do 파일로 다시 만든다.
+
+한국 행으로 \textbf{할 수 없는 것}은 직업별 사용량, 과업(O*NET task$\cdot$IWA)별 사용량, 절감시간이다. IWA는 미국만 있고, 직업(SOC) 분류는 어느 지역에도 없다.
+
+% ============================================================
+\section{AEI와의 비교}
+% ============================================================
+
+\begin{longtable}{L{2.8cm}L{5.9cm}L{5.9cm}}
+\caption{OpenAI Signals v2.0과 AEI(V5$\cdot$V6) 비교}\label{tab:compare}\\
+\toprule
+항목 & OpenAI Signals v2.0 & Anthropic Economic Index (V5$\cdot$V6) \\
+\midrule
+\endhead
+플랫폼 & 소비자 ChatGPT만(기업$\cdot$Codex 제외) & Claude.ai(소비자$\cdot$Cowork) + 1P API(GLOBAL) \\
+분석 단위 & 메시지 & 대화(Claude.ai), 입력--출력 한 쌍(API) \\
+기간 & 2024.7--2026.6 \textbf{매월 연속} & 1주(V5, 2026.2) 또는 2개월(V6, 2026.4--5) 스냅샷 \\
+표본 & 월 30만 메시지 & 릴리스당 약 100만 건 \\
+규모 정보 & 없음(점유율$\cdot$순위만) & V5는 건수 있음, V6는 점유율만 \\
+분류 & 업무 여부, 주제 7개, Ask/Do/Express, (미국) IWA & O*NET 과업, SOC 직업, 요청 군집, 협업 유형 \\
+직업 분류 & \textbf{없음} & SOC 세부직업(GLOBAL), 국가는 대분류$\cdot$세부직업 점유율 \\
+절감시간 & \textbf{없음} & 과업$\cdot$직업별 AI 없이/AI 활용 시 소요시간 \\
+인구학 변수 & 연령, 이름 기반 성별 & 없음 \\
+국가 범위 & 최대 135개국(한국 포함, 24개월) & 약 117개국(한국 포함) \\
+프라이버시 처리 & 차등정보보호 잡음 + 유효 100건 이하 억제 & 최소 건수 임계치(칸 비공개) \\
+\bottomrule
+\end{longtable}
+
+두 자료는 서로를 대체하지 않는다. AEI는 \textbf{직업$\cdot$과업 구성과 절감시간}을, Signals는 \textbf{업무 사용 비중과 용도 구성의 월별 추이, 인구학적 구성}을 준다.
+
+% ============================================================
+\section{AI Jobs Transition Framework 직업 분류}
+% ============================================================
+
+같은 다운로드 페이지에서 받을 수 있는 이 자료\parencite{openai-2026-ai-jobs-transition-framework}는 사용량이 아니라 \textbf{직업별 AI 영향 분류}다. 그래서 \texttt{data/raw/exposure/}에 따로 두었다.
+
+\begin{itemize}
+  \item 1행 = 미국 O*NET-SOC 세부직업 1개(2019 코드 체계), 923개. 2024년 추정 고용 합계 1억 5,209만 명.
+  \item \textbf{인간 필요성 범주}(\texttt{human\_necessity\_category}): none, physical, relational, regulatory\_accountability.
+  \item \textbf{노동수요 탄력성}(\texttt{labor\_demand\_elasticity}): 프레임워크의 메커니즘 입력값. 77개 값.
+  \item 임금, 이론적 노출도, 실제(revealed) 노출도 점수는 공개하지 않는다(README).
+  \item \textbf{주의}: README는 조인 키를 \texttt{onet\_soc\_code}라고 하지만 실제 열 이름은 \texttt{occupation\_code}다. 고용 열은 쉼표가 들어간 문자열이라 숫자로 바꿔야 한다.
+\end{itemize}
+
+\begin{longtable}{L{8.0cm}L{2.8cm}L{3.4cm}}
+\caption{AI Jobs Transition Framework 유형별 직업 수와 고용}\label{tab:ajtf}\\
+\toprule
+유형(archetype) & 직업 수 & 고용(2024 추정) \\
+\midrule
+\endhead
+Jobs that grow with AI (AI와 함께 성장) & 151 & 1,803만 \\
+Jobs that will reorganize (재편) & 232 & 3,525만 \\
+Jobs at higher automation risk (자동화 위험 높음) & 91 & 2,687만 \\
+Jobs with less immediate change (당장 변화 적음) & 449 & 7,194만 \\
+\bottomrule
+\end{longtable}
+
+한국에 쓰려면 O*NET-SOC 2019 $\to$ SOC 2018 $\to$ ISCO-08 $\to$ KSCO 연계가 필요하다. 이는 report 04$\cdot$05에서 정리한 노출도 이식형 연구와 같은 경로다.
+
+% ============================================================
+\section{본 프로젝트에 대한 시사점}
+% ============================================================
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{한국 직업별 사용량은 여전히 AEI에 의존한다.} Signals에는 직업 분류가 없다.
+  \item \textbf{Signals는 한국 사용의 ``업무 비중''과 ``용도 구성''을 월별로 준다.} AEI 스냅샷(V5 2026.2, V6 2026.4--5)의 한국 값이 어떤 추세 위에 있는지 보여 주는 보조 시계열로 쓸 수 있다. 다만 플랫폼(ChatGPT vs Claude)과 단위(메시지 vs 대화)가 다르다.
+  \item \textbf{미국 IWA 시계열은 AEI와 과업 수준에서 연결할 수 있다.} AEI의 O*NET 과업은 O*NET의 과업$\to$DWA$\to$IWA 계층으로 올릴 수 있으므로, 미국에 한해 두 플랫폼의 업무활동 구성을 비교할 수 있다.
+  \item \textbf{규모 추정(report 11)에는 도움이 되지 않는다.} Signals도 건수를 공개하지 않는다.
+  \item \textbf{해석상 주의}: 모든 값에 차등정보보호 잡음이 들어가 있고, 한국처럼 표본이 작은 국가의 교차 칸(연령$\times$주제, 성별$\times$주제)은 오차가 크거나 억제되어 있다. 또 기업용 사용이 빠져 있어 업무 사용을 과소 측정한다(데이터 사전 명시).
+  \item \textbf{후속 작업}: \texttt{code/01\_import\_openai\_signals.do}(CSV를 불러 \texttt{data/proc/usage/openai\_signals/}에 저장), \texttt{code/01\_import\_openai\_ajtf.do}(직업 분류를 불러 \texttt{data/proc/exposure/openai\_ai\_jobs\_transition\_framework/}에 저장)를 작성한다.
+\end{enumerate}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}
