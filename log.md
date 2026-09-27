@@ -145,3 +145,70 @@
   - `.docx`/`.pdf`: report 06·07에서 확정한 `System.Xml.XmlDocument.Load(path)` 기반 표 폭 패치 파이프라인(HTML 중간본 `report08.html`→Word COM 변환→document.xml의 tblW/tblGrid/tcW를 인쇄영역 9026twips로 비율 재계산·`tblLayout=fixed`→zip 재압축→Word COM 재저장·PDF 출력, 총 12페이지)을 재사용. 표1(저장소구조표)의 원본 폭 합이 14257twips로 인쇄영역의 1.6배에 달했으나(코드 토큰이 긴 "스키마 형식" 열 때문에 Word HTML 임포터가 자동 확장) 비율유지 축소로 정확히 9026twips에 맞춰 정상 렌더링됨을 확인. 수식 박스(`div.eqbox`)는 표가 아니므로 별도 패치 없이 HTML 인라인 스타일만으로 페이지 폭 안에 정상 렌더링됨.
   - 검증: `Windows.Data.Pdf`로 PDF 전체 12페이지를 이미지 렌더링해 표 1~4와 수식 박스 모두 페이지 폭 안에 정상적으로 들어오고 잘리지 않음을 육안 확인.
   - GitHub 연동: `git add`+`commit`+`push`로 `.tex`/`.md`와 `log.md` 갱신분을 원격 `main`에 반영(`.docx`/`.pdf`는 `.gitignore`에 의해 계속 미추적).
+
+## 2026-09-23
+
+- 신규 report `09_AEI한국적용_직업별시간절감사용량.tex`/`.md`/`.docx`/`.pdf` 작성(사용자 요청: 직전 대화에서 답한 "한국만을 대상으로 AEI 데이터로 직업별 시간절감률·직업별 사용량을 계산할 수 있는가"라는 질의와 그 답을 별도 노트로 정리).
+  - `08_AEI데이터_노동시간_사용량_스키마.tex`가 AEI 데이터셋 구조를 릴리스 전체에 걸쳐 일반적으로 정리한 것과 달리, 본 report는 그 구조를 **한국(`geo_id="KOR"`)이라는 구체적 국가**에 실제로 적용했을 때의 가능성·한계를 검증하는 후속 report. `release_2026_06_26`(V6) 원자료 CSV(219MB)를 직접 다운로드해 `geo_id="KOR"`·`geo_id="GLOBAL"` 행을 `grep`으로 직접 집계 — report 08까지는 `WebFetch`로 문서만 조회했다면, 이번에는 원자료 자체를 로컬에 받아 검증한 것이 방법론적 차이.
+  - 핵심 확인 사항: (1) HuggingFace API `tree` 엔드포인트로 V4(`release_2026_01_15`)·V5(`release_2026_03_24`)의 `data/` 폴더를 직접 조회한 결과 완성 집계본이 없고 `data/intermediate/aei_raw_claude_ai_*.csv`(1주일치 pre-enrichment 원시본)만 공개되어 있음을 발견 — report 08 표1이 "동일 스키마 유지"로만 기술해 완성본이 있는 것처럼 읽히던 부분의 갱신 필요 사항. 완성 집계본이 공개된 릴리스는 V6(`release_2026_06_26/data/aei_claude_ai_2026-06-26.csv`, 2026년 4–5월 2개월치) 하나뿐임을 확정. (2) V6 `data_documentation.md`의 "Metric Availability" 표를 직접 확인해, 국가(Country) 단위에서는 `soc_occupation`의 최상위 계층(Major Group, SOC 2자리)에서만 시간 지표를 포함한 전체 지표가 제공되고 최하위 계층(Detailed Occupation, SOC 6자리)에서는 `pct`(사용 비중)만 제공됨을 확인 — 세부직업 단위 시간 지표는 `Global` 행에만 존재. (3) 이 문서상 제약을 한국 실측치로 직접 검증: `geo_id="KOR"`은 국가 포함 임계치를 통과(11,601행)하고, `soc_occupation` 레벨0(세부직업)에서는 `pct` 813행에 시간 지표 0행, 레벨1(대분류 22개)에서는 전 지표 2,244행으로 문서 예측과 정확히 일치. (4) V6 문서가 `human_only_time_mean`=시간, `human_with_ai_time_mean`=분 단위임을 명시적으로 기술함을 확인 — report 08 §2.4가 "문서에 단위 미명시"로 남겨둔 공백이 V6에서 해소되었음을 발견(아직 report 08 본문은 미수정, 향후 반영 필요).
+  - 사용자의 두 번째 질의(GLOBAL 시간절감률+KOR 사용량 결합 가능 여부, SOC 몇 자리까지 가능한지)에 대해, 한국에서 관측되는 세부직업 O*NET-SOC 코드 424개(2026년 5월)와 GLOBAL 세부직업 시간 지표 코드 717개를 직접 대조해 424개 전부가 100% 매칭됨을 실측으로 확인 — 기술적으로는 SOC 6자리(세부직업) 수준까지 결합 가능하나, 이는 "한국 고유 실현치"가 아니라 "한국 사용 비중×GLOBAL(사실상 영어권 비중이 큰 표본) 평균 시간절감률"이라는 혼합 지표이므로 국가 간 동질성 가정을 방법론 절에 명시해야 함을 5.2절에서 별도 논증(대분류 수준에서는 한국 고유값이 존재하므로 GLOBAL값과의 민감도 비교로 가정을 부분 점검할 수 있음을 제안).
+  - `.tex`: report 08과 동일한 xelatex+kotex+biblatex(authoryear, maxcitenames=2) preamble 재사용. longtable 6개(표1 릴리스별 실제 공개파일 3열/4행, 표2 V6 Metric Availability 7열/6행, 표3 KOR 실측결과 4열/3행, 표4 GLOBAL–KOR 조인커버리지 2열/3행, 표5 SOC계층별 제공지표 4열/2행, 표6 질의별 결론요약 2열/4행)과 수식 2개(시간절감률 계산식, GLOBAL–KOR 결합 공식) 사용.
+  - `.docx`/`.pdf`: 이번에는 표 너비를 절대 twips 대신 HTML `colgroup`의 상대 `%` 폭으로 지정하고 Word COM으로 변환한 결과, Word가 `<w:tblW w:w="5000" w:type="pct"/>`(인쇄영역 대비 100%)로 자동 변환해 `tblGrid` 합이 6개 표 모두 처음부터 9027twips(인쇄영역 9026twips와 거의 일치, 반올림 오차 1twips)로 맞춰짐을 확인 — report 04~08에서 매번 필요했던 "원본 폭 합을 9026twips로 비율 재계산" 단계가 이번에는 불필요했음(단, 페이지 여백을 Word COM에서 명시적으로 재설정하는 선행 단계가 필요했는데, `PageSetup.TopMargin` 등이 twips가 아니라 **포인트(point) 단위**라는 점을 착각해 최초 시도에서 "여백이 페이지 길이보다 큼" 오류가 발생 — 72pt(=1440twips=1인치)로 정정해 해결, 향후 report의 페이지 여백 설정 시 유의사항으로 기록). 그럼에도 긴 코드 토큰(파일 경로 등)으로 인한 자동확장을 막기 위해 6개 표 모두에 `<w:tblLayout w:type="fixed"/>`를 `tblW` 뒤에 삽입하는 patch는 report 04~08과 동일하게 적용(perl 기반 in-place 치환, 인코딩 문제 없이 1회 성공). PowerShell 작업 디렉터리 관리 실수로 bash에서 추출한 `docx_extract` 임시폴더를 PowerShell `Remove-Item`으로 삭제 후 빈 폴더로 재생성해버린 사고가 있었으나(`bash`의 `/tmp`와 PowerShell의 `C:\Users\cenne\AppData\Local\Temp`가 동일 경로임을 인지하지 못함), 목적 파일(D: 드라이브의 docx)에는 영향이 없어 별도 폴더(`docx_work`)로 재작업해 복구.
+  - 검증: `Windows.Data.Pdf`(WinRT)로 PDF 전체 8페이지를 이미지 렌더링해 표 1~6과 수식 박스 2개 모두 페이지 폭 안에 정상적으로 들어오고 잘리지 않음을 육안 확인.
+
+## 2026-09-24
+
+- `D:/econ-wiki`에 새로 추가된 AI 관련 문헌 3편을 `reference/`에 반영(사용자 요청).
+  - `reference/notes/`에 econ-wiki `sources/*.md` 원본을 그대로 복사(기존 노트와 동일 방식): `yoon-2026-employment-admin-db-ai-exposure`(윤정혜, 「고용행정DB로 본 직업별 AI 노출도와 고용 현황」, 계간 고용이슈 2026 여름호 pp.8-27), `kim-2026-generative-ai-korean-labor-market`(김수현·이정아, 「생성형 인공지능이 국내 노동시장에 미치는 영향」, 같은 호 pp.28-51), `bok-2026-ai-regional-labor-market-disparity`(김보성 외, 「AI와 지역 노동시장 - 지역간 격차 확대 위험과 새로운 기회」, BOK 이슈노트 제2026-25호).
+  - `reference/papers/`에 PDF 2개 복사: `bok-2026-ai-regional-labor-market-disparity.pdf`, `고용이슈 2026 여름호.pdf`(윤정혜·김수현·이정아 두 편이 모두 실린 호 전체, 58MB 스캔본). 노트 frontmatter의 `pdf_filename`과 연결이 유지되도록 econ-wiki의 원래 파일명을 그대로 사용.
+  - `reference/references.bib`에 항목 3개 추가(citation key = 노트 파일명).
+  - 참고: 김수현·이정아(2026)는 Massenkoff and McCrory(2026)의 AEI 기반 "관찰 노출도"를 한국 직업분류(KSCO 8차)에 연계한 연구로, report 07(AEI 실증연구 계보)·09(AEI 한국 적용)와 직접 관련됨. 두 report는 아직 이 문헌을 반영하지 않음.
+
+## 2026-09-26
+
+- Anthropic Economic Index(AEI) 원자료 전체를 `data/raw/usage/anthropic_economic_index/`에 다운로드(사용자 요청: 릴리스 버전별로 별도 정리).
+  - 출처: HuggingFace `Anthropic/EconomicIndex`, 커밋 `2ea58ff75e4247d26810c37f10c179edc2466cac`(저장소 lastModified 2026-06-26)로 고정해 `resolve/<커밋>/<경로>`로 개별 다운로드. 저장소의 릴리스 폴더 구조(`release_2025_02_10`, `release_2025_03_27`, `release_2025_09_15`, `release_2026_01_15`, `release_2026_03_24`, `release_2026_06_26`, `labor_market_impacts`)와 파일명을 그대로 유지(총 81개 파일, 634MB; `.gitattributes`/`.gitignore` 제외).
+  - 검증: 81개 파일 모두 HF API가 보고한 바이트 크기와 일치.
+  - 폴더 최상위에 출처·커밋·릴리스별 요약을 적은 `_download_manifest.md`를 추가(원본이 아닌 기록용 파일임을 명시). `data/raw/`는 `.gitignore` 대상이므로 git에는 반영되지 않음.
+  - CLAUDE.md의 raw/proc 대칭 규칙에 따라 빈 `data/proc/usage/anthropic_economic_index/` 폴더도 생성. 이 폴더를 채울 `01_import_*.do`는 아직 작성하지 않음.
+
+- 신규 report `10_AEI사용량정의_ClaudeAI_1PAPI.tex`/`.md`/`.docx`/`.pdf` 작성(사용자 요청: AEI 사용량 데이터를 활용한 연구들이 사용량을 Claude.ai와 1P API 중 무엇으로 정의했는지 — 합산인지, 하나만인지 — 연구별 정리).
+  - 대상 11편: report 07의 AEI 직접 활용 9편 + `bick-2026-what-work-does-generative`(V2 릴리스 과업 점유율을 비교 벤치마크로 사용) + `kim-2026-generative-ai-korean-labor-market`(Massenkoff and McCrory 관측노출을 KSCO에 이식).
+  - 분류 결과: (A) Claude.ai 단독 5편(Handa 2025, Tamkin and McCrory 2025, Fan 2026, Fan and Nguyen 2026, Bick et al. 2026), (B) 플랫폼별 병렬 비교(합산 없음) 4편(V3–V6 정기 보고서; 단 AUI·실효 AI 커버리지·tenure 등은 Claude.ai 전용), (C) 합산 1편(Massenkoff and McCrory 2026) + 계승 1편(김수현·이정아 2026).
+  - 확인 방법: 노트 1차 분류 후 원문 PDF를 pdftotext로 추출해 "Claude.ai"/"1P API"/"first-party" 전수 검색. Massenkoff and McCrory 부록의 정의식은 이미지라 WinRT(`Windows.Data.Pdf`)로 p.2–3을 렌더링해 직접 판독.
+  - 새로 확인한 사항: 관측노출의 자동화 가중치는 α_t = 1/2 + 1/2 × (ClaudeWorkUsage×AutoShare + APIUsage)/(ClaudeWorkUsage + APIUsage)로, **API 사용 전체를 자동화로 간주**함(부록 p.3). `reference/notes/massenkoff-2026-labor-market-impacts-of-ai.md`는 이를 "1/2 + 1/2×AutomationShare"로만 요약해 API 항이 빠져 있음 — 노트는 econ-wiki 원본 사본이므로 이 저장소에서는 수정하지 않았고, econ-wiki 쪽 수정이 필요함.
+  - `.docx`/`.pdf`: xelatex·pandoc이 없어 `.md`를 node 스크립트로 HTML 변환(표 폭은 colgroup %)→Word COM으로 A4·여백 72pt 설정, 표마다 `AllowAutoFit=false`·폭 100%·머리행 반복·표 제목 KeepWithNext 지정 후 docx 저장→PDF 출력(8페이지). 이번에는 docx XML 패치 없이 COM 속성만으로 표 폭 고정. PDF 전 페이지를 렌더링해 표 3개가 페이지 폭 안에 들어오는 것을 확인.
+
+- report 10(`10_AEI사용량정의_ClaudeAI_1PAPI.tex`/`.md`)에 §6 "보론: GLOBAL 단위에서 두 플랫폼 사용량을 합산할 수 있는가" 추가(사용자 요청, 기존 §1–5는 수정하지 않음).
+  - V6 원자료 두 파일(`aei_claude_ai_2026-06-26.csv`, `aei_1p_api_2026-06-26.csv`)의 GLOBAL 행을 직접 집계. 두 파일 모두 `overall` `usage_pct`=100이고 규모 지표(건수·토큰)가 없어 플랫폼 간 상대 규모를 알 수 없음. 따라서 합산은 가중치 w를 가정해야 하는 구성 지표임(pct_pooled = w·pct_claude + (1−w)·pct_api). Massenkoff and McCrory(2026)의 합산은 표본 동일 크기(각 200만 건)에 따른 암묵적 w≈0.5임.
+  - 과업(레벨 0) `pct` 합계: claude_ai 88.40/94.32%, 1p_api 81.13/85.00%(2026.4/5). 공개 과업 수 2,410/2,713 vs 1,992/2,295, 공통 과업 1,577/1,815.
+  - 권고: 기본은 플랫폼별 분리, 합산은 민감도 분석용((i) w=1, (ii) w=0.5, (iii) 업무용 필터 버전 + w 변화).
+  - `.docx`/`.pdf` 재생성: 이전과 같은 파이프라인(`.md`→node HTML 변환→Word COM, A4·여백 72pt, 표 폭 100%·AllowAutoFit=false)으로 다시 만듦(8→9페이지). 새 표 4의 열 폭은 36/16/16/16/16%. PDF 전 페이지를 렌더링해 §6과 표 4가 페이지 폭 안에 들어오는 것을 확인.
+
+## 2026-09-27
+
+- 외부 규모 파라미터 원자료 폴더 `data/raw/macro/scaling/` 신설(사용자 요청). raw/proc 대칭 규칙에 따라 빈 `data/proc/macro/scaling/`도 생성. 채울 do 파일(`01_import_scaling.do`)은 아직 없음.
+  - 목적: AEI V6는 플랫폼 내 점유율(`pct`)만 있고 건수가 없어, LCE 등 수준 지표에 필요한 Claude.ai 대화 수·1P API 호출 수를 외부 자료로 추정해야 함.
+  - `scaling_parameters_public.csv`: 공개 자료의 수치를 1행 1값으로 옮겨 적은 파일(보고된 값만 수록, 파생값은 do 파일에서 계산). 열에 출처·URL·스냅샷 파일·접속일·`source_tier`(primary_official / primary_web / paper / secondary / secondary_unverified) 포함.
+  - `snapshots_2026-09-27/`: 원출처 웹페이지 7개를 curl로 저장(Anthropic Series G·Google-Broadcom·Series H 발표, Similarweb "AI Search Stats 2026" 블로그, PPC Land의 Similarweb 보고서 기사, DemandSage, Simon Willison). 각 파일에 인용 수치가 실제로 들어 있는지 텍스트 검색으로 확인.
+  - **Similarweb 원자료(월별 방문 수·앱 MAU 시계열)는 확보하지 못함**: 유료 로그인이 필요하고, 무료 페이지는 최근 1개월 요약만 보이며 자동 수집도 차단됨(HTTP 202). getpanto.ai 페이지도 차단(HTTP 503)되어 스냅샷 없음. 확보해야 할 내보내기 목록은 폴더 `README.md`에 정리.
+  - 파라미터 출처(모두 접속일 2026-09-27):
+    - claude.ai 월 방문 수: 2025.8 149M, 2025.11 176M, 2026.2 288M — Fan and Nguyen(2026) 부록 B(SimilarWeb). 2026.1 203M, 2026.3 614M, 2026.4 824M, 2026.5–8 947–969M 범위, 2026.7 969M(정점) — PPC Land가 인용한 Similarweb 상장 전 보고서(표지 2026-09-17). 2026.1 202M, 2026.6 946.7M(전월 대비 −0.61%) — DemandSage(Similarweb 인용). 2026.8 전월 대비 −1.97% — Similarweb claude.ai 무료 페이지(스냅샷 없음).
+    - Claude 앱 MAU: 2026.3 55.1M, 2026.5 102M, 2026.6 120M, 2026.8 157M — Similarweb App Intelligence(PPC Land 인용). 2026.2 12.5M — Fan and Nguyen 각주 26(DemandSage). 계열이 달라 서로 비율을 내면 안 됨.
+    - 웹+앱 MAU 245M — DemandSage(Sensor Tower State of AI 2026 인용, 2026-07-07 갱신).
+    - 생성형 AI 웹 방문 월평균 9.5B(2025.6–2026.5), ChatGPT 점유율 약 76%→약 53%, Gemini 27–28%, Claude "10%에 근접" — Similarweb 블로그(2026-07-29 게시, 09-17 수정).
+    - Anthropic run-rate 매출: $14B(2026-02-12, Series G), >$30B(2026-04-06, Google·Broadcom 발표), >$47B(2026년 5월, Series H 2026-05-28) — 공식. Claude Code run-rate >$2.5B(2026-02-12, Series G) — 공식. $65B(2026.7) — PPC Land(2차).
+    - Fan and Nguyen(2026) 가정: Claude.ai 주 2억 건(웹 MAU 18.9M × DAU/MAU 0.5 × 하루 3건 × 7), Claude 점유율 25%(15–35%), API 비중 75%, 호출당 $0.34, 연 310억 건(각주 24). API 매출 비중 75–85%는 제3자 추정(미검증).
+- 신규 report `11_AEI사용량규모추정_ClaudeAI_1PAPI.tex`/`.md` 작성(사용자 요청: V6 기간 Claude.ai·1P API 사용량 규모 추정 방법 정리).
+  - Claude.ai: 방법 A(기준, Fan 방식 연장: 주 2억 × 방문 수 비율 → 2026.4 약 5.7억, 2026.5 약 6.6억 건/주), 방법 B(웹·앱 결합 지수, Similarweb 원자료 필요), 전체 플랫폼 확장은 점유율 25% 고정 대신 카테고리 트래픽 비율(C1, 권장) 또는 웹 점유율 조정(C2).
+  - 1P API: Q = R × s_API × (1 − κ_CC − κ_cloud) / p. V6 API가 Claude Code를 제외하고 1P만 포함하므로 κ 두 항을 추가(공개 값 없음, 가정 범위로 처리). 예시: Fan 방식 그대로 2026.4 12.7억·2026.5 19.9억 건/주(상한), 제외분 반영 시 6.4억·10.0억 건/주.
+  - report 10 §6의 합산 가중치 w에 대한 외부 근거로 2026.5 기준 w ≈ 0.25–0.40 제시(단, 대화와 호출은 단위가 다름).
+  - 권고: 단위당 가치(데이터 확정)와 규모(가정 의존)를 분리 보고, 규모는 민감도 격자로 제시, 4·5월은 따로 계산.
+  - `.docx`/`.pdf`는 아직 만들지 않음.
+- report 09(`09_AEI한국적용_직업별시간절감사용량.tex`/`.md`)에 §8 "보론(2026-09-27 추가): V5 원자료 재검토와 V5·V6의 직업 분류 활용 수준 비교" 추가(사용자 요청: 기존 §1–7은 수정하지 않고 추가만).
+  - 정정 사항: §2·§7에서 V5(`release_2026_03_24`)를 "pre-enrichment 원시본이라 부적합"으로 판단했으나, 원자료 직접 집계 결과 공개 임계치가 이미 적용되어 있음(KR 과업 최소 15건, 미달분은 `not_classified`로 합산: KR 24.9%, GLOBAL 2.7%). Fan and Nguyen(2026) Box 2 수치(41,586건, 972,636건, 3.54시간→17.8분)와 정확히 일치해 같은 R5 파일임을 확인. §8이 §2·§7의 V5 서술보다 우선한다고 명시.
+  - V5 과업→직업 연계 검증: `release_2025_09_15/data/intermediate/onet_task_statements.csv`(O*NET 20.1, SOC 2010)와 소문자 과업 텍스트로 매칭 시 GLOBAL 3,258/3,258, KR 299/299 과업 매칭. 다중직업 과업 86개(대화 4.5%)는 균등 배분. 세부직업 GLOBAL 566개, KR 171개.
+  - V6 KOR 재집계: 세부직업 389/424개 코드, `pct` 합계 96.16/98.08%(2026.4/5), 과업 레벨 0 합계 78.51/81.32%, 최솟값 0.01%. V6는 임계치를 직업 단위 칸에 따로 적용하는 것으로 보여 V5보다 한국 세부직업 포괄률이 높음. 단 건수·표본 크기 미공개로 정밀도는 평가 불가.
+  - 비교표(표 8.1): GLOBAL 절감시간은 V5·V6 모두 세부직업 가능, KR 사용량은 V5 대분류 권장·V6 세부직업 가능(해석 주의), KR 절감시간은 V5 불가·V6 대분류만.
+  - V5 SOC 대분류 잠정 집계표(scratchpad awk 계산, do 파일 재현 전 잠정치로 표기) 수록.
+  - `.docx`/`.pdf`: 기존 docx를 새로 만들지 않고, Word COM으로 기존 파일의 "참고문헌" 제목 바로 앞에 §8만 삽입(원본 report 09 HTML 중간본의 CSS를 그대로 쓴 §8 HTML 조각을 `Range.InsertFile`로 삽입). 새 표 3개(표 7–9, docx 쪽은 기존 표 1–6에 이어 번호 부여)는 기존 표와 같이 폭 100%·고정 레이아웃(`tblW` 5000 pct, `tblLayout fixed`, grid 합 9027twips)으로 맞추고 열 폭을 셀 단위로 지정. PDF 재출력(8→11페이지). 검증: (1) Word로 원본·수정본 본문 텍스트를 비교해 §8을 뺀 나머지가 원본과 글자 단위로 동일함을 확인, (2) PDF 7–11쪽을 이미지로 렌더링해 표 7–9가 페이지 폭 안에 들어오는 것을 확인. 원본은 scratchpad에 백업.
