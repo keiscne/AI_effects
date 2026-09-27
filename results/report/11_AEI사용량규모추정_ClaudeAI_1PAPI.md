@@ -54,6 +54,10 @@ V6 GLOBAL `overall` 행에서 단위당 절감시간은 이미 계산할 수 있
 
 **보완(2026-09-27): 웹 MAU 1,890만 명의 기준 시점이 불확실하다.** 논문은 이 값을 "2026년 초" 수치로 제시하고 DemandSage "Claude Statistics 2026"을 출처로 든다(부록 B, 각주 26). 그런데 같은 페이지를 2026년 9월 27일에 저장한 사본(페이지 최종 수정 2026-07-07, `data/raw/macro/scaling/snapshots_2026-09-27/demandsage_claude_statistics.html`)에는 2026년의 월을 명시한 웹 MAU가 없다. 웹 이용자 월별 표는 2023년 12월–2025년 1월까지만 있고, 본문은 "2024년 11월 1,880만 명으로 정점을 찍은 뒤 안정적"이라고 적는다(표의 마지막 값은 2025년 1월 1,600만 명). 논문이 참조한 시점의 페이지 버전은 확인할 수 없어 단정할 수는 없지만, 1,890만 명은 2026년 값이 아니라 2024년 11월 정점 값(1,880만 명)과 같은 계열일 가능성이 있다. 그 사이 claude.ai 월 방문 수는 크게 늘었다(2025.8 1.49억 → 2026.1 약 2.02억 → 2026.2 2.88억 회). 따라서 그 경우라면 2026년 2월 주 2억 건은 **과소추정**일 수 있다. 이 값은 4.1절 방법 A의 기준값이므로, 1.5억–2.5억 범위의 민감도 분석(7절)을 반드시 함께 제시한다. 가능하면 같은 시점에 조회한 Similarweb이나 Sensor Tower의 2026년 2월 웹 MAU로 기준값을 다시 확인한다.
 
+**보완(2026-09-27): "이용자당 하루 3건"의 근거.** 논문은 "Assuming 3 conversations per active user per day"(부록 B Step 1)에 출처나 설명을 달지 않는다. 각주 27은 주 1.5억–2.5억 건 범위가 "MAU 수치와 이용자당 대화 수의 불확실성"을 반영한다고만 적는다. 이 저장소의 문헌 62편을 검색해도 이용자당 대화 수를 직접 제시한 연구는 없었다. Bick et al.(2026)은 설문으로 사용 일수와 하루 사용 시간을 묻고, Handa et al.(2025)은 직업별 사용을 대화 수와 계정 수로 각각 세어 비교할 뿐 계정당 대화 수는 공개하지 않는다.
+
+가장 가까운 외부 근거는 Chatterji et al.(2025)의 ChatGPT 자료다. 소비자 플랜의 하루 메시지 수는 2025년 6월 26.27억 건(표 1, 정확한 측정값)이고, 2025년 7월 주간 이용자는 7억 명이다(p.1, p.10). 나누면 주간 이용자 1인당 하루 약 3.8건이다(기준 월이 한 달 어긋남). 이를 Sensor Tower 자료(report 13)와 결합하면, 2025년 7월 월 메시지 약 797억 건(주 180억 건 × 31/7)을 ChatGPT 월간 이용자 9.94억 명 × 월평균 사용 일수 14일로 나누어 **사용일 1일당 메시지 약 5.7건**이 된다. 다만 세 가지를 감안해야 한다. (i) **메시지는 대화가 아니다.** 대화는 여러 메시지의 연쇄이고(Chatterji et al. 2025, p.6), 대화당 메시지 수를 공개한 자료는 없다. 따라서 사용일 1일당 대화 수는 5.7건보다 적다. (ii) Sensor Tower 이용자 수는 25개 시장 합계이고 사용 일수는 앱 이용자 기준이라 이 계산에는 편의가 있다. (iii) ChatGPT와 Claude는 이용 방식(Claude 이용자의 80%는 웹 전용)과 업무 비중이 다르다. 결론적으로 "하루 3건"은 공개 자료로 계산한 범위와 크게 어긋나지는 않지만 근거 있는 추정이 아니라 가정이다. 따라서 **출처 없는 가정**으로 명시하고, 1.5억–2.5억 범위의 민감도 분석으로 다룬다.
+
 ---
 
 ## 3. V6 기간에 쓸 수 있는 외부 자료
@@ -189,7 +193,10 @@ report 10(6.2절)은 두 플랫폼 사용량을 합산하려면 가중치 w(Clau
 
 ## 참고문헌·자료
 
+- Bick, A., Blandin, A., Deming, D. J., Fuchs-Schündeln, N., and Jessen, J. (2026). *Mind the Gap: AI Adoption in Europe and the U.S.* NBER Working Paper.
+- Chatterji, A., Cunningham, T., Deming, D. J., Hitzig, Z., Ong, C., Shan, C. Y., and Wadman, K. (2025). *How People Use ChatGPT*. NBER Working Paper 34255.
 - Fan, R. Y., and Nguyen, H. M. (2026). *Aggregate Gains from AI and Their Distribution: Global Evidence from Usage Data*. IMF WP/26/147. 부록 B, 표 A2, 각주 24.
+- Handa, K., Tamkin, A., McCain, M., et al. (2025). *Which Economic Tasks are Performed with AI? Evidence from Millions of Claude Conversations*.
 - Massenkoff, M., and McCrory, P. (2026). *Labor Market Impacts of AI: A New Measure and Early Evidence*.
 - Anthropic (2026.2.12). "Anthropic raises $30 billion in Series G funding at $380 billion post-money valuation."
 - Anthropic (2026.4.6). Google·Broadcom 파트너십 확대 발표.
@@ -197,5 +204,6 @@ report 10(6.2절)은 두 플랫폼 사용량을 합산하려면 가중치 w(Clau
 - Similarweb (2026). "AI Search Stats 2026" 블로그(2026.7.29 게시, 9.17 수정).
 - PPC Land (2026.9). "Claude gains 540% in visits with 0.46% from paid traffic, Similarweb finds" (Similarweb 상장 전 보고서 인용).
 - DemandSage. "Claude AI Statistics (2026)."
+- Sensor Tower (2026). *State of AI 2026*. https://sensortower.com/report/state-of-ai-2026/download (차트 데이터 2026-09-27 추출, report 13).
 
 웹 자료의 URL, 접속일(2026-09-27), 스냅샷 파일은 `data/raw/macro/scaling/scaling_parameters_public.csv`에 행 단위로 기록했다.
