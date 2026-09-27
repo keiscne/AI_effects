@@ -241,3 +241,14 @@
   - `reference/references.bib`에 `sensortower-2026-state-of-ai`(@misc) 추가.
 - report 13(`13_SensorTower_데이터설명.tex`/`.md`) §3.4 끝에 보완 문단 추가(사용자 요청, 기존 내용 수정 없음): ④의 세션 수 의미. 보고서 "Mobile App Methodology"는 다운로드·매출만 설명하고 세션을 정의하지 않으며 Sensor Tower 공개 자료(Usage Intelligence API 문서)에도 세는 규칙이 없음을 명시, 업계 일반 정의(포그라운드 사용 1회)는 확인된 것이 아님을 표시. 세션당 평균 길이(2026H1 전 세계 약 2.2분, 한국 약 2.3분), 자료별 사용 단위 비교표(Sensor Tower 앱 세션·웹 방문, AEI 대화, OpenAI Signals 메시지) 추가, ④를 Claude 대화 수 추정에 쓸 수 없는 이유 정리.
   - `.docx`/`.pdf` 재생성(5→6페이지, 같은 파이프라인). Word로 기존·수정 본문을 비교해 추가 부분을 뺀 나머지가 기존과 글자 단위로 같음을 확인, PDF 렌더링으로 새 표 폭 확인.
+- Chatterji et al.(2025) "How People Use ChatGPT"(NBER WP 34255)를 AI-effects에 등록(사용자 요청).
+  - `reference/papers/chatterji-2025-how-people-use-chatgpt.pdf`: Claude가 NBER(https://www.nber.org/system/files/working_papers/w34255/w34255.pdf)에서 직접 다운로드.
+  - `reference/notes/chatterji-2025-how-people-use-chatgpt.md`: 원문 전체(본문 1–7장, 부록 B 검증 결과 포함)를 읽고 econ-wiki `sources/` 형식(frontmatter + 8개 섹션)으로 새로 작성. 쪽수 인용 포함. frontmatter에 `acquisition` 항목으로 입수 경위와 econ-wiki 미등록 사유를 기록.
+  - `reference/references.bib`: `chatterji-2025-how-people-use-chatgpt`(@techreport) 추가.
+  - **econ-wiki에는 등록하지 않음(의사결정)**: econ-wiki CLAUDE.md 0.1절은 Claude가 스스로 웹에서 원문을 구하는 것을 금지하고, 사용자가 직접 받아 `papers/web/`에 넣은 원문만 Tier 2로 인정함(예외 없음). 이 논문은 Claude가 받은 것이라 사용자와 확인 후 AI-effects에만 등록하기로 함. 따라서 두 저장소가 이 문헌에서 어긋나 있음 — econ-wiki에 넣으려면 사용자가 PDF를 직접 받아 `D:/econ-wiki/papers/web/`에 넣은 뒤 ingest해야 함.
+  - 원문에서 확인한 이용자당 사용 관련 수치: 2025.7 주간 이용자 7억 명·주당 메시지 180억 건(p.1), 소비자 플랜 하루 메시지 2024.6 4.51억 → 2025.6 26.27억 건(표 1, 정확한 측정값, p.2), 주간 이용자 1인당 하루 메시지는 가입 코호트별 지수로만 제시(Figure 5, p.12). 대화당 메시지 수는 보고하지 않음.
+- report 11(`11_AEI사용량규모추정_ClaudeAI_1PAPI.tex`/`.md`) §2에 보완 문단 추가(사용자 요청): Fan and Nguyen의 "이용자당 하루 3건 대화" 가정에 출처가 없음(부록 B Step 1, 각주 27), 저장소 문헌 62편에 이용자당 대화 수를 직접 제시한 연구가 없음, 가장 가까운 외부 근거로 Chatterji et al.(2025)의 메시지·이용자 수(주간 이용자 1인당 하루 약 3.8건)와 Sensor Tower(report 13)를 결합한 사용일 1일당 메시지 약 5.7건, 메시지≠대화 등 세 가지 한계, "출처 없는 가정"으로 명시하고 민감도로 다룰 것.
+  - `.md` 참고문헌 목록에 Bick et al.(2026), Chatterji et al.(2025), Handa et al.(2025), Sensor Tower(2026) 4개 항목 추가(`.tex`는 biblatex가 자동 반영).
+  - `.docx`/`.pdf` 재생성(9페이지). Word로 문단 단위 비교: 기존 268개 문단 중 삭제·변경 0개, 추가 6개(보완 문단 2개 + 참고문헌 4개)만 있음을 확인. PDF 렌더링으로 배치 확인.
+- report 13(`13_SensorTower_데이터설명.tex`/`.md`)에 §6 "보완(2026-09-27): 보고서의 방법론 페이지와 페이지 주석" 추가(사용자 요청, 기존 §1–5 수정 없음). 보고서 71–73쪽 방법론 페이지(모바일 앱: 다운로드·매출만, 디지털 광고, 웹)와 전체 페이지 주석을 확인한 결과: 앱 MAU·세션·사용 시간·사용 일수의 추정 방법은 보고서에 없음. 6.1 방법론 페이지 요약표, 6.2 웹 지표(방문 30분 기준, 총 방문, 순방문자)와 True Audience 정의(앱 활성 이용자·모바일 웹·데스크톱 웹 방문자 중복 제거), 6.3 App IQ 분류 체계(2026년 6월 기준, 29·31·32·39쪽), 6.4 이용자 수 중복 계산(여러 어시스턴트 사용자는 어시스턴트마다 계산, ①은 제품 안의 앱·웹 중복만 제거, 앱 내장 AI 이용자 제외), 6.5 정정: 3.4절에서 "China Mainland는 iOS만 반영됐을 가능성이 크다(다른 페이지 주석)"고 쓴 것은 ④가 실린 29쪽 주석 자체에 "iOS only for China"가 명시된 확인된 사실임(처음 확인 때 긴 주석을 놓침).
+  - `.docx`/`.pdf` 재생성(6→8페이지). Word 문단 비교로 기존 131개 문단의 삭제·변경 0개, 새 절만 추가됨을 확인. PDF 렌더링으로 새 표 배치 확인.

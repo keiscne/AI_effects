@@ -191,6 +191,51 @@ OpenAI Signals & 메시지 & 사용자가 보낸 메시지 1개 \\
   \item \textbf{한국 지표}: ①(한국 제품별 이용자 수), ④(한국 생성형 AI 앱 세션$\cdot$시간), ⑤(한국 생성형 AI 웹 방문$\cdot$시간)는 AEI$\cdot$OpenAI Signals의 한국 값과 함께 한국의 AI 사용 규모 추세를 보여 주는 보조 지표로 쓸 수 있다.
 \end{itemize}
 
+% ============================================================
+\section{보완(2026-09-27): 보고서의 방법론 페이지와 페이지 주석}
+% ============================================================
+
+보고서 끝의 방법론 페이지(71--73쪽)와 모든 페이지의 출처$\cdot$주석 문구를 전부 확인했다. 결론부터 말하면, \textbf{앱 활성 이용자(MAU), 세션 수, 사용 시간, 사용 일수를 어떻게 추정했는지는 보고서 어디에도 설명이 없다.} 정의가 제시된 것은 웹 지표와 True Audience뿐이다. 나머지는 각 페이지 주석에 적힌 범위 정보가 전부다. 따라서 ②$\cdot$③$\cdot$④는 ``Sensor Tower의 모바일 앱 사용 추정치''라는 것 외에 산출 방식(패널 규모, 모형 등)을 보고서로 확인할 수 없다.
+
+\subsection{방법론 페이지 요약}
+
+\begin{longtable}{L{0.8cm}L{2.8cm}L{6.4cm}L{4.6cm}}
+\caption{보고서 방법론 페이지(71--73쪽)}\label{tab:method}\\
+\toprule
+쪽 & 제목 & 내용 & 이 문서 데이터와의 관계 \\
+\midrule
+\endhead
+71 & Mobile App Methodology & Sensor Tower Mobile App Insights 플랫폼의 다운로드$\cdot$인앱결제(IAP) 매출 추정치. 기간 2014.1.1--2026.5.31. 다운로드는 Apple$\cdot$Google 계정당 1회만 셈. Android는 Google Play만. IAP 매출은 수수료 차감 전(gross)이며 광고 매출 제외 & 다운로드$\cdot$매출만 설명. ②$\cdot$③$\cdot$④의 이용자$\cdot$세션$\cdot$시간 지표는 설명하지 않음 \\
+72 & Digital Advertising Methodology & Pathmatics가 패널과 데이터 수집업체에서 광고를 표본으로 모아 노출$\cdot$지출을 통계적으로 추정 & 관계없음(보고서에서 추정 방식이 설명된 유일한 페이지) \\
+73 & Web Methodology & Sensor Tower Web Insights 플랫폼의 방문 수$\cdot$순방문자 추정치. 데스크톱 웹과 모바일 웹(폰$\cdot$태블릿) 포함. 방문$\cdot$순방문자$\cdot$True Audience 정의 & ①$\cdot$⑤의 정의 \\
+\bottomrule
+\end{longtable}
+
+\subsection{웹 지표와 True Audience의 정의 (73쪽)}
+
+\begin{itemize}
+  \item \textbf{방문(visit)}: ``A visit captures all activity on a site within a 30-minute window.'' 한 사이트에서 페이지를 보면 이후 30분 안의 페이지 조회는 같은 방문으로 묶고, 30분 넘게 활동이 없으면 다음 활동부터 새 방문이다.
+  \item \textbf{총 방문 수(total visits)}: 같은 방문자의 반복 방문을 포함해 기간 중 방문한 횟수 전체. ⑤의 \texttt{visits}가 이 값이다.
+  \item \textbf{순방문자(unique visitors)}: 기간 중 방문한 사람을 몇 번 왔든 1명으로 센 값.
+  \item \textbf{True Audience}: ``the measure of how many unique visitors are driving traffic to a brand across multiple devices. It is defined by deduplicating the user base of a brand's app active users, mobile web visitors, and desktop web visitors.'' 즉 ①은 한 제품(브랜드)의 앱 활성 이용자, 모바일 웹 방문자, 데스크톱 웹 방문자를 합친 뒤 겹치는 사람을 뺀 값이다. 다만 앱과 웹에서 같은 사람을 어떻게 식별하는지(중복 제거 방법)는 설명하지 않는다.
+\end{itemize}
+
+\subsection{앱 분류: App IQ 분류 체계}
+
+④가 실린 29쪽 주석은 ``Apps classified using Sensor Tower's App IQ taxonomy as of June 2026''이라고 적는다(31$\cdot$32$\cdot$39쪽도 같음). 즉 ④의 ``생성형 AI 앱'' 카테고리는 Sensor Tower의 App IQ 분류 체계가 \textbf{2026년 6월 기준}으로 생성형 AI로 분류한 앱 집합이다. 과거 기간(2023H1 등)도 이 시점의 분류로 다시 계산한 값으로 보인다. 따라서 분류 체계가 바뀌면 과거 값도 바뀔 수 있고, 다른 시점에 발표된 Sensor Tower 수치와 카테고리 범위가 다를 수 있다.
+
+\subsection{이용자 수의 중복 계산}
+
+\begin{itemize}
+  \item 9$\cdot$10$\cdot$12쪽(AI 어시스턴트별 앱 MAU와 점유율) 주석은 ``Users that use multiple AI Assistants in a month are double-counted (counted once for each AI Assistant that they use)''라고 적는다. 한 달에 여러 어시스턴트를 쓴 사람은 어시스턴트마다 한 번씩 센다.
+  \item ①의 True Audience는 \textbf{한 제품 안에서} 앱과 웹 사이의 중복만 제거한 값이다. 따라서 제품별 ① 값을 더한 합계는 ``AI 어시스턴트를 쓴 사람 수''가 아니며, 여러 제품을 쓴 사람만큼 과대 계산된다.
+  \item 9$\cdot$11쪽의 ``In-App AI Active Users''는 다른 앱에 내장된 AI(WhatsApp의 Meta AI, Android의 Gemini 플로팅 화면, X의 Grok 등) 사용을 따로 센 것이다. 일부 차트(9쪽)에서는 Meta AI$\cdot$Gemini 합계에 이 사용이 포함되지만, ①에는 포함되지 않는다(13쪽 주석 ``Does not include embedded in-app AI users'').
+\end{itemize}
+
+\subsection{정정: 3.4절의 China Mainland 서술}
+
+3.4절은 ④의 China Mainland 값에 대해 ``iOS만 반영됐을 가능성이 크다(같은 보고서 다른 페이지 주석 `iOS only for China')''라고 적었다. 그런데 ④가 실린 \textbf{29쪽 주석 자체}에 ``iOS and Google Play combined. iOS only for China.''가 명시되어 있다. 따라서 ④의 China Mainland 값은 \textbf{iOS만 반영한 것이 확인된 사실}이다. 처음 페이지를 확인할 때 긴 주석 문구를 놓쳤던 것을 이 절에서 바로잡는다.
+
 \printbibliography[title={참고문헌}]
 
 \end{document}
