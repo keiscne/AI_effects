@@ -1,0 +1,258 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- Sensor Tower 이용자·사용량 지표(report 13)와 외부 자료
+% (Chatterji et al. 2025의 WAU·메시지 수, Fan and Nguyen 2026의 Claude.ai 대화 수) 비교.
+% 표 본문: results/table/14_{ta_wau,chatterji,fan}.tex (code/04_analysis_sensortower_usage_comparison.do가 생성)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{Sensor Tower 이용자$\cdot$사용량 지표와 외부 자료의 비교\\[2mm]
+\large --- True Audience와 Active User(WAU), \citeauthor{chatterji-2025-how-people-use-chatgpt}의 메시지 수, \citeauthor{fan-2026-aggregate-gains-from-ai}의 대화 수 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 본 문서는 Sensor Tower \textit{State of AI 2026}\parencite{sensortower-2026-state-of-ai}에서 추출한 이용자$\cdot$사용량 지표(report 13)를 두 외부 자료와 비교한다. 첫째, Sensor Tower의 True Audience(월간 중복 제거 이용자)와 \textcite{chatterji-2025-how-people-use-chatgpt}의 주간 활성 이용자(WAU)는 ``기간 안에 제품을 쓴 이용자를 앱$\cdot$웹 구분 없이 센 수''라는 점에서 성격이 비슷하다. 그러나 집계 기간(월간/주간), 지역(25개 시장/전 세계), 측정(외부 추정/전수 집계), 세는 단위(사람/계정), 요금제 범위가 달라 수준을 비교할 수 없다. 둘째, Chatterji et al.의 ChatGPT 메시지 수는 2024년 6월--2025년 6월 5.8배로 늘었다. 같은 기간 Sensor Tower의 ChatGPT 앱 세션은 5.1배, 웹 방문은 1.9배 늘었다. 메시지와 방문$\cdot$세션의 비율도 0.69에서 1.11로 바뀌어 환산 계수로 쓸 수 없다. 셋째, \textcite{fan-2026-aggregate-gains-from-ai}의 Claude.ai 대화 수와 Sensor Tower의 Claude 웹 방문$\cdot$앱 세션$\cdot$이용자 수는 2025년 8월--2026년 2월 모두 약 1.8--2.1배로 늘어 증가율은 맞는다. 그러나 Fan and Nguyen의 출발점인 웹 MAU 1,890만 명은 Sensor Tower 이용자 1.04억 명의 18\%에 불과하다. 결론적으로 Sensor Tower 지표는 외부 자료의 \textbf{증가율 점검과 웨이브 간 조정 지표}로는 쓸 수 있으나, \textbf{수준을 보정하거나 환산하는 데는 쓸 수 없다}. 모든 비교 수치는 do 파일 \texttt{code/04\_analysis\_sensortower\_usage\_comparison.do}로 재현된다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적과 자료}
+% ============================================================
+
+report 11(Claude.ai$\cdot$1P API 사용량 규모 추정)은 \textcite{fan-2026-aggregate-gains-from-ai}의 대화 수 가정을 출발점으로 삼았고, report 13은 Sensor Tower 보고서에서 이용자 수, 사용 강도, 앱 세션$\cdot$웹 방문을 추출했다. 본 문서는 세 가지를 비교한다.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item Sensor Tower의 \textbf{True Audience}와 \textcite{chatterji-2025-how-people-use-chatgpt}의 \textbf{Active User(WAU)}: 두 이용자 개념이 비교 가능한가.
+  \item Chatterji et al.의 \textbf{ChatGPT 메시지 수}와 Sensor Tower의 \textbf{ChatGPT 웹 방문$\cdot$앱 세션}: 사용량 수준과 증가율이 맞는가.
+  \item Fan and Nguyen의 \textbf{Claude.ai 대화 수}와 Sensor Tower의 \textbf{Claude 웹 방문$\cdot$앱 세션$\cdot$이용자 수}: 같은 질문을 Claude에 대해.
+\end{enumerate}
+
+\paragraph{자료와 약속}
+\begin{itemize}
+  \item Sensor Tower: report 13의 ①(True Audience 이용자), ②(앱 이용자 사용 일수), ⑦(경로별 Worldwide 점유율), ⑨$\cdot$⑩(생성형 AI 앱 세션$\cdot$웹 방문의 월별 값, 비례 Denton 보간), ⑪$\cdot$⑫(True Audience 점유율로 나눈 제품별 값).
+  \item 외부 자료 값: \texttt{data/raw/macro/scaling/scaling\_parameters\_public.csv}에 출처$\cdot$쪽수와 함께 적었다. Chatterji et al.의 값 6개는 이번에 추가했다.
+  \item \textbf{시간 단위는 월간으로 통일}한다. 하루 값은 그 달의 일수를 곱하고, 주간 값은 그 달의 일수 $\div$ 7을 곱한다. 주간으로 보려면 월간 값에 7 $\div$ 일수를 곱하면 된다.
+  \item \textbf{Sensor Tower 제품 값은 두 가지로 계산한다.} (가) 경로별 점유율 기준 = 카테고리 월별 합계 $\times$ ⑦ 점유율(웹은 웹 방문 점유율, 앱은 앱 MAU 점유율). (나) True Audience 기준 = ⑪$\cdot$⑫. Sensor Tower 보고서에는 제품별 방문$\cdot$세션 수가 따로 없으므로, 두 값 모두 카테고리 합계를 점유율로 나눈 추정치다.
+  \item 단위: 이용자$\cdot$방문$\cdot$세션$\cdot$메시지$\cdot$대화는 \textbf{억}, 비율은 배.
+\end{itemize}
+
+% ============================================================
+\section{True Audience와 Active User(WAU)}
+% ============================================================
+
+\subsection{정의}
+
+\begin{itemize}
+  \item \textbf{True Audience(Sensor Tower)}: ``the measure of how many unique visitors are driving traffic to a brand across multiple devices. It is defined by deduplicating the user base of a brand's app active users, mobile web visitors, and desktop web visitors.''(보고서 73쪽). 한 제품의 앱 활성 이용자, 모바일 웹 방문자, 데스크톱 웹 방문자를 합친 뒤 겹치는 사람을 뺀 월간 이용자 수다.
+  \item \textbf{Active User(\citeauthor{chatterji-2025-how-people-use-chatgpt})}: 소비자 플랜(Free, Plus, Pro)의 주간 활성 이용자(WAU). ``For logged-in users, the count is based on distinct login credentials (email addresses) \ldots\ For logged-out users, the count is based on distinct browser cookies''(각주 20, p.10). 한 사람이 계정을 여러 개 쓰거나 로그아웃 상태로 기기 두 대를 쓰면 중복 계산된다.
+\end{itemize}
+
+\subsection{공통점}
+
+\begin{itemize}
+  \item \textbf{제품 단위로 센다.} 둘 다 ChatGPT라는 한 제품의 이용자 수이고, 다른 AI 어시스턴트와 겹치는 사람을 빼지 않는다.
+  \item \textbf{앱과 웹을 합친다.} OpenAI는 로그인 계정 기준이라 한 계정으로 앱과 웹을 모두 써도 1명이다. Sensor Tower도 앱과 웹 사이의 중복을 뺀다.
+  \item \textbf{기간 안에 한 번이라도 쓰면 1명이다.} 사용 횟수가 아니라 활성 여부를 센다.
+\end{itemize}
+
+\subsection{차이점}
+
+\begin{longtable}{L{2.6cm}L{6.4cm}L{6.4cm}}
+\caption{True Audience와 WAU의 차이}\label{tab:tawau-def}\\
+\toprule
+항목 & Sensor Tower True Audience & \citeauthor{chatterji-2025-how-people-use-chatgpt} WAU \\
+\midrule
+\endhead
+집계 기간 & 월간 & 주간 \\
+지역 & Worldwide는 25개 시장 합계. 18개국 값 있음 & 전 세계. 나라별 이용자 수 없음 \\
+측정 & 외부 추정치(패널$\cdot$모형). 방법 비공개 & OpenAI 내부 기록 전수 집계 \\
+세는 단위 & 사람(앱$\cdot$웹 중복 제거). 같은 사람을 가려내는 방법 비공개 & 계정(로그인은 이메일, 로그아웃은 쿠키) \\
+요금제 & 구분 없음 & 소비자 플랜만. Business$\cdot$Enterprise$\cdot$Education 제외(p.1 각주 5) \\
+``활성''의 기준 & 앱을 열었거나 웹사이트를 방문하면 활성 & 논문에 명시 없음 \\
+경로 & 독립 모바일 앱, 모바일 웹, 데스크톱 웹. 앱 내장 AI와 데스크톱 앱 제외 & 소비자 플랜의 모든 사용으로 보이나 경로 명시 없음 \\
+시계열 & 2023-04 $\sim$ 2026-05 매월 & 2022-11 $\sim$ 2025-09 중 6개월 간격의 몇 개 시점(Figure 3) \\
+\bottomrule
+\end{longtable}
+
+\subsection{수치 비교}
+
+\begin{longtable}{L{7.4cm}R{2.4cm}R{2.4cm}R{2.4cm}}
+\caption{ChatGPT 이용자 수(억 명)}\label{tab:tawau}\\
+\toprule
+지표 & 2023-11 & 2024-11 & 2025-07 \\
+\midrule
+\endhead
+\input{../table/14_ta_wau.tex}
+\bottomrule
+\end{longtable}
+
+WAU 2023-11은 ``로그인 WAU 1억 명 이상'', 2024-11은 ``거의 3.5억 명''(로그인 이용자만), 2025-07은 ``전체 WAU 7억 명 이상''이다(p.10). 월간 이용자는 원래 주간 이용자보다 많으므로 True Audience가 더 큰 것은 자연스럽다. 그러나 비율이 4.3배에서 1.4배로 크게 움직인다. 앞의 두 WAU 값이 로그인 이용자만 센 것이어서 기준이 섞인 탓도 있다. 1.4배를 ``주간/월간 이용자 비율''로 읽어서도 안 된다. True Audience는 25개 시장 기준이라 전 세계 월간 이용자는 9.94억 명보다 많다.
+
+\subsection{결론}
+
+두 개념은 성격이 비슷하지만 \textbf{수준을 비교할 수 없다.} 대략적인 규모 점검(예: 2025년 중반 ChatGPT 이용자가 수억 명대 후반)에는 쓸 수 있으나, 한 자료로 다른 자료를 보정하거나 둘을 이어 붙이거나 둘의 비율로 이용 빈도를 추정할 수는 없다. 특히 Chatterji et al.의 ``주간 이용자 1인당 하루 메시지 수''를 Sensor Tower 월간 이용자 수에 곱하면 분모의 정의가 달라 편의가 생긴다.
+
+% ============================================================
+\section{\citeauthor{chatterji-2025-how-people-use-chatgpt} 메시지 수와의 비교(ChatGPT)}
+% ============================================================
+
+\subsection{비교 대상}
+
+\begin{longtable}{L{2.6cm}L{6.4cm}L{6.4cm}}
+\caption{메시지 수와 Sensor Tower 사용량의 범위}\label{tab:chat-scope}\\
+\toprule
+항목 & \citeauthor{chatterji-2025-how-people-use-chatgpt} & Sensor Tower \\
+\midrule
+\endhead
+지표 & 이용자가 보낸 메시지 수(하루) & ChatGPT 웹 방문 수, 앱 세션 수(월간) \\
+측정 & 소비자 플랜 전체의 정확한 측정값(표 1, p.2). 6월 26일로 끝나는 7일 평균 & 카테고리 합계 $\times$ ChatGPT 점유율 \\
+요금제 & 소비자 플랜(Free, Plus, Pro)만 & 구분 없음 \\
+경로 & 소비자 플랜의 모든 사용(데스크톱 앱 포함으로 보임) & 모바일 앱, 모바일 웹, 데스크톱 웹 \\
+API & 제외 & 원래 잡히지 않음 \\
+지역 & 전 세계 & 합계는 56개 시장(웹) 또는 표기 없음(앱). 점유율은 25개 시장 \\
+\bottomrule
+\end{longtable}
+
+2025년 7월의 주 180억 건(p.1)은 논문이 Reuters 등을 인용한 값이다.
+
+\subsection{월간 비교}
+
+\begin{longtable}{L{5.6cm}R{1.7cm}R{1.7cm}R{1.7cm}R{1.7cm}R{2.4cm}}
+\caption{ChatGPT 메시지 수와 Sensor Tower 사용량(Worldwide, 억)}\label{tab:chat}\\
+\toprule
+지표 & 2024-06 & 2024-07 & 2025-06 & 2025-07 & 증가(2025-06 $\div$ 2024-06) \\
+\midrule
+\endhead
+\input{../table/14_chatterji.tex}
+\bottomrule
+\end{longtable}
+
+메시지 수 2024-06$\cdot$2025-06은 하루 4.51억$\cdot$26.27억 건 $\times$ 30일, 2025-07은 주 180억 건 $\times$ 31/7이다. 주간으로 보면 2025-06은 메시지 주 183.9억 건, 웹 방문 주 38.9억 회, 앱 세션 주 126.5억 회다.
+
+\subsection{결과}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{메시지 증가율은 앱 세션과 비슷하고 웹 방문과는 크게 다르다.} 메시지 5.8배, 앱 세션 5.1배, 웹 방문 1.9배다. 이용자 수(1.81배)와 앱 이용자의 사용 일수(1.86배)를 곱하면 약 3.4배로, 이용자 증가와 사용 빈도 증가만으로 메시지 증가의 대부분이 설명된다. 나머지는 사용일 1일당 메시지 증가다. 웹 방문이 덜 늘어난 것은 사용이 앱으로 옮겨 갔거나, 방문을 30분 단위로 묶어 세기 때문에 한 번 방문해 더 오래 쓰는 변화가 방문 수에 드러나지 않았기 때문일 수 있다.
+  \item \textbf{메시지와 방문$\cdot$세션의 비율이 일정하지 않다.} 메시지 $\div$ (웹 방문 + 앱 세션)은 0.69에서 1.11로 1.6배 변했다. Chatterji et al.은 메시지를 웹과 앱으로 나누지 않으므로, 표~\ref{tab:chat}의 ``메시지 $\div$ 웹 방문''과 ``메시지 $\div$ 앱 세션''은 메시지를 한 채널에 모두 몰았을 때의 한계값일 뿐 채널별 비율이 아니다. 따라서 이 비율을 고정된 환산 계수로 쓸 수 없다.
+\end{enumerate}
+
+\subsection{소비자 플랜 한정 등 범위 차이}
+
+\begin{itemize}
+  \item \textbf{소비자 플랜 한정.} Sensor Tower 방문$\cdot$세션에는 Business$\cdot$Enterprise$\cdot$Education 이용자의 사용이 들어 있을 수 있지만 메시지 수에는 없다. 따라서 ``방문$\cdot$세션 1회당 메시지''는 실제보다 낮게 나온다. 기업 사용 비중이 커질수록 편의가 커지며, 기업 쪽 규모는 논문에 없어 크기를 알 수 없다.
+  \item \textbf{지역.} 메시지 수는 전 세계, Sensor Tower 점유율은 25개 시장 기준이다. 56개 시장 합계에 곱하면 나머지 31개 시장의 점유율도 같다고 가정하는 셈이다.
+  \item \textbf{카테고리.} 카테고리 합계에는 어시스턴트가 아닌 생성형 AI 앱$\cdot$사이트도 들어 있고, ⑦ 점유율은 AI 어시스턴트 사이의 점유율이다. ChatGPT 몫이 과대일 수 있다.
+  \item \textbf{데스크톱 앱.} ChatGPT 데스크톱 앱 사용은 메시지 수에는 있으나 Sensor Tower에는 없다.
+  \item \textbf{월별 값의 성격.} Sensor Tower 월별 값은 반기$\cdot$분기 값을 비례 Denton으로 나눈 추정치다.
+  \item \textbf{시점.} 메시지 수는 6월 말 7일 평균이라, 빠르게 늘던 시기에 $\times$ 30으로 만든 월 합계는 실제보다 다소 크다.
+  \item \textbf{단위.} 메시지는 이용자가 보낸 메시지 1개다. 대화(AEI, Fan and Nguyen)도, 방문$\cdot$세션도 아니다.
+\end{itemize}
+
+\subsection{Claude에 적용할 수 있는가}
+
+ChatGPT의 비율(방문$\cdot$세션 1회당 메시지 1.11건, 2025-06)을 Claude의 Sensor Tower 값에 곱하는 것은 권하지 않는다. Claude는 이용자의 80\%가 웹 전용인데, ChatGPT 계산에서는 앱 세션이 분모의 약 77\%를 차지해 채널 구성이 전혀 다르다. 참고로 그대로 곱하면 Claude 2026-02는 (웹 13.25억 + 앱 16.64억) $\times$ 1.11 $\approx$ 월 33억 메시지, 주 약 8억 건이다. Fan and Nguyen의 주 2억 ``대화''와는 단위도 달라 근거로 쓰기 어렵다.
+
+% ============================================================
+\section{\citeauthor{fan-2026-aggregate-gains-from-ai} 대화 수와의 비교(Claude)}
+% ============================================================
+
+\subsection{비교 대상}
+
+\begin{longtable}{L{2.6cm}L{6.4cm}L{6.4cm}}
+\caption{Fan and Nguyen의 대화 수와 Sensor Tower 사용량의 범위}\label{tab:fan-scope}\\
+\toprule
+항목 & \citeauthor{fan-2026-aggregate-gains-from-ai} & Sensor Tower \\
+\midrule
+\endhead
+지표 & Claude.ai 대화 수(주간). R5(2026-02) 주 2억 건(범위 1.5억--2.5억) & Claude 웹 방문 수, 앱 세션 수(월간), True Audience 이용자 수 \\
+만든 방법 & 웹 MAU 1,890만 $\times$ DAU/MAU 0.5 $\times$ 하루 3건 $\times$ 7일. 다른 웨이브는 Similarweb claude.ai 월 방문 수 비율로 조정(부록 B) & 카테고리 합계 $\times$ Claude 점유율 \\
+1P API & 제외(각주 24에만 따로 추정) & 원래 잡히지 않음 \\
+지역 & 전 세계 & 합계는 56개 시장(웹) 또는 표기 없음(앱). 점유율$\cdot$이용자는 25개 시장 \\
+\bottomrule
+\end{longtable}
+
+\subsection{월간 비교}
+
+\begin{longtable}{L{5.6cm}R{1.7cm}R{1.7cm}R{1.7cm}R{1.7cm}R{2.4cm}}
+\caption{Claude.ai 대화 수와 Sensor Tower Claude 사용량(Worldwide, 억)}\label{tab:fan}\\
+\toprule
+지표 & 2025-08 (R3) & 2025-11 (R4) & 2026-02 (R5) & 2026-03 & 증가(2026-02 $\div$ 2025-08) \\
+\midrule
+\endhead
+\input{../table/14_fan.tex}
+\bottomrule
+\end{longtable}
+
+Fan and Nguyen의 대화 수는 주 2억 건 $\times$ (그 달 Similarweb 방문 $\div$ 2026-02 방문) $\times$ 그 달의 일수 $\div$ 7이다. 2026-03은 Fan and Nguyen의 웨이브가 아니라 report 11 방법 A의 연장이다. R5 월간 범위는 6.0억--10.0억 건이다. 2026-02를 주간으로 보려면 월간 값을 4로 나눈다(웹 방문 ⑦ 주 3.3억 회, 앱 세션 ⑦ 주 4.2억 회).
+
+\subsection{결과}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{증가율은 대체로 맞는다.} 2025-08 $\to$ 2026-02에 Fan and Nguyen 대화 수(주간 기준 1.93배), Similarweb 방문(1.93배), Sensor Tower 웹 방문(⑦ 1.97배), 이용자(2.01배)가 비슷하게 늘었다. Fan and Nguyen의 웨이브 간 조정은 Sensor Tower로 보아도 방향과 크기가 비슷하다. 다만 2026-02 $\to$ 03에는 Similarweb 2.13배, Sensor Tower 웹 방문 1.81배로 벌어져, 급증기에는 조정 지표의 선택이 결과를 바꾼다.
+  \item \textbf{방문 수의 수준은 자료마다 약 4.5배 다르다.} Sensor Tower 웹 방문(⑦)은 Similarweb 방문의 4.5--4.6배(2026-03 3.9배)이고 비율이 거의 일정하다. Sensor Tower 생성형 AI 웹 방문 합계(월 약 224억 회, 56개 시장)가 Similarweb의 생성형 AI 웹 방문(월평균 약 95억 회, report 11 표 2)보다 큰 탓이다. 두 회사의 방문 수는 섞어 쓰지 않는다.
+  \item \textbf{Fan and Nguyen의 이용자 기준값이 크게 낮을 가능성이 있다.} 웹 MAU 1,890만 명은 같은 시기(2026-02) Sensor Tower Claude 이용자 1.04억 명의 18\%다. 이용자의 80\%가 웹 전용이라는 점을 감안해도 차이가 크며, report 11에서 1,890만 명이 2024년 11월 값일 수 있다고 본 의심과 맞는다. 나머지 가정(DAU/MAU 0.5, 하루 3건)을 두고 이용자만 1.04억 명으로 바꾸면 주 약 11억 건이 된다(25개 시장 기준, 앱 이용자 포함).
+  \item \textbf{대화 1건과 방문$\cdot$세션 1회는 단위가 다르다.} 2026-02 월 대화 8억 건은 Similarweb 방문 1회당 2.8건, Sensor Tower 웹 방문(⑦) 1회당 0.6건이다. 분모에 따라 5배 가까이 달라지므로 이 비율로 대화 수를 추정할 수 없다.
+  \item \textbf{점유율 기준에 따라 Claude 값이 크게 달라진다.} 앱 세션은 True Audience 점유율로 나누면(⑪) 앱 MAU 점유율로 나눌 때(⑦)보다 약 4배 크다. Claude는 웹 중심이므로 앱에는 ⑦이 더 현실적이다. 웹은 두 기준의 차이가 작다.
+\end{enumerate}
+
+\subsection{1P API 제외 등 범위 차이}
+
+\begin{itemize}
+  \item \textbf{API는 양쪽 모두 빠진다.} Fan and Nguyen의 대화 수는 1P API를 제외하고, Sensor Tower는 API 호출이 claude.ai 웹이나 앱을 거치지 않아 원래 잡지 못한다. 둘 다 ``소비자용 Claude.ai'' 쪽이라는 점에서 비교 대상은 맞다.
+  \item \textbf{Sensor Tower에 없는 사용이 있다.} Claude 데스크톱 앱과 터미널에서 쓰는 Claude Code는 Sensor Tower 측정 밖이다. Fan and Nguyen의 이용자 기준값도 웹 MAU뿐이라 앱$\cdot$데스크톱 사용이 빠져 있다.
+  \item \textbf{Sensor Tower 방문에만 들어가는 것도 있다.} 대화를 만들지 않은 방문(로그인, 기록 보기 등)과 Team$\cdot$Enterprise 이용자의 claude.ai 방문이 포함될 수 있다.
+  \item \textbf{Sensor Tower Claude 값은 추정 위의 추정이다.} 생성형 AI 카테고리 전체에 어시스턴트 점유율을 곱한 값이고, 웹 합계는 56개 시장, 점유율은 25개 시장 기준이다.
+  \item \textbf{Fan and Nguyen의 전체 플랫폼 값(C\_total)과는 비교하지 않는다.} C\_total(주 8억 건)은 Claude 대화 수를 ``전문가용 AI 대화 중 Claude 점유율 25\%''로 나눈 값이다. Sensor Tower의 Claude 점유율은 웹 방문 5.9\%, True Audience 5.1\%(2026-02)로 25\%보다 훨씬 낮다. 정의가 달라 곧바로 비교할 수는 없지만, 전체 플랫폼으로 늘리는 단계에도 큰 불확실성이 있다는 뜻이다.
+\end{itemize}
+
+% ============================================================
+\section{종합 결론과 본 프로젝트에서의 활용}
+% ============================================================
+
+\begin{itemize}
+  \item \textbf{개념.} True Audience와 WAU는 성격이 비슷하지만 수준 비교는 할 수 없다.
+  \item \textbf{증가율.} Claude에서는 Fan and Nguyen의 조정 지표(Similarweb 방문)와 Sensor Tower 지표의 증가율이 대체로 맞는다. ChatGPT에서는 메시지 증가율이 앱 세션과는 맞고 웹 방문과는 크게 다르다.
+  \item \textbf{수준.} 어느 비교에서도 사용 단위(메시지, 대화, 방문, 세션)와 범위가 달라 환산 계수를 만들 수 없다.
+  \item \textbf{report 11에 대한 시사점.} (1) Sensor Tower의 True Audience 이용자 수와 ⑦ 기준 웹 방문은 Fan and Nguyen 방식의 웨이브 간 조정 지표를 대신할 수 있다. 증가율이 비슷하고 월별 계열이 끊김 없이 이어지며 한국 값도 있다. (2) 수준 기준값(주 2억 건)은 이 비교로 검증할 수 없다. 이용자 수 비교는 오히려 과소추정 가능성을 뒷받침하므로, 민감도 범위의 위쪽을 넓혀야 한다. (3) Chatterji et al.의 이용자당 메시지 수를 Sensor Tower 이용자 수와 결합하는 계산(report 11의 사용일 1일당 약 5.7건)에는 2.5절의 분모 불일치가 있으므로 민감도로 다룬다.
+\end{itemize}
+
+% ============================================================
+\section{재현 방법}
+% ============================================================
+
+\begin{itemize}
+  \item \texttt{code/02\_clean\_sensortower\_usage\_monthly\_by\_assistant.do}를 먼저 실행해 ⑨--⑫를 만든 뒤, \texttt{code/04\_analysis\_sensortower\_usage\_comparison.do}를 실행한다.
+  \item 출력: \texttt{results/table/14\_usage\_comparison.xlsx}(시트 \texttt{ta\_wau}, \texttt{chatterji}, \texttt{fan})와 LaTeX 표 본문 \texttt{results/table/14\_ta\_wau.tex}, \texttt{14\_chatterji.tex}, \texttt{14\_fan.tex}. 본 문서는 이 파일들을 \texttt{\textbackslash input}으로 불러온다.
+  \item 외부 자료 값은 \texttt{data/raw/macro/scaling/scaling\_parameters\_public.csv}의 \texttt{param\_id}로 읽는다. Chatterji et al.의 값 6개(\texttt{chatterji\_msgs\_day\_2024\_06}, \texttt{chatterji\_msgs\_day\_2025\_06}, \texttt{chatterji\_msgs\_week\_2025\_07}, \texttt{chatterji\_wau\_2023\_11}, \texttt{chatterji\_wau\_2024\_11}, \texttt{chatterji\_wau\_2025\_07})는 2026-09-28에 추가했다.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}
