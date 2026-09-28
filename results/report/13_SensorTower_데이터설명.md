@@ -166,3 +166,94 @@
 ### 6.5 정정: 3.4절의 China Mainland 서술
 
 3.4절은 ④의 China Mainland 값에 대해 "iOS만 반영됐을 가능성이 크다(같은 보고서 다른 페이지 주석 'iOS only for China')"라고 적었다. 그런데 ④가 실린 **29쪽 주석 자체**에 "iOS and Google Play combined. iOS only for China."가 명시되어 있다. 따라서 ④의 China Mainland 값은 **iOS만 반영한 것이 확인된 사실**이다. 처음 페이지를 확인할 때 긴 주석 문구를 놓쳤던 것을 이 절에서 바로잡는다.
+
+---
+
+## 7. 보완(2026-09-28): 점유율 데이터 3종
+
+2026-09-28에 점유율 데이터 3종을 추가했다. ⑥과 ⑦은 ①–⑤와 같은 원본(2026-09-27 스냅샷)에서 같은 스크립트(`_extract_sensortower.js`)로 추출했고 새로 받은 파일은 없다. ⑧은 보고서에 없는 값으로, ①의 이용자 수에서 Stata do 파일로 계산했다. 앞 절의 번호 ①–⑤를 그대로 이어 쓴다.
+
+**표 4. 추가한 점유율 데이터 파일**
+
+| 번호 | 파일(`sensortower_` 접두어 생략) | 내용 | 단위(관측) | 긴 형식 행 수 | 위치 |
+|---|---|---|---|---|---|
+| ⑥ | `true_audience_share_monthly` | 시장 안의 제품별 점유율(True Audience 기준) | 시장 × 제품 × 월 | 5,776 | `data/raw/…/sensortower_state_of_ai_2026/` |
+| ⑦ | `worldwide_share_by_measure_monthly` | Worldwide 제품별 점유율, 측정 기준 4가지 | 기준 × 제품 × 월 | 468 | 같은 폴더 |
+| ⑧ | `share_within_product_monthly` | 제품 안의 시장별 점유율(①에서 계산) | 제품 × 월 × 시장 | 5,776 | `data/proc/macro/scaling/sensortower_state_of_ai_2026/` |
+
+세 데이터 모두 점유율은 퍼센트 값이다(예: `46.4` = 46.4%). ⑥·⑦은 원 차트의 `%` 기호만 지웠다. ⑧은 긴 형식을 `.csv`와 `.dta`로, 넓은 형식을 `.csv`로 저장했다.
+
+### 7.1 ⑥ 시장 안의 제품별 점유율 (True Audience 기준)
+
+- **원 차트**: "Deduplicated Standalone App & Web Market Share for Top AI Assistants" (14쪽 "ChatGPT's True Audience Market Share Falls Below 50%"). 보고서의 점유율 차트 가운데 **국가별 시트가 있는 것은 이 차트뿐**이다.
+- **정의**: 한 시장에서 제품별 True Audience 이용자 수(①)를 8개 항목(Other 포함) 합계로 나눈 값. ①에서 다시 계산한 값과 비교하면 차이가 최대 0.82%p(Taiwan, Other, 2023-10)로, ①의 이용자 수가 유효숫자 3자리로 반올림된 데서 오는 차이다.
+- **범위**: ①과 같다(19개 시장 × 8개 제품 × 2023-04 ~ 2026-05).
+- **변수(긴 형식)**: `market`, `assistant`, `month`, `share_pct`(%)
+- **주의**:
+  - 분모는 제품별 이용자 수의 합이다. 여러 어시스턴트를 쓴 사람은 어시스턴트마다 한 번씩 세므로(6.4절), 이 점유율은 "AI 어시스턴트 이용자 중 그 제품을 쓰는 사람의 비율"이 아니다. "제품별 이용자 수를 모두 더한 값에서 그 제품이 차지하는 비중"이다.
+  - 소수 첫째 자리로 반올림되어 있어 시장·월별 합계가 99.8–100.3이다.
+  - 앱에 내장된 AI 이용자는 포함하지 않는다(①과 같음).
+- **주요 값**: Worldwide 2026-05 ChatGPT 46.4%, Google Gemini 27.7%, Claude 10.3%(본문 46%·28%·10%). United States의 Claude 2025-12 5.1% → 2026-05 13.9%(본문 "5%에서 약 14%로"). South Korea 2026-05 ChatGPT 42.1%, Google Gemini 29.1%, Claude 9.6%.
+
+### 7.2 ⑦ Worldwide 제품별 점유율(측정 기준 4가지)
+
+보고서 9–12쪽에는 측정 기준이 다른 Worldwide 점유율 차트 4개가 있다. 네 차트를 `measure` 열로 구분해 하나의 파일로 합쳤다.
+
+**표 5. ⑦의 측정 기준**
+
+| `measure` | 쪽 | 원 차트 | 무엇을 세는가 | 기간 | 제품 |
+|---|---|---|---|---|---|
+| `total_web_app_inapp` | 9 | Total Market Share for Top AI Assistants | 웹 + 독립 앱 + 앱 내장 AI의 월간 이용자 | 2026-01 ~ 2026-06 | ChatGPT, Google Gemini, Meta AI, Claude, Other |
+| `standalone_app_mau` | 10 | Standalone Mobile App MAU Market Share for Top AI Assistants | 독립 모바일 앱(iOS·Google Play) MAU | 2024-01 ~ 2026-06 | ChatGPT, Google Gemini, Perplexity, Grok AI, Meta AI, Claude, Other |
+| `inapp_active_users` | 11 | In-App AI Active Users Market Share for Top AI Assistants | 다른 앱에 내장된 AI 기능의 이용자 | 2026-01 ~ 2026-06 | Google Gemini, Meta AI (WhatsApp), Grok |
+| `web_visits` | 12 | Web Visits Market Share for Top AI Assistant Websites | 웹 방문 수 | 2024-01 ~ 2026-06 | ChatGPT, Google Gemini, Claude, Perplexity, Grok AI, Microsoft Copilot, Other |
+
+- **변수(긴 형식)**: `measure`, `assistant`, `month`, `share_pct`(%). 넓은 형식은 네 기준의 월을 모두 열로 두고, 기간이 없는 칸은 비워 두었다.
+- **처리 내용**:
+  - 제품 이름 끝의 각주 표시(`Google Gemini*`, `Meta AI**`)를 지웠다. 그 밖의 제품 이름은 차트에 적힌 그대로 두었다(`Grok AI`와 `Grok`, `Meta AI`와 `Meta AI (WhatsApp)`).
+  - `standalone_app_mau` 차트는 값이 30개월인데 마지막 열의 월 머리글이 원본에서 비어 있다. 앞 열이 2026-05이고, 같은 구조의 `web_visits` 차트 마지막 열이 2026년 6월이며, 본문의 "ChatGPT retained nearly half (49%) … in June 2026"이 마지막 값 48.9%와 맞으므로 2026-06으로 채웠다.
+- **주의**:
+  - 차트마다 포함한 제품이 달라 `Other`가 가리키는 범위도 다르다. 같은 제품이라도 기준 사이의 점유율을 곧바로 비교할 때는 이 점을 감안한다.
+  - Worldwide는 `total_web_app_inapp`·`web_visits`에서 25개 시장이다. `standalone_app_mau`와 `inapp_active_users`에는 시장 수 표기가 없다.
+  - `total_web_app_inapp`에서 Google Gemini는 독립 앱과 Android 플로팅 오버레이만 포함한다(Gmail·Docs 등 다른 Google 앱 안의 사용 제외). Meta AI는 독립 앱과 WhatsApp 안의 사용만 포함한다.
+  - `web_visits`는 방문 수 기준이다. 이용자 수 기준인 다른 세 기준과 단위가 다르다.
+  - 여러 어시스턴트를 쓴 이용자는 어시스턴트마다 한 번씩 센다(9·10·12쪽 주석).
+- **주요 값(2026-06)**: Claude는 웹 방문 14.3%, 웹+앱+앱 내장 합계 8.5%, 독립 앱 3.2%다. 기준에 따라 점유율이 크게 다른 것은 Claude 이용자의 80%가 웹으로만 쓰기 때문이다(10쪽). ChatGPT는 웹 방문 50.7%, 독립 앱 48.9%, 합계 37.0%다. 웹 방문 기준 ChatGPT는 2024-01 84.3%에서 50.7%로 줄었다(본문 84% → 51%).
+
+### 7.3 ⑧ 제품 안의 시장별 점유율 (①에서 계산)
+
+⑥이 "한 시장 안에서 제품들이 나눠 가진 비중"이라면, ⑧은 "한 제품의 이용자가 어느 시장에 있는가"를 보여 준다. 예를 들어 Claude의 전 세계(25개 시장) 이용자 가운데 한국 이용자의 비중이다. 보고서에 없는 값이라 직접 계산했다.
+
+- **만든 방법**: `code/02_clean_sensortower_share_within_product.do`(Stata 17)가 ①의 긴 형식 CSV를 읽어 계산한다. 원 데이터를 가공한 값이므로 CLAUDE.md 규칙에 따라 `data/proc/`에 두었다.
+- **⑥으로는 계산할 수 없는 이유**: 제품 안의 시장별 점유율을 내려면 시장별 이용자 수가 필요하다. ⑥에는 비율만 있고 각 시장의 분모(제품 이용자 수의 합)가 없어 이용자 수로 되돌릴 수 없다. ⑥은 ①을 시장 안 합계로 나눈 값이므로, ①의 이용자 수에서 직접 계산하는 것이 같은 정보를 쓰는 올바른 방법이다.
+- **정의**: 제품 p, 월 t, 시장 c에 대해
+  - `share_within_product_pct` = 100 × 이용자 수(c, p, t) ÷ 이용자 수(Worldwide, p, t)
+  - Worldwide는 25개 시장 합계인데 국가 시트는 18개뿐이다. 그래서 나머지 7개 시장(보고서에 이름이 없음)을 Worldwide − 18개국 합계로 계산해 `Other 7 markets (residual)` 한 행으로 넣었다. 18개국과 이 행을 더하면 정확히 100%다(do 파일에서 검사).
+  - `share_within_18_pct` = 100 × 이용자 수(c, p, t) ÷ 18개국 합계. 이름이 알려진 18개국끼리 비교할 때 쓴다. residual 행에서는 비어 있다.
+- **범위**: 8개 제품 × 38개월(2023-04 ~ 2026-05) × 19행(18개국 + residual) = 5,776행.
+- **변수(긴 형식)**: `assistant`, `month`, `market`, `residual`(1 = residual 행), `unique_users`(residual 행은 Worldwide − 18개국 합계), `worldwide_users`, `sum18_users`, `share_within_product_pct`(%), `share_within_18_pct`(%). 넓은 형식은 행 = 제품 × 시장, 열 = 월(`m2026_05` 등), 값 = `share_within_product_pct`다.
+- **주의**:
+  - ①의 이용자 수가 유효숫자 3자리 정도로 반올림되어 있다. 이 때문에 이용자가 거의 없던 시기에는 residual이 음수가 된 경우가 10건 있다(Claude 2023-05·06, Grok 2023-11 ~ 2024-11 사이 8개월, 최소 −7,920명). 계산 결과를 그대로 두었다. 같은 이유로 Claude 2023년 봄(Worldwide 3,050–29,400명)처럼 이용자가 적은 시기의 점유율은 해석하지 않는다.
+  - 출시 전이라 Worldwide 이용자가 0인 17개 제품·월(DeepSeek, Grok, Microsoft Copilot)은 점유율을 비워 두었다.
+  - residual의 비중은 제품마다 다르다. Worldwide 이용자가 100만 명 이상인 달에서 Claude 6.0–10.2%, ChatGPT 6.3–10.0%, DeepSeek 15.3–39.6%다. DeepSeek는 이름이 공개되지 않은 7개 시장의 비중이 크다.
+  - 제품 `Other`는 시장마다 포함된 제품이 다를 수 있어 해석에 주의한다.
+  - Worldwide가 25개 시장 합계이므로 "전 세계 이용자 중 비중"이 아니라 **25개 시장 이용자 중 비중**이다.
+- **주요 값(2026-05, `share_within_product_pct`)**:
+
+**표 6. 제품 안의 시장별 점유율(%) — 2026-05, 주요 시장**
+
+| 제품 | India | United States | South Korea | 나머지 7개 시장 |
+|---|---|---|---|---|
+| ChatGPT | 29.7 | 12.9 | 2.3 | 8.9 |
+| Google Gemini | 34.6 | 8.6 | 2.7 | 8.7 |
+| Claude | 29.5 | 16.7 | 2.4 | 9.3 |
+| Microsoft Copilot | 13.3 | 23.3 | 1.2 | 7.6 |
+| DeepSeek | 14.6 | 8.8 | 0.7 | 38.4 |
+
+Claude의 한국 비중은 2026년 1–5월 2.0–2.4%(1월 2.36%, 3월 2.03%, 5월 2.38%)로, 2026년 초 Claude 이용자가 크게 늘어나는 동안에도 거의 같았다. 한국 이용자도 전 세계와 비슷한 속도로 늘었다는 뜻이다.
+
+### 7.4 본 프로젝트에서의 활용
+
+- **한국 규모의 할당**: ⑧의 한국 비중은 전 세계(25개 시장) Claude 이용자 규모를 한국으로 나누는 가중치로 쓸 수 있다. 다만 이용자 수 비중이므로, 이용자 1명당 사용량이 나라마다 같다는 가정이 필요하다.
+- **AEI와의 비교**: AEI는 국가별 Claude.ai 대화 비중을 준다. 이를 ⑧의 이용자 비중과 비교하면 나라별 이용자 1인당 사용 강도의 차이를 가늠할 수 있다. 다만 AEI는 전 세계 기준이고 ⑧은 25개 시장 기준이며, ⑧은 앱·웹 이용자를 모두 포함한다는 차이가 있다.
+- **기준에 따른 점유율 차이**: ⑦은 같은 제품의 점유율이 웹·앱·앱 내장 기준에 따라 크게 달라진다는 것을 보여 준다. Claude 같은 웹 중심 제품의 규모를 앱 지표(②·③)만으로 판단하면 과소평가된다는 점을 확인하는 자료로 쓴다.
