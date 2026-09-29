@@ -1,0 +1,309 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- OpenAI 자체 수치(Chatterji et al. 2025: 2025년 7월 WAU 7억 명, 주 메시지 180억 건)를
+% 기준값으로 Sensor Tower 자료를 평가하고, 전 세계·제품별 메시지·대화 총량 추정 방안을 제시.
+% 표 본문: results/table/15_{anchor,growth,series,products,conv,claude}.tex
+%          (code/04_analysis_chatgpt_anchor_conversation_volume.do가 생성)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{OpenAI 기준값으로 본 Sensor Tower 자료의 평가와 대화 총량 추정 방안\\[2mm]
+\large --- \citeauthor{chatterji-2025-how-people-use-chatgpt}의 2025년 7월 WAU 7억 명$\cdot$주 메시지 180억 건을 기준으로 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 본 문서는 OpenAI가 직접 보고한 가장 신뢰할 만한 사용량 수치, 즉 \textcite{chatterji-2025-how-people-use-chatgpt}의 \textbf{2025년 7월 주간 활성 이용자(WAU) 7억 명과 주 메시지 180억 건}을 기준값으로 삼아 Sensor Tower \textit{State of AI 2026}\parencite{sensortower-2026-state-of-ai} 자료(report 13)를 평가하고, 이를 바탕으로 전 세계와 제품별 대화 총량을 추정하는 방안을 제시한다. 평가 결과는 네 가지다. (1) \textbf{이용자 수}: Sensor Tower의 ChatGPT 월간 이용자(True Audience) 9.94억 명과 WAU 7억 명의 비율 0.70은 Sensor Tower 사용 일수로 본 하한(0.45)과 상한(1) 사이에 있어 모순이 없다. 다만 이 점검은 느슨하다. (2) \textbf{사용량 수준}: 2025년 7월 월 메시지 797억 건은 ChatGPT 웹 방문 + 앱 세션 756억 회의 1.06배이고, 사용 시간 1분당 0.17건이다. 이상한 값은 아니지만 이것만으로 검증되지도 않는다. (3) \textbf{증가율}: 2024년 6월--2025년 7월 메시지는 5.9배 늘었는데, Sensor Tower 지표 중 이를 따라간 것은 앱 세션(5.5배)뿐이다. 웹 방문(1.9배), 사용 시간(2.4배), 이용자(1.9배)는 크게 못 미친다. 즉 ``메시지 $\div$ 지표'' 비율이 지표에 따라 1.1--3.2배 변했다. (4) \textbf{단기}: 2025년 6$\to$7월 Sensor Tower의 ChatGPT 앱 세션과 이용자는 5--9\% 늘었지만 OpenAI 수치는 주 183.9억 $\to$ 180억 건으로 2\% 줄어, ``180억''이 반올림 값임을 감안해야 한다. 이를 바탕으로 대화 총량 추정은 다섯 단계로 제안한다. \① ChatGPT 월별 메시지는 OpenAI 기준값에 Sensor Tower 앱 세션을 지표 계열로 결합해(benchmarking) 만들고, \② 다른 제품은 Sensor Tower 점유율 비율로 나누며, \③ 이를 더해 전 세계 합계를 얻고, \④ 대화당 메시지 수($k$)로 대화로 바꾸되 $k$는 공개 자료가 없어 격자로 두며, \⑤ 범위 차이를 조정한다. 이 방법으로 AI 어시스턴트 전체 메시지는 2025년 7월 주 262억--310억 건, 2026년 3월 주 462억--509억 건이며, $k = 3$이면 대화는 각각 주 87억--103억 건, 154억--170억 건이다. Claude에 대한 점검(\textcite{fan-2026-aggregate-gains-from-ai}와 비교)은 $k$를 1--13 사이로만 좁혀, 대화 수는 메시지 수보다 훨씬 불확실하다. 모든 수치는 do 파일 \texttt{code/04\_analysis\_chatgpt\_anchor\_conversation\_volume.do}로 재현된다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적과 기준값}
+% ============================================================
+
+report 14는 Sensor Tower 지표를 외부 자료와 비교해 ``증가율 점검에는 쓸 수 있으나 수준 보정에는 쓸 수 없다''고 결론 내렸다. 본 문서는 방향을 바꾸어, \textbf{가장 신뢰할 수 있는 한 시점의 수준값을 먼저 고정하고} 그 값에 비추어 Sensor Tower를 평가한 뒤, 이 기준값과 Sensor Tower를 결합해 대화 총량을 추정하는 방법을 제시한다.
+
+\paragraph{기준값} \textcite{chatterji-2025-how-people-use-chatgpt}은 OpenAI 연구진이 내부 자료로 쓴 논문이다.
+\begin{itemize}
+  \item \textbf{2025년 7월 WAU 7억 명 이상}(p.10, Figure 3). 소비자 플랜(Free, Plus, Pro)의 로그인 이용자(이메일 기준)와 로그아웃 이용자(쿠키 기준)를 합친 계정 수다(각주 20).
+  \item \textbf{2025년 7월 주 메시지 180억 건}(p.1). 이용자가 보낸 메시지 수이며 논문은 이 값에 Reuters 등의 보도를 함께 인용한다. 결론(p.36)의 ``하루 25억 건 이상''과 같은 크기다.
+  \item 보조 기준값: 표 1(p.2)의 \textbf{하루 메시지 2024년 6월 4.51억 건, 2025년 6월 26.27억 건}. 6월 26일로 끝나는 7일 평균이며 소비자 플랜 전체의 정확한 측정값이다.
+\end{itemize}
+본 문서는 사용자 판단에 따라 2025년 7월 값을 주 기준값으로 쓴다. 2024년 6월 값은 시계열을 잇는 보조 기준값, 2025년 6월 값은 방법을 검증하는 값으로만 쓴다(기준값에 넣지 않음).
+
+\paragraph{자료와 약속}
+\begin{itemize}
+  \item Sensor Tower: report 13의 ①(True Audience 이용자), ②(앱 이용자 월평균 사용 일수), ⑥(True Audience 점유율), ⑦(Worldwide 경로별 점유율: 웹 방문, 독립 앱 MAU), ⑨$\cdot$⑩(생성형 AI 앱 세션$\cdot$웹 방문과 사용 시간의 월별 값, 비례 Denton 보간). 모두 Worldwide 값이다.
+  \item ChatGPT의 Sensor Tower 값은 report 14와 같이 \textbf{경로별 점유율 기준}으로 만든다. 웹 방문 = 카테고리 웹 방문 $\times$ 웹 방문 점유율, 앱 세션 = 카테고리 앱 세션 $\times$ 앱 MAU 점유율, 사용 시간도 같은 방식이다. 이하 ``(⑦)''로 표시한다.
+  \item 월간이 기본 단위다. 하루 값은 $\times$ 그 달의 일수, 주간 값은 $\times$ 일수 $\div$ 7로 바꾼다. 따라서 2025년 7월 월 메시지는 180억 $\times$ 31/7 = 797.1억 건이다.
+  \item 단위: 이용자$\cdot$메시지$\cdot$대화$\cdot$방문$\cdot$세션은 \textbf{억}, 사용 시간은 억 시간.
+\end{itemize}
+
+% ============================================================
+\section{기준 시점(2025년 7월)에서의 평가}
+% ============================================================
+
+\begin{longtable}{L{11.6cm}R{2.4cm}}
+\caption{2025년 7월 기준값과 Sensor Tower ChatGPT 값}\label{tab:anchor}\\
+\toprule
+항목 & 값 \\
+\midrule
+\endhead
+\input{../table/15_anchor.tex}
+\bottomrule
+\end{longtable}
+
+\subsection{이용자 수: 모순은 없으나 점검력은 약하다}
+
+WAU 7억 명을 Sensor Tower 월간 이용자 9.94억 명으로 나누면 0.70이다. 주간 이용자는 월간 이용자의 일부이므로 이 비율은 1보다 작아야 하고, 한 주에 한 번이라도 쓰는 사람의 비율은 하루 이용자 비율(DAU/MAU)보다 작을 수 없다. Sensor Tower의 ChatGPT 앱 이용자 월평균 사용 일수 14.0일을 31일로 나눈 0.45를 DAU/MAU의 근사로 보면, WAU/MAU는 0.45와 1 사이여야 하고 0.70은 그 안에 있다.
+
+다만 이 점검은 느슨하다. 두 방향의 편의가 있다. (i) Sensor Tower는 25개 시장 합계라 전 세계 월간 이용자는 9.94억 명보다 많다. (ii) OpenAI WAU는 계정 수라 한 사람이 계정을 여럿 쓰면 사람 수보다 크다. 두 편의 모두 사람 기준 전 세계 WAU/MAU가 0.70보다 \textbf{낮다}는 쪽이다. 또 사용 일수는 앱 이용자만의 값이다. 결론적으로 Sensor Tower 이용자 수는 기준값과 모순되지 않지만, 이 비교로 Sensor Tower 이용자 수의 오차 크기를 알 수는 없다.
+
+\subsection{사용량 수준: 비율은 그럴듯하지만 검증되지는 않는다}
+
+2025년 7월 월 메시지 797.1억 건은 Sensor Tower ChatGPT 웹 방문 + 앱 세션 755.5억 회의 1.06배다. 사용 시간(⑦) 76.1억 시간으로 나누면 1분당 0.17건, 즉 약 6분에 1건이다. ChatGPT 사용 시간의 70\%가 웹이므로, 메시지가 사용 시간에 비례한다고 두면 웹 방문 1회(평균 약 20분)당 3.4건, 앱 세션 1회(평균 약 2분)당 0.4건이다. 앱 세션의 상당수가 대화 없이 앱을 여는 짧은 사용이라는 점에서 이상한 값은 아니다.
+
+그러나 이것은 ``모순 없음''이지 검증이 아니다. OpenAI는 메시지를 웹과 앱으로 나누어 보고하지 않으므로 경로별 비율은 가정에 따라 크게 달라진다(메시지를 모두 한쪽 경로에 몰면 웹 방문당 4.85건, 앱 세션당 1.35건). 또 범위가 다르다. 메시지는 소비자 플랜만 세지만 Sensor Tower 방문$\cdot$세션에는 Business$\cdot$Enterprise$\cdot$Education 이용자의 사용도 들어 있을 수 있다. 따라서 표~\ref{tab:anchor}의 비율은 \textbf{소비자 메시지 $\div$ 전체 방문$\cdot$세션}이며 실제 방문$\cdot$세션 1회당 메시지보다 낮게 나온다.
+
+\paragraph{이용자당 강도} WAU 1인당 하루 3.67건, Sensor Tower 사용일 1일당 5.73건이다. 사용일 1일당 값은 report 11에서 \textcite{fan-2026-aggregate-gains-from-ai}의 ``이용자당 하루 대화 3건''을 점검할 때 쓴 값(약 5.7건)과 같고, WAU 1인당 값은 report 11의 3.8건(2025년 6월 메시지 사용)보다 조금 작다. 메시지는 대화가 아니므로(\ref{sec:k}절) 대화로는 이보다 적다.
+
+% ============================================================
+\section{시계열에서의 평가}
+% ============================================================
+
+\subsection{기준값 사이의 증가율}
+
+기준값이 두 시점(2024년 6월, 2025년 7월)에 있으므로, 그 사이 Sensor Tower 지표가 메시지와 같은 비율로 늘었는지 볼 수 있다. 메시지 $\div$ 지표를 $r$이라 하면, 좋은 지표는 $r$이 거의 변하지 않는 지표다.
+
+\begin{longtable}{L{4.6cm}R{2.3cm}R{1.8cm}R{1.8cm}R{1.8cm}R{2.3cm}}
+\caption{기준값 사이의 증가율과 메시지 $\div$ 지표($r$)의 변화(ChatGPT, Worldwide)}\label{tab:growth}\\
+\toprule
+지표 & 지표 증가(2025-07 $\div$ 2024-06, 배) & $r$(2024-06) & $r$(2025-07) & $r$ 변화(배) & 2025-06 예측 오차(\%) \\
+\midrule
+\endhead
+\input{../table/15_growth.tex}
+\bottomrule
+\end{longtable}
+
+\noindent $r$의 단위는 지표마다 다르다(방문$\cdot$세션 1회당, 1시간당, 이용자 1인당 월, 사용일 1일당 메시지). ``2025-06 예측 오차''는 2024-06과 2025-07의 $r$을 로그 선형으로 이은 값으로 2025년 6월 메시지를 예측해 실측(월 788.1억 건)과 비교한 것이다.
+
+\paragraph{결과}
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{앱 세션만 메시지 증가를 따라간다.} 메시지는 5.9배, 앱 세션은 5.5배 늘어 $r$이 1.07배만 변했다. 나머지 지표는 $r$이 1.5--3.2배 변했다. 웹 방문$\cdot$이용자$\cdot$사용 시간으로 메시지를 늘리거나 줄이면 1년 사이에 크게 틀린다.
+  \item \textbf{사용 강도가 빠르게 올랐다.} 이용자 1인당 월 메시지는 25.8건에서 80.2건으로 3.1배, 사용 시간 1시간당 메시지는 4.2건에서 10.5건으로 2.5배가 되었다. 이용자 수와 사용 일수만으로는 메시지 증가의 약 74\%(로그 기준, $\ln 3.74 \div \ln 5.89$)만 설명된다.
+  \item \textbf{2025년 6월 예측은 모든 지표에서 6--12\% 낮다.} 지표와 상관없이 같은 방향으로 틀리므로, 지표 문제라기보다 두 기준값 사이의 불일치로 보인다(\ref{sec:shortrun}절).
+\end{enumerate}
+
+\subsection{단기 불일치: 2025년 6월 $\to$ 7월}\label{sec:shortrun}
+
+OpenAI 수치로는 2025년 6월 말 주 메시지가 183.9억 건(하루 26.27억 $\times$ 7)이고 7월은 주 180억 건으로 2.1\% \textbf{줄었다}. 같은 기간 Sensor Tower ChatGPT 앱 세션은 9.1\%, True Audience 이용자는 4.9\% \textbf{늘었고} 웹 방문은 1.4\% 줄었다. 이 불일치는 두 가지로 설명할 수 있다. (i) ``180억''은 반올림한 값이다(``18 billion''). (ii) 6월 값은 6월 26일로 끝나는 7일 평균이고 7월 값의 측정 주는 논문에 나오지 않는다. 따라서 \textbf{기준값 자체에 몇 \% 수준의 오차가 있다고 보고}, 추정 결과는 이 정도의 정밀도로 읽어야 한다.
+
+\subsection{평가 요약}
+
+\begin{longtable}{L{3.2cm}L{12.6cm}}
+\caption{Sensor Tower 자료의 평가 요약}\label{tab:eval}\\
+\toprule
+항목 & 평가 \\
+\midrule
+\endhead
+이용자 수(수준) & 기준값과 모순 없음. 점검력은 약함 \\
+사용량(수준) & 기준 시점의 비율(메시지 $\div$ 방문$\cdot$세션 1.06, 1분당 0.17건)은 그럴듯함. 경로별 검증은 불가 \\
+증가율 & 앱 세션만 메시지 증가와 맞음($r$ 변화 1.07배). 웹 방문$\cdot$사용 시간$\cdot$이용자는 메시지 증가를 크게 과소평가 \\
+단기 변화 & 6$\to$7월 방향이 반대. 기준값의 반올림$\cdot$측정 주 차이 범위 안 \\
+범위 & 소비자 플랜 대 전체, 전 세계 대 25$\cdot$56개 시장, 데스크톱 앱 누락 등 차이가 수준 비율에 섞여 있음 \\
+\bottomrule
+\end{longtable}
+
+\paragraph{결론} Sensor Tower는 OpenAI 기준값과 \textbf{모순되지 않으며}, 기준값 한 개로 수준을 고정하면 \textbf{앱 세션}이 시계열을 잇는 지표로 가장 낫다. 반면 이용자 수$\cdot$웹 방문$\cdot$사용 시간은 1년 사이에 메시지 $\div$ 지표 비율이 1.5배 넘게 변하므로, 기준값 없이 이 지표로 사용량 수준이나 증가율을 추정하면 크게 틀릴 수 있다. report 14의 결론(수준 환산 불가)은 ``기준값이 있으면 그 시점 근처에서는 환산할 수 있고, 멀어질수록 사용 강도 변화 때문에 오차가 커진다''로 구체화된다.
+
+% ============================================================
+\section{전 세계$\cdot$제품별 대화 총량 추정 방안}
+% ============================================================
+
+\subsection{전체 구조}
+
+제품 $j$, 월 $t$의 대화 수를 다음과 같이 분해한다.
+\begin{equation*}
+\text{대화}_{j,t} = \text{메시지}_{\text{ChatGPT},t} \times \frac{\text{지표}_{j,t}}{\text{지표}_{\text{ChatGPT},t}} \times \theta_j \div k_j
+\end{equation*}
+\begin{itemize}
+  \item $\text{메시지}_{\text{ChatGPT},t}$: OpenAI 기준값과 Sensor Tower 지표를 결합한 ChatGPT 월별 메시지(\ref{sec:bench}절).
+  \item $\text{지표}_{j,t} \div \text{지표}_{\text{ChatGPT},t}$: Sensor Tower로 본 제품 $j$의 ChatGPT 대비 규모(\ref{sec:prod}절).
+  \item $\theta_j$: 지표 1단위당 메시지가 ChatGPT의 몇 배인가. 자료가 없어 기준안은 1이다.
+  \item $k_j$: 대화당 메시지 수. 공개 자료가 없다(\ref{sec:k}절).
+\end{itemize}
+ChatGPT 메시지만 실측에 근거하고, 나머지 항은 모두 Sensor Tower 또는 가정이다. 따라서 결과는 \textbf{메시지 단위 $\to$ 대화 단위} 순으로 불확실성이 커진다. 메시지 단위 추정을 기본 결과로 두고 대화는 파생 결과로 보고할 것을 권한다.
+
+\subsection{1단계: ChatGPT 월별 메시지(기준값 결합)}\label{sec:bench}
+
+방법은 국민계정의 기준값 결합(benchmarking)과 같다. 기준 시점마다 $r$ = 메시지 $\div$ 지표를 계산하고, 기준 시점 사이에는 $r$을 로그 선형으로 이으며, 월별 메시지 = $r_t \times \text{지표}_t$로 만든다. 지표는 표~\ref{tab:growth}에서 $r$이 가장 안정적이었던 \textbf{앱 세션(⑦)}을 기본으로, 웹 방문 + 앱 세션(⑦)을 대안으로 둔다. 2025년 7월 이후에는 기준값이 없으므로 두 가지로 연장한다. \textbf{flat}은 $r$을 2025년 7월 값에 고정하고, \textbf{trend}는 2024년 6월--2025년 7월의 $r$ 증가 추세를 그대로 이어 간다.
+
+\begin{longtable}{L{2.2cm}R{2.6cm}R{2.4cm}R{2.4cm}R{2.8cm}R{2.8cm}}
+\caption{ChatGPT 월간 메시지 추정(억 건)}\label{tab:series}\\
+\toprule
+월 & 실측(Chatterji et al.) & 앱 세션 flat & 앱 세션 trend & 방문 + 세션 flat & 방문 + 세션 trend \\
+\midrule
+\endhead
+\input{../table/15_series.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+  \item 기준 시점(2024-06, 2025-07)에서는 모든 열이 실측과 같다. 2024년 6월 이전은 $r$을 2024년 6월 값에 고정했다.
+  \item 앱 세션 기준은 $r$의 추세가 작아 flat과 trend의 차이가 2026년 3월 4\%에 그친다. 방문 + 세션 기준은 30\% 벌어진다. 2025년 7월 이후 ChatGPT 메시지는 \textbf{월 약 980억--1,270억 건, 기본안 약 1,085억 건(2026-03, 주 약 245억 건)}이다.
+  \item 2026년 1--6월 앱 값은 Sensor Tower의 2026년 상반기 예비 추정치에서 나온 것이다.
+  \item \textbf{새 기준값이 나오면 곧바로 결합한다.} OpenAI가 이후 시점의 WAU나 메시지 수를 공식 발표하면, 그 시점을 기준값으로 추가하는 것만으로 2025년 7월 이후의 flat/trend 가정이 사라진다. 이것이 이 방법의 가장 큰 장점이다.
+\end{itemize}
+
+\subsection{2단계: 제품별 메시지와 전 세계 합계}\label{sec:prod}
+
+다른 제품에는 OpenAI 같은 기준값이 없다. 따라서 ChatGPT 메시지에 Sensor Tower의 \textbf{제품 간 상대 규모}를 곱한다. 상대 규모의 기준을 세 가지로 둔다.
+\begin{itemize}
+  \item \textbf{True Audience 이용자(⑥)}: 이용자 1인당 메시지가 제품마다 같다는 가정. 8개 제품 모두 있다(Meta AI 없음).
+  \item \textbf{사용 시간(⑦)}: 1시간당 메시지가 같다는 가정. 웹 방문 점유율과 앱 MAU 점유율을 경로별 사용 시간에 곱한다.
+  \item \textbf{웹 방문 + 앱 세션(⑦)}: 방문$\cdot$세션 1회당 메시지가 같다는 가정.
+\end{itemize}
+⑦에서 한 경로에만 나오는 제품(Microsoft Copilot은 웹만, Meta AI는 앱만)은 다른 경로 값을 0으로 두었고(그 사용은 Other에 들어 있다), 두 경로 모두 없는 DeepSeek는 ⑦ 기준 값이 없다. 전 세계 합계는 ChatGPT 메시지를 그 기준에서의 ChatGPT 몫으로 나눈 값이다.
+
+\begin{longtable}{L{3.2cm}R{2.0cm}R{2.0cm}R{2.1cm}R{2.0cm}R{2.0cm}R{2.1cm}}
+\caption{제품별 월간 메시지 추정(억 건)}\label{tab:products}\\
+\toprule
+ & \multicolumn{3}{c}{2025-07} & \multicolumn{3}{c}{2026-03} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+제품 & 이용자 & 사용 시간 & 방문 + 세션 & 이용자 & 사용 시간 & 방문 + 세션 \\
+\midrule
+\endhead
+\input{../table/15_products.tex}
+\bottomrule
+\end{longtable}
+
+\noindent 2026년 3월 ChatGPT 값은 표~\ref{tab:series}의 앱 세션 flat 기본안이다.
+
+\paragraph{결과와 해석}
+\begin{itemize}
+  \item \textbf{전 세계 AI 어시스턴트 메시지는 2025년 7월 월 1,159억--1,374억 건(주 262억--310억 건), 2026년 3월 월 2,045억--2,255억 건(주 462억--509억 건)이다.} 합계의 범위는 기준에 따라 20\% 안쪽으로 비교적 좁다. ChatGPT 몫이 어느 기준에서나 50--70\%이기 때문이다.
+  \item \textbf{제품별 값은 기준에 따라 크게 다르다.} Claude는 2026년 3월 65억--189억 건으로 약 3배, Microsoft Copilot은 1.6억--42.8억 건으로 20배 넘게 차이 난다. Copilot은 Windows$\cdot$Edge$\cdot$Office에 내장된 사용이 많아 독립 앱$\cdot$웹 지표로는 거의 잡히지 않으며, 이용자 기준 값도 내장 사용을 빼고 센 값이다.
+  \item \textbf{$\theta_j = 1$ 가정의 방향.} ChatGPT의 이용자 1인당 메시지를 다른 제품에 그대로 쓰는 것이다. Claude처럼 업무$\cdot$코딩 비중이 높고 웹에서 긴 대화를 하는 제품은 방문$\cdot$세션 1회당 메시지가 ChatGPT보다 많을 가능성이 크다. 이 경우 방문 + 세션 기준 값은 과소, 이용자 기준 값은 방향을 알 수 없다.
+  \item \textbf{권고.} 합계는 세 기준의 범위로 보고하고, 제품별로는 제품의 이용 경로에 맞는 기준을 쓴다. 웹 중심 제품(Claude, Perplexity)은 이용자 또는 사용 시간 기준이 방문 + 세션 기준보다 덜 치우친다(앱 세션의 짧은 사용이 몫을 줄이기 때문). 사용 일수 자료(②)가 있는 5개 제품(ChatGPT, Claude, DeepSeek, Gemini, Copilot)은 ``이용자 $\times$ 사용 일수'' 기준을 추가 민감도로 쓸 수 있다.
+\end{itemize}
+
+\subsection{3단계: 메시지에서 대화로(대화당 메시지 수 $k$)}\label{sec:k}
+
+\textbf{대화당 메시지 수를 공개한 자료는 없다.} \textcite{chatterji-2025-how-people-use-chatgpt}은 이용자$\times$일 메시지 자료를 가지고 있지만 대화당 메시지 수는 보고하지 않는다. 분류 표본에서 대화를 먼저 뽑고 그 안에서 메시지 1개를 뽑는다고만 적었다(p.6). OpenAI Signals(report 12)는 메시지 점유율만 공개한다. AEI는 대화 단위지만 건수를 공개하지 않는다. 따라서 $k$는 격자로 둔다.
+
+\begin{longtable}{L{1.2cm}R{2.2cm}R{2.4cm}R{2.6cm}R{2.2cm}R{2.4cm}R{2.6cm}}
+\caption{대화당 메시지 수($k$)에 따른 주간 대화 수(억 건)}\label{tab:conv}\\
+\toprule
+ & \multicolumn{3}{c}{2025-07} & \multicolumn{3}{c}{2026-03} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+$k$ & ChatGPT & 전체(이용자 기준) & 전체(사용 시간 기준) & ChatGPT & 전체(이용자 기준) & 전체(사용 시간 기준) \\
+\midrule
+\endhead
+\input{../table/15_conv.tex}
+\bottomrule
+\end{longtable}
+
+\noindent $k = 1$은 메시지 수 자체이며 대화 수의 상한이다.
+
+\paragraph{Claude로 $k$를 점검할 수 있는가} \textcite{fan-2026-aggregate-gains-from-ai}의 Claude.ai 대화 수(2026년 2월 주 2억 건)와 본 방법의 Claude 메시지 추정치를 나누면 $k$가 나온다.
+
+\begin{longtable}{L{4.6cm}R{2.8cm}R{3.6cm}R{4.2cm}}
+\caption{Claude(2026-02) 주간 메시지 추정과 함의된 대화당 메시지 수}\label{tab:claude}\\
+\toprule
+Claude 분해 기준 & 주 메시지(억 건) & $\div$ Fan and Nguyen 주 대화 2억 건 & $\div$ Fan 방식에 ST 이용자 적용(11.0억 건) \\
+\midrule
+\endhead
+\input{../table/15_claude.tex}
+\bottomrule
+\end{longtable}
+
+\noindent 마지막 열은 Fan and Nguyen의 계산(웹 MAU 1,890만 $\times$ DAU/MAU 0.5 $\times$ 하루 3건 $\times$ 7일)에서 이용자만 Sensor Tower Claude 이용자 1.04억 명으로 바꾼 값이다(report 14, 4.3절).
+
+\begin{itemize}
+  \item Fan and Nguyen의 원래 값을 믿으면 $k$는 4--13, 이용자를 Sensor Tower로 바꾸면 $k$는 0.8--2.5다. 합쳐서 \textbf{1--13}이므로 이 점검으로는 $k$를 좁힐 수 없다.
+  \item $k < 1$은 불가능하므로(대화에는 메시지가 1개 이상 있다), ``Sensor Tower 이용자 + 하루 3건 대화''와 ``방문 + 세션 기준 Claude 메시지''는 함께 성립할 수 없다. 둘 중 하나, 또는 $\theta_{\text{Claude}} = 1$ 가정이 틀렸다는 뜻이다. Claude의 방문$\cdot$세션 1회당 메시지가 ChatGPT보다 많다면($\theta > 1$) 설명된다.
+  \item \textbf{권고.} $k$는 격자(2, 3, 5)로 두고, 대화 수를 쓰는 계산(예: AEI의 대화당 절감시간 $\times$ 대화 수로 만드는 LCE, report 11)에서는 $k$를 규모 민감도의 한 축으로 명시한다. $k$를 제품마다 다르게 둘 근거도 현재는 없다.
+\end{itemize}
+
+\subsection{4단계: 범위 조정}
+
+추정치는 다음 범위를 가진다. 필요하면 각각 조정 계수를 곱한다.
+\begin{itemize}
+  \item \textbf{요금제}: 기준값은 ChatGPT 소비자 플랜만이다. 제품별 값은 이 강도를 빌려 오므로 다른 제품도 ``소비자 사용'' 수준으로 읽는다. 기업용 플랜과 API는 빠진다. API는 report 11처럼 매출 역산으로 따로 더한다.
+  \item \textbf{지역}: ChatGPT 메시지는 전 세계 값이지만, 제품 간 상대 규모(⑥$\cdot$⑦ 점유율)는 25개 시장 기준이다. 25개 시장 밖에서도 제품 구성이 같다고 가정하는 셈이다.
+  \item \textbf{서비스 목록}: 합계는 Sensor Tower가 AI 어시스턴트로 분류한 서비스(Other 포함)만이다. 이미지$\cdot$동영상 생성, AI 컴패니언, 앱 안에 내장된 AI(Meta AI의 메신저 내 사용, Copilot의 Windows 내장 등)는 빠진다.
+  \item \textbf{경로}: Sensor Tower는 데스크톱 앱과 터미널 도구(예: Claude Code)를 측정하지 않는다. ChatGPT 메시지에는 데스크톱 앱 사용이 들어 있으나 다른 제품 분해에서는 이 경로의 차이가 반영되지 않는다.
+\end{itemize}
+
+\subsection{5단계: 국가별로 넓히기}
+
+같은 틀로 국가별 추정도 가능하다. 국가 $c$의 ChatGPT 메시지 = 전 세계 ChatGPT 메시지 $\times$ (국가 $c$의 ChatGPT 지표 $\div$ 전 세계 ChatGPT 지표)로 나눈 뒤, 국가 안의 제품 구성은 ⑥의 국가별 True Audience 점유율로 나눈다. 국가 지표로는 report 13의 ⑪$\cdot$⑫ 또는 합계 파일(⑬$\cdot$⑭)을 쓸 수 있다. 다만 국가마다 이용자 1인당$\cdot$세션 1회당 메시지가 같다는 추가 가정이 필요하다. OpenAI Signals의 국가별 1인당 사용 순위(report 12)가 이 가정을 점검하는 보조 자료가 될 수 있다.
+
+\subsection{권고 요약}
+
+\begin{longtable}{L{3.0cm}L{6.4cm}L{6.2cm}}
+\caption{대화 총량 추정의 기본안과 민감도}\label{tab:rec}\\
+\toprule
+단계 & 기본안 & 민감도 \\
+\midrule
+\endhead
+ChatGPT 메시지 & OpenAI 기준값 $\times$ 앱 세션(⑦), 2025-07 이후 flat & trend, 방문 + 세션 기준 \\
+제품 간 상대 규모 & 이용자$\cdot$사용 시간$\cdot$방문 + 세션 세 기준의 범위 & 이용자 $\times$ 사용 일수, $\theta_j \neq 1$ \\
+대화 전환 & 메시지 단위로 먼저 보고 & $k$ = 2, 3, 5 \\
+범위 & 소비자 AI 어시스턴트, 25개 시장 구성 & API$\cdot$기업용$\cdot$내장 AI는 별도 \\
+\bottomrule
+\end{longtable}
+
+2026년 3월 기본 결과는 \textbf{ChatGPT 주 메시지 약 245억 건, AI 어시스턴트 전체 주 462억--509억 건}이다. $k = 3$이면 전체 대화는 주 154억--170억 건이지만, $k$ 자체가 1--13 사이에서 정해지지 않으므로 대화 수는 메시지 수보다 훨씬 불확실하다.
+
+% ============================================================
+\section{결론과 본 프로젝트에서의 활용}
+% ============================================================
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{평가.} OpenAI 기준값(2025년 7월 WAU 7억 명, 주 메시지 180억 건)에 비추어 Sensor Tower 자료는 이용자와 사용량 수준 모두에서 모순이 없다. 그러나 시계열로 보면 앱 세션을 제외한 지표는 메시지 증가를 크게 과소평가한다. Sensor Tower는 \textbf{기준값과 결합할 때} 유용하고, 단독으로 수준을 정하는 데는 쓸 수 없다.
+  \item \textbf{메시지 총량.} ChatGPT 메시지는 기준값 결합으로 비교적 잘 추정되며, 전 세계 합계도 ChatGPT 몫이 커서 범위가 좁다(기준에 따라 20\% 안쪽).
+  \item \textbf{제품별$\cdot$대화 총량.} 제품별 값(특히 Claude, Copilot)과 대화 전환($k$)은 불확실성이 크다. LCE처럼 규모가 필요한 계산에서는 메시지 총량, 제품 몫, $k$를 따로 적은 격자 민감도로 보고한다.
+  \item \textbf{report 11에 대한 시사점.} report 11의 Claude.ai 규모(Fan and Nguyen 방식, 2026년 2월 주 2억 대화)는 본 방법의 Claude 메시지(주 8.6억--26.9억 건)와 $k$ = 4--13에서만 맞는다. Sensor Tower 이용자를 쓰면 $k$가 1--2.5로 내려간다. 두 경로의 결과를 모두 민감도 범위에 넣는다.
+  \item \textbf{다음 자료.} OpenAI의 이후 공식 발표(WAU, 메시지 수)가 나오면 기준값으로 추가한다. 대화당 메시지 수가 공개되면 $k$ 격자를 바로 대체한다.
+\end{enumerate}
+
+% ============================================================
+\section{재현 방법}
+% ============================================================
+
+\begin{itemize}
+  \item \texttt{code/02\_clean\_sensortower\_usage\_monthly\_by\_assistant.do}를 먼저 실행해 ⑨$\cdot$⑩을 만든 뒤, \texttt{code/04\_analysis\_chatgpt\_anchor\_conversation\_volume.do}를 실행한다.
+  \item 출력: \texttt{results/table/15\_chatgpt\_anchor.xlsx}(시트 \texttt{anchor}, \texttt{growth}, \texttt{series}, \texttt{products}, \texttt{conv}, \texttt{claude}, 그리고 ChatGPT 월별 지표와 기준값 결합 계열 전체를 담은 \texttt{monthly})와 LaTeX 표 본문 \texttt{results/table/15\_\{anchor,growth,series,products,conv,claude\}.tex}. 본 문서는 이 파일들을 \verb|\input|으로 불러온다.
+  \item 기준값은 \texttt{data/raw/macro/scaling/scaling\_parameters\_public.csv}의 \texttt{chatterji\_msgs\_week\_2025\_07}, \texttt{chatterji\_wau\_2025\_07}, \texttt{chatterji\_msgs\_day\_2024\_06}, \texttt{chatterji\_msgs\_day\_2025\_06}, Fan and Nguyen 값은 \texttt{fan\_claude\_conv\_week}, \texttt{fan\_web\_mau\_2026\_02}로 읽는다.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

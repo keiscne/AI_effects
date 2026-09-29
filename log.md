@@ -283,3 +283,22 @@
   - 정정: 앞선 답변에서 2025-07 ChatGPT 웹 방문을 164.3억으로 적었으나 do 파일 결과 164.2억(164.25억의 반올림).
   - `.docx`/`.pdf`: report 13과 같은 파이프라인(`.md` → node HTML → Word COM, 10페이지). PDF 전 페이지 렌더링으로 표 폭 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
   - GitHub 연동: report 14 `.tex`/`.md`, do 파일, `results/table/14_*`, `log.md` 커밋·push.
+
+## 2026-09-29
+
+- Sensor Tower 제품별 앱 세션(⑪)과 웹 방문(⑫)을 합친 데이터 생성(사용자 요청: Worldwide와 국가별 제품별 web visit + app session).
+  - 새 do 파일 `code/03_merge_sensortower_apps_web_by_assistant.do`(Stata 17 배치 실행). 출력 ⑬ `data/raw/macro/scaling/sensortower_state_of_ai_2026/sensortower_genai_apps_web_by_assistant_monthly.csv`(19개 시장 × 8개 제품 × 2023-04~2026-05 = 5,776행). 저장 위치는 ⑨–⑫의 선례(사용자 지정, data/proc 규칙의 예외)를 따름.
+  - 매칭 키: market × assistant × month. 앱 기준 outer merge; `sessions_visits`(세션 + 방문)와 `time_spent_hours_total`(앱 + 웹 사용 시간)은 둘 다 있는 2024-01~2026-03(`has_web` = 1)만 계산하고 나머지는 결측. 보조로 횟수·시간 기준 앱 비중(%) 추가. 두 파일의 점유율이 같은지 assert로 확인.
+  - 주의(report 13 §8.1과 같음): 세션과 방문은 단위 크기가 달라 횟수 합계의 약 88%가 앱(시간 기준은 약 43%). Worldwide 합계는 앱·웹 범위가 달라 참고용. 같은 점유율로 분해한 값이라 한 시장·월 안에서 제품별 합계는 카테고리 합계 × 점유율과 같음.
+  - 예: 2026-03 Worldwide ChatGPT 863.6억 회(세션 755.8억 + 방문 107.8억), 한국 Claude 2.42억 회(2.13억 + 2,875만). `_download_manifest.md` 갱신. report 13에는 아직 반영하지 않음. git 커밋·push는 하지 않음.
+- 제품 구분 없는 월별 웹 방문·앱 세션·합계 파일 요청(사용자 요청: ⑤ 분기·④ 반기 파일 활용).
+  - 월별 앱 세션(⑨ `sensortower_genai_apps_sessions_hours_monthly.csv`)과 월별 웹 방문(⑩ `sensortower_genai_web_visits_hours_monthly.csv`)은 2026-09-28에 ④·⑤에서 비례 Denton으로 이미 만든 파일이므로 새로 만들지 않고 그대로 사용.
+  - 합계 파일 ⑭ `sensortower_genai_apps_web_monthly.csv`만 새로 생성: `code/03_merge_sensortower_apps_web_by_assistant.do`에 2부로 추가(market × month, 앱 기준 outer merge, 24개 시장 × 2023-01~2026-06 = 1,008행). 합계는 2024-01~2026-03의 23개 시장만(China Mainland는 웹 없음). 변수 구성은 ⑬과 같음.
+  - 확인: ⑬의 제품별 합계와 ⑭ 일치(Worldwide 2026-03 1,795.5억 회 = 세션 1,571.4억 + 방문 224.1억). 한국 2026-03 34.6억 회. 합계 중 앱 비중은 2024-01 Worldwide 54% → 2026-03 88%로 커짐(시간 기준 16% → 44%). do 파일 전체 재실행으로 ⑬도 다시 생성됨.
+- 신규 report `15_ChatGPT기준값_SensorTower평가_대화총량추정.tex`/`.md`/`.docx`/`.pdf` 작성(사용자 요청: 가장 신뢰할 수 있는 수치인 Chatterji et al.(2025)의 2025-07 WAU 7억 명·주 메시지 180억 건을 기준으로 Sensor Tower를 평가하고, 전 세계·제품별 대화 총량 추정 방안을 별도 report로).
+  - 구성: 1 목적과 기준값(2025-07 주 기준값, 2024-06 하루 4.51억 건 보조 기준값, 2025-06 26.27억 건은 검증용), 2 기준 시점 평가(WAU ÷ True Audience 0.70이 사용 일수로 본 하한 0.45와 1 사이, 메시지 ÷ 방문·세션 1.06, 분당 0.17건, 시간 비례 시 웹 방문당 3.4건·앱 세션당 0.4건), 3 시계열 평가(2024-06→2025-07 메시지 5.89배, 앱 세션 5.51배로 메시지 ÷ 지표 r 변화 1.07배로 가장 안정적, 웹 방문·사용 시간·이용자는 r이 2.5–3.2배 변함, 2025-06 예측이 모든 지표에서 6–12% 낮음 = 기준값 간 불일치, 6→7월 주 183.9억→180억 건 감소 vs ST 증가), 4 추정 방안(대화_j = ChatGPT 메시지 × 지표_j/지표_ChatGPT × θ_j ÷ k_j; ① 기준값 결합(benchmarking, 앱 세션 지표, 2025-07 이후 flat/trend) ② 제품 간 상대 규모 세 기준(True Audience 이용자, 사용 시간 ⑦, 방문 + 세션 ⑦) ③ 합계 ④ 대화당 메시지 k 격자 ⑤ 범위 조정, 국가별 확장), 5 결론, 6 재현.
+  - 주요 결과: ChatGPT 월 메시지 2026-03 약 1,085억 건(앱 세션 flat, 범위 978–1,269억), AI 어시스턴트 전체 주 메시지 2025-07 262–310억, 2026-03 462–509억 건; k = 3이면 주 대화 87–103억, 154–170억 건. Claude 2026-02 주 메시지 8.6–26.9억 건을 Fan and Nguyen 주 2억 대화와 비교하면 k 4–13, Fan 방식에 ST 이용자를 쓰면 k 0.8–2.5 → k는 1–13으로 식별 안 됨.
+  - 의사결정: 대화당 메시지 수는 저장소 문헌(Chatterji, Signals, AEI)에 공개 값이 없어 격자(1, 2, 3, 5)로 둠. ChatGPT 시계열 지표는 처음 사용 시간으로 계산했으나, 기준값 사이 r 변화가 가장 작은 앱 세션(1.07배)으로 바꿈(사용 시간 2.51배). ⑦의 "Grok AI"는 "Grok"으로 통일, ⑦에 한 경로만 있는 제품(Copilot 웹, Meta AI 앱)은 다른 경로 0, DeepSeek는 ⑦ 기준 결측.
+  - 새 do 파일 `code/04_analysis_chatgpt_anchor_conversation_volume.do`(Stata 17). 입력 ①②⑥⑦⑨⑩, `scaling_parameters_public.csv`(새 값 추가 없음). 출력 `results/table/15_chatgpt_anchor.xlsx`(시트 anchor, growth, series, products, conv, claude, monthly)와 `results/table/15_{anchor,growth,series,products,conv,claude}.tex`(report 15 `.tex`가 `\input`).
+  - `.docx`/`.pdf`: 같은 파이프라인(`.md` → node HTML → Word COM, 12페이지). PDF 렌더링으로 표 폭 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+  - GitHub 연동: report 15 `.tex`/`.md`, do 파일, `results/table/15_*`, `log.md` 커밋·push.
