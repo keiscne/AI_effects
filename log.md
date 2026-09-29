@@ -302,3 +302,9 @@
   - 새 do 파일 `code/04_analysis_chatgpt_anchor_conversation_volume.do`(Stata 17). 입력 ①②⑥⑦⑨⑩, `scaling_parameters_public.csv`(새 값 추가 없음). 출력 `results/table/15_chatgpt_anchor.xlsx`(시트 anchor, growth, series, products, conv, claude, monthly)와 `results/table/15_{anchor,growth,series,products,conv,claude}.tex`(report 15 `.tex`가 `\input`).
   - `.docx`/`.pdf`: 같은 파이프라인(`.md` → node HTML → Word COM, 12페이지). PDF 렌더링으로 표 폭 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
   - GitHub 연동: report 15 `.tex`/`.md`, do 파일, `results/table/15_*`, `log.md` 커밋·push.
+
+## 2026-09-30
+
+- report 15(`15_ChatGPT기준값_SensorTower평가_대화총량추정.tex`/`.md`) §2.1 "이용자 수" 보완(사용자 요청: "사용 일수로 본 하한(0.45)과 상한(1)"의 의미 설명 추가). 기존 두 문단을 확장: 상한 1(WAU ⊂ MAU), 하한 0.45(WAU ≥ DAU, DAU/MAU ≈ 앱 이용자 월평균 사용 일수 14.0 ÷ 31), 예시(14일 연속 사용 → 약 0.45, 흩어진 사용 → 1에 가까움), 점검이 느슨한 이유 3가지(범위가 넓음, 하한은 앱 이용자 기준 근사값, 0.70은 전 세계 계정 ÷ 25개 시장 사람 수). 다른 절과 표는 변경 없음(diff로 확인).
+  - `.docx`/`.pdf` 재생성(12페이지 유지, 같은 파이프라인). PDF 3–4쪽 렌더링으로 확인. 기존 파일은 scratchpad에 백업.
+  - GitHub 연동: report 15 `.tex`/`.md`, `log.md` 커밋·push.
