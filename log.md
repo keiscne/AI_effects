@@ -336,3 +336,13 @@
   - `fairlie-2026-the-early-impacts-of-ai` — Fairlie and Wu, "The Early Impacts of AI on Employment among Recent College Graduates", NBER WP 35796. CPS 2026년 여름까지 최근 대졸자 실업률 유의한 상승 없음. AEI 관측 노출과 Eloundou 노출을 함께 사용(usage–exposure 비교 문헌).
   - `rinz-2026-the-recent-evolution-of-ai` — Rinz, "The Recent Evolution of AI-Related Labor Demand", Cleveland Fed WP 26-24 (doi 10.26509/frbc-wp-202624). Lightcast 구인공고 + CPS로 LLM 노출 직업의 AI 언급·게시임금·노동흐름 분석.
   - GitHub 연동: 노트 4개(및 9/30에 추가한 Tomlinson 노트), `references.bib`, `log.md` 커밋·push. PDF는 git 추적 대상이 아님.
+- 새 report 16 `results/report/16_ChatGPT이용자수_OpenAI공식언급.tex`/`.md`/`.docx`/`.pdf` 작성(사용자 요청: ChatGPT 총 이용자 수(WAU/MAU)에 대한 OpenAI 공식 언급을 정확한 시점·출처와 함께 정리).
+  - 포함 기준: A(openai.com 게시물·OpenAI 연구 논문, 원문 직접 확인)와 B(경영진·대변인의 키노트·인터뷰·X 게시물, 언론 보도로 확인). 외부 추정(UBS/Similarweb, Sensor Tower)과 OpenAI 미확인 보도(The Information), 수치 불명확한 발언(2025-04 TED)은 표에서 제외하고 주의 절에 기록.
+  - 결과: 공식 언급 21건(2022-12 가입자 100만 → 2023-11 WAU 1억 → … → 2026-02 9억 → 2026-08 10억). OpenAI가 공식 발표한 지표는 WAU뿐이고 MAU·DAU 공식 수치는 없음.
+  - 주요 판단: 10억 명 언급 4건은 범위가 다름. 2026-07-31 Friar 글은 "모델 전체 활성 이용자"(주기 미명시), 2026-08-06·08-31 글은 ChatGPT 단독 주간 이용자, 2026-09-08 "The Work Now Within Reach"(사용자가 제시한 글)는 "Our products" 즉 OpenAI 제품 전체 WAU. ChatGPT 단독 10억 명의 첫 공식 언급은 2026-08-06. 2026-01-22 가이드의 "7억 명"은 이전 값 재인용으로 보아 경로 표에서 제외. Chatterji et al. 2024-11 로그인 WAU 3.5억 명이 2024-12 공개 3억 명보다 큰 불일치도 기록.
+  - 확인: openai.com 게시물 11건은 2026-10-03에 원문을 받아 문장·게시일 확인(WebFetch는 403이라 curl 사용). Chatterji et al. PDF 원문 p.10·각주 20 확인. 언론 출처(TechCrunch, CNBC, Bloomberg/Yahoo)도 원문 문장 확인. Axios(403)와 Techmeme은 검색 결과로만 확인.
+  - `reference/references.bib`에 OpenAI 웹 게시물 11개(@misc, `openai-2025-new-funding-agi` 등, `friar-2026-*` 2개) 추가. 언론·X 출처는 bib 없이 본문 출처 목록에 URL로 기록.
+  - 표는 분석 산출물이 아닌 출처 정리이므로 `results/table/`을 거치지 않고 본문에 둠(do 파일 없음).
+  - `.docx`/`.pdf`: 같은 파이프라인(`.md` → node HTML → Word COM, 8페이지). PDF 렌더링으로 표 폭 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+  - 후속(미실행): 2026-02 9억·2026-08 10억을 report 15 기준값으로 쓰려면 `scaling_parameters_public.csv`에 항목 추가 필요(원자료 변경이라 확인 후 진행).
+  - GitHub 연동: report 16 `.tex`/`.md`, `references.bib`, `log.md` 커밋·push.

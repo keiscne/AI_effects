@@ -1,0 +1,203 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- ChatGPT 총 이용자 수(WAU 등)에 대한 OpenAI의 공식 언급을
+% 발표일, 기준 시점, 지표 정의, 출처와 함께 정리한 작업 노트(report/).
+% 원문 확인: openai.com 게시물 2026-10-03 접속, Chatterji et al.(2025) PDF 원문.
+% 이 문서의 표는 분석 산출물이 아니라 출처 정리이므로 results/table/을 거치지 않고 본문에 둔다.
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3pt}
+
+\title{ChatGPT 총 이용자 수에 대한 OpenAI의 공식 언급 정리\\[2mm]
+\large --- 2022년 12월--2026년 9월, 발표일$\cdot$기준 시점$\cdot$지표 정의$\cdot$출처 ---}
+\author{AI-effects 프로젝트}
+\date{2026년 10월 3일}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 본 문서는 OpenAI가 공식 문서(openai.com 게시물, 연구 논문)와 경영진의 공개 발언(키노트, 인터뷰, X 게시물)으로 밝힌 ChatGPT 총 이용자 수를 시점순으로 정리한다. 2026년 10월 3일 기준으로 확인한 언급은 21건이다. 핵심은 다음과 같다. (1) OpenAI가 공식적으로 반복해서 밝혀 온 지표는 \textbf{주간 활성 이용자(WAU)} 하나뿐이다. 월간 활성 이용자(MAU)나 일간 활성 이용자(DAU)를 공식 발표한 적은 없고, 흔히 인용되는 ``2023년 1월 MAU 1억 명''은 외부 추정치다. (2) WAU는 1억 명(2023년 11월) $\to$ 2억 명(2024년 8월) $\to$ 3억 명(2024년 12월) $\to$ 4억 명(2025년 2월) $\to$ 5억 명(2025년 3월 말) $\to$ 7억 명(2025년 7월 말--8월 초) $\to$ 8억 명(2025년 10월) $\to$ 9억 명(2026년 2월 말) $\to$ 10억 명(2026년 8월)으로 늘었다. (3) 10억 명 언급은 범위가 서로 다르다. 2026년 7월 31일 글은 ``모델 전체의 활성 이용자''(주기 미명시), 8월 6일과 8월 31일 글은 \textbf{ChatGPT 단독 주간 이용자}, 9월 8일 글(``WAU 10억 명'')은 \textbf{OpenAI 제품 전체의 WAU}다. ChatGPT 단독 10억 명의 첫 공식 언급은 \textbf{2026년 8월 6일}이다. (4) 대부분의 수치는 ``이상(more than)''이 붙은 반올림 값이고 측정 기준(로그인 여부, 요금제 범위, 계정 vs 사람)이 밝혀지지 않았다. 측정 정의가 공개된 것은 \textcite{chatterji-2025-how-people-use-chatgpt}뿐이다(소비자 플랜, 계정 기준). 따라서 이 수치들은 수준 비교보다 \textbf{기준값(anchor)과 대략적 증가 경로}로 쓰는 것이 적절하다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적과 범위}
+% ============================================================
+
+report 14$\cdot$15는 \textcite{chatterji-2025-how-people-use-chatgpt}의 \textbf{2025년 7월 WAU 7억 명}을 OpenAI 기준값으로 썼다. 그 뒤 OpenAI는 9억 명(2026년 2월), 10억 명(2026년 8--9월)을 발표했다. 본 문서는 이러한 공식 언급을 한곳에 모아 발표일, 기준 시점, 지표 정의, 출처를 정확히 기록한다.
+
+\paragraph{포함 기준.} 아래 두 유형만 포함한다.
+\begin{itemize}
+  \item \textbf{A. OpenAI 공식 문서}: openai.com(한국어판 openai.com/ko-KR 포함) 게시물, OpenAI 연구 논문. 원문을 직접 확인했다.
+  \item \textbf{B. OpenAI 경영진$\cdot$대변인의 공개 발언}: 행사 키노트, 언론 인터뷰, 본인 X 게시물. 1차 영상이나 게시물 대신 이를 보도한 언론 기사로 확인한 경우가 있다(출처 목록에 표시).
+\end{itemize}
+
+\paragraph{제외.} 외부 기관의 추정치(UBS, Similarweb, Sensor Tower 등), OpenAI의 확인 없이 내부 자료를 인용한 언론 보도(예: The Information), 수치가 불분명한 발언은 표~\ref{tab:all}에 넣지 않고 \ref{sec:caveats}절에서 따로 다룬다.
+
+\paragraph{확인 방법.} openai.com 게시물 원문은 2026년 10월 3일에 내려받아 해당 문장과 게시일을 직접 확인했다. \textcite{chatterji-2025-how-people-use-chatgpt}은 OpenAI가 공개한 PDF 원문을 확인했다. 원문 인용은 영어 원문을 그대로 옮겼다.
+
+% ============================================================
+\section{공식 언급 전체 목록}
+% ============================================================
+
+표~\ref{tab:all}은 21건을 \textbf{발표일} 순으로 정리한 것이다. ``기준 시점''은 수치가 가리키는 시점이며, 따로 밝히지 않은 경우 발표일과 같다고 본다. 출처 번호 [S1]--[S21]은 \ref{sec:sources}절의 출처 목록을 가리킨다.
+
+{\footnotesize
+\begin{longtable}{@{}r L{1.55cm} L{1.6cm} L{1.35cm} L{2.6cm} L{5.2cm} c L{1.15cm}@{}}
+\caption{ChatGPT 총 이용자 수에 대한 OpenAI의 공식 언급}\label{tab:all}\\
+\toprule
+\# & 발표일 & 기준 시점 & 수치 & 지표$\cdot$범위 & 원문(요지) & 유형 & 출처 \\
+\midrule
+\endfirsthead
+\toprule
+\# & 발표일 & 기준 시점 & 수치 & 지표$\cdot$범위 & 원문(요지) & 유형 & 출처 \\
+\midrule
+\endhead
+\bottomrule
+\multicolumn{8}{@{}L{16.4cm}@{}}{\footnotesize 주: 유형 A는 OpenAI 공식 문서, B는 경영진$\cdot$대변인의 공개 발언. 3$\cdot$6$\cdot$11번은 Chatterji et al.(2025)이 2025년 9월에 사후적으로 보고한 값이라 발표일이 기준 시점보다 늦다.}
+\endlastfoot
+1 & 2025-09-15 & 2022-12-05 & 100만 명 이상 & 가입(등록) 이용자 누적 & ``by December 5 it had more than one million registered users'' & A & [S1] p.10 \\
+2 & 2023-11-06 & 2023-11 & 1억 명 & ChatGPT WAU & Altman, 제1회 DevDay 키노트(TechCrunch: ``ChatGPT now has 100 million weekly active users'') & B & [S2] \\
+3 & 2025-09-15 & 2023-11(출시 1년 후) & 1억 명 이상 & 로그인 WAU, 소비자 플랜 & ``more than 100 million logged-in WAU after one year'' & A & [S1] p.10 \\
+4 & 2024-08-29 & 2024-08 & 2억 명 이상 & ChatGPT WAU & OpenAI 대변인이 Axios에 확인 & B & [S3] \\
+5 & 2024-10-28 & 2024-10 & 2.5억 명 & ChatGPT WAU & Friar(CFO), Bloomberg TV 인터뷰 & B & [S4] \\
+6 & 2025-09-15 & 2024-11(출시 2년 후) & 약 3.5억 명 & 로그인 WAU, 소비자 플랜 & ``almost 350 million after two years'' & A & [S1] p.10 \\
+7 & 2024-12-04 & 2024-12 & 3억 명 & ChatGPT WAU & Altman, NYT DealBook Summit & B & [S5] \\
+8 & 2025-02-20 & 2025-02 & 4억 명 & ChatGPT WAU & Lightcap(COO), CNBC 인터뷰 & B & [S6] \\
+9 & 2025-03-31 & 2025-03 말 & 5억 명 & 주간 이용자 & ``the 500 million people who use ChatGPT every week'' & A & [S7] \\
+10 & 2025-08-04 & 2025-08 첫째 주 & 7억 명 & ChatGPT WAU(도달 예상) & ``This week, ChatGPT is on track to reach 700M weekly active users'' & B & [S8] \\
+11 & 2025-09-15 & 2025-07 말 & 7억 명 이상 & 전체 WAU, 소비자 플랜(Free$\cdot$Plus$\cdot$Pro), 계정 기준 & ``more than 700 million total WAU, nearly 10\% of the world's adult population'' & A & [S1] p.10, [S9] \\
+12 & 2025-10-06 & 2025-10 & 8억 명 이상 & 주간 이용자 & Altman, DevDay 2025 키노트: ``More than 800 million people use ChatGPT every week'' & B & [S10] \\
+13 & 2025-11-05 & 2025-11 & 8억 명 이상 & 주간 이용자 & ``more than 800 million weekly users already familiar with ChatGPT'' & A & [S11] \\
+14 & 2025-12-08 & 2025-12 & 8억 명 이상 & 주간 이용자 & ``ChatGPT now serves more than 800 million users every week'' & A & [S12] \\
+15 & 2026-01-22 & 불분명 & 7억 명 이상 & ChatGPT WAU & ``today has over 700 million weekly active users'' & A & [S13] \\
+16 & 2026-02-27 & 2026-02 & 9억 명 이상 & ChatGPT WAU & ``more than 900M weekly active users''; 소비자 구독자 5천만 명 이상 & A & [S14] \\
+17 & 2026-03-31 & 2026-03 & 9억 명 이상 & ChatGPT WAU & ``more than 900 million weekly active users, and over 50 million subscribers'' & A & [S15] \\
+18 & 2026-07-31 & 2026-07 & 10억 명 이상 & 활성 이용자(주기 미명시), OpenAI 모델 전체 & ``Our models now reach more than one billion active users'' & A & [S16] \\
+19 & 2026-08-06 & 2026-08 & 10억 명 & ChatGPT 주간 이용자 & ``Every week, 1 billion people turn to ChatGPT'' & A & [S17] \\
+20 & 2026-08-31 & 2026-08 & 10억 명 이상 & ChatGPT WAU & ``keep ChatGPT available to more than 1 billion weekly active users'' & A & [S18] \\
+21 & 2026-09-08 & 2026-09 & 10억 명 이상 & WAU, OpenAI 제품 전체 & ``Our products reach more than one billion weekly active users and 2.5 million businesses'' & A & [S19] \\
+\end{longtable}
+}
+
+% ============================================================
+\section{ChatGPT 단독 WAU 경로}
+% ============================================================
+
+표~\ref{tab:path}는 표~\ref{tab:all}에서 \textbf{ChatGPT 단독 주간 이용자}를 가리키는 값만 기준 시점별로 하나씩 고른 것이다. 범위가 OpenAI 제품 전체인 18$\cdot$21번과, 기준 시점이 불분명한 15번은 뺐다.
+
+{\small
+\begin{longtable}{@{}L{2.4cm} L{2.4cm} L{2.6cm} L{8.2cm}@{}}
+\caption{ChatGPT 주간 활성 이용자(WAU) 공식 수치의 경로}\label{tab:path}\\
+\toprule
+기준 시점 & WAU(억 명) & 근거(표~\ref{tab:all} \#) & 비고 \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+2023-11 & 1.0 & 2, 3 & Chatterji는 로그인 이용자만 \\
+2024-08 & 2.0 & 4 & \\
+2024-10 & 2.5 & 5 & 인터뷰 발언 \\
+2024-11 & 3.5(로그인) & 6 & 아래 2024-12의 공개 수치보다 큼 \\
+2024-12 & 3.0 & 7 & \\
+2025-02 & 4.0 & 8 & \\
+2025-03 말 & 5.0 & 9 & \\
+2025-07 말 & 7.0 & 10, 11 & 측정 정의가 공개된 유일한 값 \\
+2025-10 & 8.0 & 12, 13, 14 & 12월까지 ``8억 명 이상'' 유지 \\
+2026-02 말 & 9.0 & 16, 17 & 3월 말까지 ``9억 명 이상'' 유지 \\
+2026-08 & 10.0 & 19, 20 & ChatGPT 단독 10억 명의 첫 언급은 8월 6일 \\
+\end{longtable}
+}
+
+요약하면 ChatGPT WAU는 1억 명에서 10억 명이 되기까지 약 2년 9개월(2023년 11월--2026년 8월)이 걸렸다. 공개 수치의 간격으로 보면 2025년 3월 말--7월 말에 4개월 동안 2억 명, 2025년 10월--2026년 2월에 약 5개월 동안 1억 명, 2026년 2월--8월에 약 6개월 동안 1억 명이 늘어 증가 속도는 2025년 중반 이후 느려졌다. 다만 각 값이 ``이상''이 붙은 반올림 값이고, OpenAI가 보통 1억 명 단위의 이정표를 넘었을 때 발표하므로 발표 간격으로 증가 속도를 정확히 잴 수는 없다.
+
+% ============================================================
+\section{출처 목록}\label{sec:sources}
+% ============================================================
+
+openai.com 게시물(유형 A)은 2026년 10월 3일 접속 기준이다. 한국어판 주소(openai.com/ko-KR/...)는 영문판과 같은 글이다.
+
+{\small
+\begin{description}[leftmargin=2.6em,labelwidth=2.2em,font=\normalfont]
+  \item[{[S1]}] \textcite{chatterji-2025-how-people-use-chatgpt}, ``How People Use ChatGPT,'' NBER Working Paper 34255, 2025년 9월. 본문 p.10과 Figure 3(소비자 플랜 WAU, 2022년 11월--2025년 9월 반기별 스냅샷), 각주 20(계정 기준 정의). \url{https://cdn.openai.com/pdf/a253471f-8260-40c6-a2cc-aa93fe9f142e/economic-research-chatgpt-usage-paper.pdf}
+  \item[{[S2]}] TechCrunch, ``OpenAI's ChatGPT now has 100 million weekly active users,'' 2023-11-06. \url{https://techcrunch.com/2023/11/06/openais-chatgpt-now-has-100-million-weekly-active-users/} (Altman의 DevDay 2023 키노트 발언 보도)
+  \item[{[S3]}] Axios, ``OpenAI says ChatGPT usage has doubled in the last year,'' 2024-08-29. \url{https://www.axios.com/2024/08/29/openai-chatgpt-200-million-weekly-active-users} (OpenAI 대변인 확인)
+  \item[{[S4]}] Bloomberg, ``OpenAI CFO Says 75\% of Its Revenue Comes From Paying Consumers,'' 2024-10-28(Yahoo Finance 게재본). \url{https://finance.yahoo.com/news/openai-cfo-says-75-revenue-163713534.html} (``Friar said ChatGPT currently has 250 million weekly active users''; Bloomberg TV 인터뷰)
+  \item[{[S5]}] CNBC, ``OpenAI's active user count soars to 300 million people per week,'' 2024-12-04. \url{https://www.cnbc.com/2024/12/04/openais-active-user-count-soars-to-300-million-people-per-week.html} (``OpenAI CEO Sam Altman revealed the new figure Wednesday at The New York Times' DealBook Summit'')
+  \item[{[S6]}] CNBC(Kate Rooney) 2025-02-20 보도, Techmeme 요약: ``OpenAI COO Brad Lightcap says ChatGPT crossed 400M weekly active users in February 2025.'' \url{https://www.techmeme.com/250220/p22}
+  \item[{[S7]}] \textcite{openai-2025-new-funding-agi}, 2025-03-31.
+  \item[{[S8]}] Nick Turley(ChatGPT 총괄) X 게시물, 2025-08-04. \url{https://x.com/nickaturley/status/1952385556664520875} (``up from 500M at the end of March and 4$\times$ since last year''). 같은 날 CNBC 보도: \url{https://www.cnbc.com/2025/08/04/openai-chatgpt-700-million-users.html}
+  \item[{[S9]}] \textcite{openai-2025-how-people-are-using-chatgpt}, 2025-09-15 (``Given the sample size and 700 million weekly active users of ChatGPT \ldots'').
+  \item[{[S10]}] TechCrunch, ``Sam Altman says ChatGPT has hit 800M weekly active users,'' 2025-10-06. \url{https://techcrunch.com/2025/10/06/sam-altman-says-chatgpt-has-hit-800m-weekly-active-users/} (DevDay 2025 키노트 발언 보도)
+  \item[{[S11]}] \textcite{openai-2025-one-million-businesses}, 2025-11-05.
+  \item[{[S12]}] \textcite{openai-2025-state-of-enterprise-ai}, 2025-12-08.
+  \item[{[S13]}] \textcite{openai-2026-usage-adoption-patterns-work}, 2026-01-22.
+  \item[{[S14]}] \textcite{openai-2026-scaling-ai-for-everyone}, 2026-02-27 (한국어판 \url{https://openai.com/ko-KR/index/scaling-ai-for-everyone/}).
+  \item[{[S15]}] \textcite{openai-2026-accelerating-next-phase}, 2026-03-31.
+  \item[{[S16]}] \textcite{friar-2026-building-abundant-intelligence}(OpenAI CFO), 2026-07-31.
+  \item[{[S17]}] \textcite{openai-2026-improving-gpt56-sol}, 2026-08-06.
+  \item[{[S18]}] \textcite{openai-2026-chatgpt-ads-milestone}, 2026-08-31.
+  \item[{[S19]}] \textcite{friar-2026-work-now-within-reach}(OpenAI CFO), 2026-09-08 (한국어판 \url{https://openai.com/ko-KR/index/the-work-now-within-reach/}).
+  \item[{[S20]}] Fortune, ``OpenAI's user base doubles in just a few weeks to 800 million, Sam Altman suggests,'' 2025-04-14. \url{https://fortune.com/2025/04/14/sam-altman-openai-user-base-doubled-few-weeks-10-of-world-uses-system/} (\ref{sec:caveats}절, 표~\ref{tab:all} 제외)
+  \item[{[S21]}] The Information, ``OpenAI's ChatGPT Nears 1 Billion Weekly Active Users Seven Months After Target,'' 2026년 7월 말. \url{https://www.theinformation.com/articles/openais-chatgpt-nears-1-billion-weekly-active-users-seven-months-target} (\ref{sec:caveats}절, 표~\ref{tab:all} 제외)
+\end{description}
+}
+
+% ============================================================
+\section{해석상 주의}\label{sec:caveats}
+% ============================================================
+
+\paragraph{1) 범위: ChatGPT 단독인가, OpenAI 제품 전체인가.} 2026년의 ``10억 명'' 언급 네 건은 범위가 다르다.
+\begin{itemize}
+  \item 7월 31일 [S16]: ``Our models now reach more than one billion active users and more than two million businesses.'' 바로 앞 문장이 ``ChatGPT, ChatGPT Work, Codex, and the API''를 나열하므로 \textbf{OpenAI 모델 전체}의 도달 범위이고, \textbf{주간인지도 밝히지 않았다}.
+  \item 8월 6일 [S17]: ``Every week, 1 billion people turn to ChatGPT.'' \textbf{ChatGPT 단독, 주간}이다. 다만 ``people''이라고 썼지만 실제로는 계정 수일 가능성이 높다(아래 3).
+  \item 8월 31일 [S18]: ``keep ChatGPT available to more than 1 billion weekly active users.'' \textbf{ChatGPT 단독 WAU}다.
+  \item 9월 8일 [S19]: ``Our products reach more than one billion weekly active users and 2.5 million businesses.'' \textbf{OpenAI 제품 전체의 WAU}다. 다음 문장이 ``ChatGPT, ChatGPT Work, Codex, and applications built on our API''를 언급한다. 따라서 이 글만으로는 ``ChatGPT WAU 10억 명''이라고 할 수 없고, ChatGPT 단독 값은 8월 6일$\cdot$31일 글을 인용해야 한다.
+\end{itemize}
+
+\paragraph{2) 발표일과 기준 시점.} \textcite{chatterji-2025-how-people-use-chatgpt}의 값(표~\ref{tab:all}의 3$\cdot$6$\cdot$11번)은 2025년 9월에 사후 보고된 것이다. 2026년 1월 22일 가이드 [S13]의 ``over 700 million''은 이미 8억 명이 발표된 뒤에 나온 것이어서, 작성 시점의 값이 아니라 이전 값을 다시 인용한 것으로 보인다. 경로(표~\ref{tab:path})에서는 뺐다.
+
+\paragraph{3) 계정 수와 사람 수.} 측정 정의가 공개된 것은 \textcite{chatterji-2025-how-people-use-chatgpt}뿐이다. 소비자 플랜(Free, Plus, Pro)이 대상이고, 로그인 이용자는 이메일, 로그아웃 이용자는 브라우저 쿠키로 센다. 한 사람이 여러 계정이나 기기를 쓰면 중복으로 세므로 ``계정 수가 사람 수를 다소 넘는다''고 밝히고 있다(각주 20). 다른 발표는 기준을 밝히지 않았으나 같은 방식이라고 보는 것이 자연스럽다. ``people''이라는 표현([S7], [S17])도 사람 수를 엄밀히 센 것이라는 뜻은 아니다.
+
+\paragraph{4) 요금제 범위와 로그인 여부.} Chatterji et al.의 2023년 11월(1억 명)과 2024년 11월(약 3.5억 명)은 \textbf{로그인 이용자만}의 WAU이고, 2025년 7월(7억 명)은 로그아웃 이용자를 포함한 \textbf{전체} WAU다. 2024년 11월 로그인 WAU 3.5억 명은 2024년 12월에 공개된 3억 명보다 크다. 당시 공개 수치가 보수적으로 반올림되었거나 범위가 달랐을 가능성이 있으며, OpenAI는 이를 설명하지 않았다. 요금제 범위도 발표마다 다를 수 있다. 2025년 8월 4일 CNBC 보도 [S8]는 회사 설명을 인용해 7억 명이 ``all ChatGPT artificial intelligence products --- free, Plus Pro, Enterprise, Team, and Edu''를 포함한다고 전하지만, 같은 시기 Chatterji et al.의 7억 명은 소비자 플랜(Free, Plus, Pro)만이다.
+
+\paragraph{5) ``이상''과 반올림.} 대부분의 수치는 ``more than''이 붙은 1억 명 단위 값이다. 같은 값이 여러 달 유지되는 것(8억 명: 2025년 10--12월, 9억 명: 2026년 2--3월)은 정체가 아니라 다음 이정표를 넘기 전까지 같은 값을 쓴 결과다.
+
+\paragraph{6) MAU$\cdot$DAU는 공식 수치가 없다.} OpenAI는 ChatGPT의 MAU나 DAU를 공식 발표하지 않았다. ``출시 두 달 만인 2023년 1월 MAU 1억 명''은 UBS가 Similarweb 자료로 추정한 외부 수치이고, 2026년의 ``월간 이용자 10억 명'' 보도도 Sensor Tower 같은 외부 추정에 근거한다. 2022년 12월 5일의 ``100만 명''(표~\ref{tab:all}의 1번)은 활성 이용자가 아니라 누적 가입자다.
+
+\paragraph{7) 표~\ref{tab:all}에서 뺀 언급.} (i) 2025년 4월 TED2025에서 Altman이 이용자가 몇 주 만에 두 배가 되었다고 말한 것을 Fortune [S20]이 ``8억 명''으로 보도했으나, 수치와 지표를 명시한 발언이 아니어서 제외했다. 이후 공식 수치(2025년 8월 7억 명)와도 맞지 않는다. (ii) The Information [S21]은 2026년 7월 말 ChatGPT WAU가 10억 명에 가까워졌고 내부 목표(2025년 말)보다 약 7개월 늦었다고 보도했으나, OpenAI가 확인한 수치가 아니어서 제외했다.
+
+% ============================================================
+\section{본 프로젝트에 대한 시사점}
+% ============================================================
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{기준값 추가.} report 15의 대화 총량 추정은 2025년 7월 WAU 7억 명 하나를 기준값으로 썼다. 표~\ref{tab:path}의 2026년 2월(9억 명)과 2026년 8월(10억 명)을 추가 기준값으로 쓸 수 있다. 다만 report 15가 기준으로 삼은 것은 이용자 수보다 \textbf{메시지 수}(주 180억 건)이므로, 이용자 수만으로는 메시지 기준값을 대신할 수 없다.
+  \item \textbf{정의의 일관성.} 측정 정의가 확인되는 값은 2025년 7월(Chatterji et al.)뿐이다. 이후 값을 같은 정의로 볼지는 가정이며, 이를 명시해야 한다.
+  \item \textbf{인용 방식.} 논문에서 ``ChatGPT WAU 10억 명''을 인용할 때는 8월 6일 [S17] 또는 8월 31일 [S18]을 인용하고, 9월 8일 [S19]은 ``OpenAI 제품 전체''로 구분해 쓴다.
+  \item \textbf{후속 작업.} 기준값을 do 파일로 쓰려면 \texttt{data/raw/macro/scaling/scaling\_parameters\_public.csv}에 새 항목(예: \texttt{openai\_wau\_2026\_02}, \texttt{openai\_wau\_2026\_08})을 추가해야 한다. 이는 원자료 파일 변경이므로 별도로 확인한 뒤 진행한다.
+\end{enumerate}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}
