@@ -346,3 +346,10 @@
   - `.docx`/`.pdf`: 같은 파이프라인(`.md` → node HTML → Word COM, 8페이지). PDF 렌더링으로 표 폭 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
   - 후속(미실행): 2026-02 9억·2026-08 10억을 report 15 기준값으로 쓰려면 `scaling_parameters_public.csv`에 항목 추가 필요(원자료 변경이라 확인 후 진행).
   - GitHub 연동: report 16 `.tex`/`.md`, `references.bib`, `log.md` 커밋·push.
+- Sensor Tower True Audience로 "전체 제품(8개 합계) 기준 국가별 점유율" 데이터 생성(사용자 요청: 제품별 버전 `sensortower_share_within_product_monthly_long.csv`와 별도로, 모든 제품 합계의 국가별 점유율).
+  - 새 do 파일 `code/02_clean_sensortower_share_all_products.do`(Stata 17 배치 실행). 입력 ①. 출력은 사용자 지정에 따라 `data/raw/macro/scaling/sensortower_state_of_ai_2026/sensortower_share_all_products_monthly_{long.csv,long.dta,wide.csv}`(긴 형식 722행 = 38개월 × (18개국 + residual), 넓은 형식 19행). CLAUDE.md의 "가공 데이터는 data/proc" 규칙의 예외.
+  - 계산: 시장 × 월로 8개 제품 이용자 수를 합산 → `share_all_products_pct` = 100 × 국가 합계 ÷ Worldwide 합계, 나머지 7개 시장은 residual 행. 보조 `share_within_18_pct`. 매칭 키 market × month.
+  - 주의: ①은 제품 안에서만 중복 제거하므로 합계는 사람 수가 아닌 "제품별 이용자 수의 합"(여러 어시스턴트 이용자 중복 계산). 출시 전 제품은 0.
+  - 확인: 모든 월 합 100%(assert), residual 음수 없음. 2026-05: India 30.3%, United States 12.3%, Brazil 8.8%, South Korea 2.6%, residual 9.8%. `_download_manifest.md`에 ⑮로 기록.
+  - 참고: 기존 `02_clean_sensortower_share_within_product.do`는 머리 주석에 출력이 `$proc`라고 되어 있으나 실제 save/export는 `src`(raw)로 되어 있어 raw·proc 양쪽에 같은 파일이 있음(이번에는 수정하지 않음).
+  - GitHub 연동: do 파일과 `log.md` 커밋·push(데이터는 `.gitignore`로 제외).
