@@ -308,3 +308,31 @@
 - report 15(`15_ChatGPT기준값_SensorTower평가_대화총량추정.tex`/`.md`) §2.1 "이용자 수" 보완(사용자 요청: "사용 일수로 본 하한(0.45)과 상한(1)"의 의미 설명 추가). 기존 두 문단을 확장: 상한 1(WAU ⊂ MAU), 하한 0.45(WAU ≥ DAU, DAU/MAU ≈ 앱 이용자 월평균 사용 일수 14.0 ÷ 31), 예시(14일 연속 사용 → 약 0.45, 흩어진 사용 → 1에 가까움), 점검이 느슨한 이유 3가지(범위가 넓음, 하한은 앱 이용자 기준 근사값, 0.70은 전 세계 계정 ÷ 25개 시장 사람 수). 다른 절과 표는 변경 없음(diff로 확인).
   - `.docx`/`.pdf` 재생성(12페이지 유지, 같은 파이프라인). PDF 3–4쪽 렌더링으로 확인. 기존 파일은 scratchpad에 백업.
   - GitHub 연동: report 15 `.tex`/`.md`, `log.md` 커밋·push.
+- `D:/econ-wiki`에 새로 추가된 Tomlinson et al.(2025) "Working with AI: Measuring the Applicability of Generative AI to Occupations"(Microsoft Research, arXiv:2507.07935v6)를 `reference/`에 반영(사용자 요청).
+  - `reference/notes/tomlinson-2025-working-with-ai-measuring-the.md`: econ-wiki `sources/` 원본을 그대로 복사(기존 노트와 같은 방식).
+  - `reference/papers/tomlinson-2025-working-with-ai-measuring-the.pdf`: econ-wiki `papers/local/`에서 원래 파일명 그대로 복사.
+  - `reference/references.bib`: `tomlinson-2025-working-with-ai-measuring-the`(@unpublished, arXiv; handa-2025와 같은 형식) 추가.
+  - 참고: Bing Copilot 미국 대화 20만 건(2024.1–9)을 O*NET IWA에 매핑한 Microsoft Copilot usage 기반 직업별 AI 적용가능성 점수로, 이 저장소의 usage 데이터 축(AEI, ChatGPT)에 Microsoft Copilot을 더하는 문헌.
+- Tomlinson et al.(2025)의 공개 집계자료 다운로드(사용자 요청).
+  - 새 폴더 `data/raw/usage/microsoft_working_with_ai/`(새 usage 소스, `data/proc/usage/microsoft_working_with_ai/`도 대칭으로 빈 폴더 생성). GitHub microsoft/working-with-ai 커밋 `c94a07c`(v1.1, arXiv v6 대응)의 파일 11개 전부를 받은 그대로 저장: CSV 7개(`iwa_metrics`, `soc_metrics`, `ai_applicability_scores`, `soc_iwa_weights`, `soc_iwa_nonphysical_weights`, `soc_to_iwas`, `physical_tasks`)와 README·LICENSE·NOTICE·SECURITY. 라이선스 CC BY 4.0.
+  - `_download_manifest.md`에 출처 URL·커밋·MD5·파일별 단위, 확인 결과, 매칭 키를 기록.
+  - 확인: IWA 332개, 커버된 IWA(share > 0.0005) 사용자 127개·AI 87개로 논문과 일치. `ai_applicability_scores` = 사용자 쪽·AI 쪽(비물리) 점수의 평균, SOC 785개 모두 일치. README의 파일명·변수명 2곳이 실제와 다름(manifest에 기록).
+  - 매칭 키: 2018 SOC 상세 코드(6자리, OEWS와 직접 연결), O*NET IWA ID. 한 시점 단면 자료(2024.1–9).
+  - 아직 do 파일은 만들지 않음(`data/proc/`에 결과물 없음). git 커밋·push는 하지 않음.
+- Microsoft AI Economy Institute의 AI Diffusion 데이터 다운로드(사용자 요청: CSV와 보고서 PDF).
+  - 새 폴더 `data/raw/usage/microsoft_ai_diffusion/`(대칭으로 `data/proc/usage/microsoft_ai_diffusion/` 빈 폴더 생성). GitHub microsoft/ai-diffusion-report 커밋 `507c316`(2026-09-21)의 파일 12개를 폴더 구조 그대로 저장: 국가별 CSV 1개(146개 경제권, 2025 H1·H2·2026 Q1·Q2), 미국 지역별 CSV 3개(카운티 3,143곳·주 51곳·MSA 34곳, 2026 Q1), 보고서 PDF 5개, README·LICENSE·SECURITY. 라이선스 MIT.
+  - 지표: 해당 기간에 생성형 AI를 쓴 15–64세 인구 비중(Microsoft telemetry를 기기·OS 점유율, 인터넷 보급률, 인구로 보정). Copilot만이 아니라 생성형 AI 전반이며 직업 정보는 없음.
+  - `_download_manifest.md`에 출처·커밋·MD5·파일별 내용, 확인 결과, 매칭 키를 기록. 확인 결과: 국가별 CSV는 값이 `%` 문자열이고 Q2만 소수 첫째 자리 표기, 인코딩이 Mac Roman(`Türkiye`), ISO 코드 없음. 한국 25.9% → 30.7% → 37.1% → 40.6%, Q1·Q2 값은 Q2 보고서 순위표와 일치.
+  - 주의: Q2 2026 보고서는 다음 판부터 측정 대상 도구를 넓힌다고 밝혀(p.3) 시계열 단절 가능성이 있음.
+  - 매칭 키: 국가는 영문 국가명(ISO 대응표 필요), 미국은 카운티 FIPS·주·MSA(CBSA) 코드. 시점은 반기(2025) → 분기(2026).
+  - `reference/references.bib`에 데이터 인용용 `microsoft-2026-ai-diffusion`(@misc) 추가. 방법론 논문 Misra et al.(2025, arXiv:2511.02781) 등은 받지 않음.
+  - 아직 do 파일은 만들지 않음. git 커밋·push는 하지 않음.
+
+## 2026-10-03
+
+- `D:/econ-wiki`에 새로 추가된 문헌 4편을 `reference/`에 반영(사용자 요청). 기존과 같은 방식: `sources/` 노트를 `reference/notes/`에, `papers/local/` PDF를 `reference/papers/`에 원래 파일명 그대로 복사하고 `reference/references.bib`에 항목 추가.
+  - `tebrake-2026-generative-ai-and-the-limits` — Tebrake and Strassner, "Generative AI and the Limits of Productivity Measurement in the System of National Accounts", IMF WP/26/201. 비시장 산출의 sum-of-costs 평가와 서비스 가격 품질조정 부족 때문에 AI 생산성 향상이 국민계정에서 과소측정된다는 논의.
+  - `blumenfeld-2026-the-macroeconomic-effect-of-ai` — Blumenfeld, Hazell, Lian and Schaab, "The Macroeconomic Effect of AI: Sizing the Software Engineering Channel", NBER WP 35793. 주가의 AI 지수 민감도 × SWE 급여비중으로 SWE 생산성 기대 상승과 GDP 효과 추정.
+  - `fairlie-2026-the-early-impacts-of-ai` — Fairlie and Wu, "The Early Impacts of AI on Employment among Recent College Graduates", NBER WP 35796. CPS 2026년 여름까지 최근 대졸자 실업률 유의한 상승 없음. AEI 관측 노출과 Eloundou 노출을 함께 사용(usage–exposure 비교 문헌).
+  - `rinz-2026-the-recent-evolution-of-ai` — Rinz, "The Recent Evolution of AI-Related Labor Demand", Cleveland Fed WP 26-24 (doi 10.26509/frbc-wp-202624). Lightcast 구인공고 + CPS로 LLM 노출 직업의 AI 언급·게시임금·노동흐름 분석.
+  - GitHub 연동: 노트 4개(및 9/30에 추가한 Tomlinson 노트), `references.bib`, `log.md` 커밋·push. PDF는 git 추적 대상이 아님.
