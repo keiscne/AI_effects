@@ -1,0 +1,235 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- Sensor Tower 기반 18개국 메시지 비중과 Anthropic Economic Index(Claude.ai) 국가별 대화 비중 비교
+% (전체, 업무용 비중 수준, 업무용 국가 비중).
+% 표 본문: results/table/18_{share_202602,share_202604,share_202605,work_level,work_share,summary}.tex
+%          (code/04_analysis_sensortower_aei_country_share.do가 생성)
+% 데이터:  code/01_import_aei_country_usage.do, code/03_merge_sensortower_openai_messages.do
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{Sensor Tower 기반 국가별 메시지 비중과 Anthropic Economic Index의 Claude 국가별 대화 비중 비교\\[2mm]
+\large --- 18개국, 2026년 2월$\cdot$4월$\cdot$5월, 전체와 업무용 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent report 17은 ``모든 제품의 1인당 메시지 수와 업무 비중이 같다''는 두 가정 아래 Sensor Tower 이용자 수로 국가별 메시지와 업무용 메시지를 만들었다. 본 문서는 이 국가 분포를 Anthropic Economic Index(AEI)의 Claude.ai 국가별 대화 비중(release 2026-03-24의 2026년 2월 1주, release 2026-06-26의 2026년 4월$\cdot$5월)과 18개국 안에서 비교해 두 가정을 점검한다. 결과는 세 가지다. (1) \textbf{국가 비중}: Sensor Tower 8개 제품 메시지 비중과 AEI 비중의 상관은 0.48--0.51, 비유사도 지수 $D$는 35--38\%p로 크게 다르다. 미국은 AEI에서 32--38\%로 Sensor Tower(13.6--14.7\%)의 2.3--2.6배이고, 인도는 10--11\%로 Sensor Tower(33--34\%)의 3분의 1이다. Sensor Tower의 \textbf{Claude 이용자} 비중과 비교하면 상관이 0.64--0.74로 오르고 $D$가 25--28\%p로 줄어, 차이의 4분의 1--3분의 1은 제품 구성(Claude 이용자는 고소득국에 치우침)으로 설명된다. 남은 차이는 Claude 이용자 1인당 대화가 고소득국에서 많고 신흥국에서 적다는 뜻이어서, ``1인당 메시지 수가 국가 간에 같다''는 가정은 지지되지 않는다. (2) \textbf{업무 비중 수준}: AEI의 Claude 업무용 대화 비중(18개국 가중 42--44\%)은 Signals의 ChatGPT 업무 비중(32--33\%)보다 10--11\%p 높고, 18개국 평균 차이는 12--14\%p다. 국가 간 상관은 $-0.27$--$0.04$로 사실상 없다. ``모든 제품의 업무 비중이 ChatGPT와 같다''는 가정은 Claude에 대해서는 수준과 국가 순서 모두에서 맞지 않는다. (3) \textbf{업무용 국가 비중}: 업무 비중의 국가 간 차이는 국가 규모 차이보다 작아, 업무용 국가 분포의 비교 결과는 전체 분포와 거의 같다($D$ 35--37\%p, Claude 이용자 기준 24--28\%p).
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적}
+% ============================================================
+
+report 17의 국가별 메시지 수는 두 가정 위에 서 있다. (A1) 이용자 1인당 메시지 수가 제품$\cdot$국가$\cdot$시점에 걸쳐 같다. (A2) 업무용 비중이 제품 간에 같고 국가별 ChatGPT 값(Signals)과 같다. 두 가정 아래 국가 $c$의 메시지 비중은 이용자 비중과 같고, 업무용 메시지 비중은 이용자 비중 $\times$ ChatGPT 업무 비중에 비례한다.
+
+AEI는 Claude.ai 대화 표본으로 국가별 대화 비중과 업무용 대화 비중을 공개한다\parencite{massenkoff-2026-learning-curves,massenkoff-2026-cadences}. 제품 하나(Claude)지만 \textbf{실제 사용량의 국가 분포}를 보여 주므로, Sensor Tower 이용자 분포와 비교하면 두 가정이 어디서 어긋나는지 알 수 있다. 비교는 두 축으로 한다.
+\begin{itemize}
+  \item \textbf{제품 구성}: Sensor Tower 8개 제품 합계 대 Sensor Tower Claude 이용자. 둘의 차이는 제품 구성 효과다.
+  \item \textbf{사용 강도}: Sensor Tower Claude 이용자 대 AEI Claude 대화. 둘의 차이는 국가별 1인당 사용 강도 차이(그리고 두 자료의 측정 차이)다.
+\end{itemize}
+
+% ============================================================
+\section{자료와 비교 지표}
+% ============================================================
+
+\subsection{Anthropic Economic Index}
+\begin{longtable}{L{2.6cm}L{6.4cm}L{6.8cm}}
+\caption{AEI 자료}\label{tab:aei}\\
+\toprule
+release & 기간$\cdot$표본 & 사용 변수 \\
+\midrule
+2026-03-24 & 2026-02-05--02-11(1주). Claude.ai 대화 표본 100만 건. 177개국 + 국가 미상(\texttt{NONE}, 0.23\%) & \texttt{usage\_count}, \texttt{usage\_pct}(= 건수 $\div$ 100만), \texttt{use\_case\_pct}(work) \\
+2026-06-26 & 2026-04, 2026-05(월별). 건수 없음, 소수 둘째 자리. 공개 국가 114개(4월)$\cdot$121개(5월), 공개 국가 합계 82.0\%$\cdot$87.5\% & \texttt{overall}의 \texttt{usage\_pct}, \texttt{use\_case\_work\_pct} \\
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+  \item 범위는 Claude.ai(Free$\cdot$Pro$\cdot$Max, 06-26은 Cowork 포함)다. API와 Claude Code는 빠진다.
+  \item \texttt{usage\_pct}의 분모는 Claude.ai 전 세계 대화(공개되지 않은 국가 포함)다. 공개 기준(표본 하한)에 못 미친 국가는 행이 없다. 18개국은 세 기간 모두 공개되어 있다.
+  \item 업무용 비중은 use case 분류(work, personal, coursework)의 work 비중이다. 분모는 그 국가 대화 전체다(03-24에서 건수로 확인).
+  \item 원자료는 \texttt{code/01\_import\_aei\_country\_usage.do}가 \texttt{data/proc/usage/anthropic\_economic\_index/aei\_claude\_ai\_country\_usage.\{csv, dta\}}로 정리한다. 03-24는 ISO 3166-1 alpha-2, 06-26은 alpha-3 코드를 쓴다.
+\end{itemize}
+
+\subsection{Sensor Tower 기반 값(report 17)}
+\begin{itemize}
+  \item \textbf{8개 제품 메시지}: \texttt{sensortower\_work\_messages\_by\_country\_monthly}의 \texttt{messages}, \texttt{work\_messages}, \texttt{work\_share}(Signals). (A1) 때문에 메시지 비중 = 8개 제품 이용자 비중이다.
+  \item \textbf{Claude 이용자}: \texttt{sensortower\_share\_within\_product\_monthly\_long}의 Claude \texttt{unique\_users}. (A1) 아래 Claude 메시지 비중과 같다.
+  \item \textbf{Claude 업무용}: Claude 이용자 $\times$ Signals 국가별 업무 비중. 제품 구성 차이를 뺀 업무용 비교에 쓴다.
+\end{itemize}
+
+\subsection{비교 지표}
+두 자료의 분모 범위가 다르다. Sensor Tower의 18개국은 25개 시장 이용자의 약 90\%지만, AEI에서 18개국은 Claude.ai 전 세계 대화의 59--63\%다(표 \ref{tab:share05} 마지막 행). 그래서 모든 비교는 \textbf{18개국 합계를 100으로 다시 정규화한 비중}으로 한다.
+\[
+  s^{X}_{c} = 100 \times \frac{x_c}{\sum_{c' \in 18} x_{c'}}, \qquad
+  D = \tfrac12 \sum_{c \in 18} \bigl| s^{A}_{c} - s^{B}_{c} \bigr| .
+\]
+$D$(비유사도 지수)는 두 분포를 같게 만들려면 옮겨야 하는 비중(\%p)이다. 0이면 같고 100이면 완전히 겹치지 않는다. 그 밖에 Pearson 상관, Spearman 순위 상관을 본다.
+
+\textbf{기간 짝짓기}: AEI 03-24(2026년 2월 1주)는 Sensor Tower 2026년 2월(월간)과, AEI 06-26의 4월$\cdot$5월은 같은 달과 짝짓는다. 국가는 Sensor Tower 시장명 $\to$ ISO2/ISO3 대응표로 맞춘다.
+
+\textbf{측정 단위 차이}: Sensor Tower 기반 값은 \textbf{메시지}(Chatterji 기준), AEI는 \textbf{대화}다. 국가 간 대화당 메시지 수가 다르면 비중 차이의 일부가 된다. 이를 따로 식별할 자료는 없다.
+
+% ============================================================
+\section{국가 비중 비교}
+% ============================================================
+
+표 \ref{tab:share05}--\ref{tab:share02}의 열은 왼쪽부터 Sensor Tower 8개 제품 메시지 비중, Sensor Tower Claude 이용자 비중, AEI Claude 대화 비중, 그리고 AEI $\div$ Sensor Tower 비율 두 개다. 행은 모든 표에서 2026년 5월 AEI 비중 순서다.
+
+\newcommand{\sharehead}{%
+\toprule
+ & \multicolumn{3}{c}{18개국 안 비중(\%)} & \multicolumn{2}{c}{AEI $\div$ ST} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+국가 & ST 8개 제품 & ST Claude & AEI Claude & 8개 제품 & Claude \\
+\midrule}
+
+\begin{table}[htbp]
+\centering
+\caption{국가 비중: 2026년 5월}\label{tab:share05}
+\begin{tabular}{lrrrrr}
+\sharehead
+\input{../table/18_share_202605.tex}
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize 주: 마지막 행은 정규화 전 18개국 합계 비중. ST 8개 제품은 25개 시장 합계 대비, ST Claude는 Claude Worldwide(25개 시장) 대비, AEI는 Claude.ai 전 세계 대비.
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{국가 비중: 2026년 4월}\label{tab:share04}
+\begin{tabular}{lrrrrr}
+\sharehead
+\input{../table/18_share_202604.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{국가 비중: 2026년 2월(AEI는 02-05--02-11 1주)}\label{tab:share02}
+\begin{tabular}{lrrrrr}
+\sharehead
+\input{../table/18_share_202602.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{결과}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{8개 제품 기준으로는 크게 다르다.} 미국은 AEI에서 32--38\%로 Sensor Tower의 2.3--2.6배, 인도는 10--11\%로 0.31--0.34배다. AEI가 Sensor Tower보다 큰 나라는 미국$\cdot$호주$\cdot$캐나다$\cdot$영국$\cdot$프랑스$\cdot$한국(1.8--3.5배) 등 고소득국이고, 작은 나라는 인도$\cdot$브라질$\cdot$인도네시아$\cdot$멕시코$\cdot$튀르키예$\cdot$베트남(0.3--0.6배) 등 신흥국이다.
+  \item \textbf{제품 구성이 차이의 일부를 설명한다.} Sensor Tower 안에서도 Claude 이용자는 8개 제품 전체보다 미국(18--24\% 대 13.6--14.7\%)$\cdot$유럽에 치우치고 브라질$\cdot$인도네시아$\cdot$멕시코$\cdot$튀르키예에서 적다. Claude 이용자 기준으로 바꾸면 $D$가 35--38\%p에서 25--28\%p로 줄어든다(표 \ref{tab:summary}).
+  \item \textbf{그래도 사용 강도 차이가 크다.} Claude 이용자 대비 AEI 비율은 미국 1.6--1.8, 호주 1.9--2.4, 한국 1.9--2.2, 영국$\cdot$프랑스$\cdot$캐나다 1.5--1.8인 반면 인도는 0.35, 튀르키예$\cdot$브라질 0.58--0.72다. 인도는 Sensor Tower Claude 이용자의 약 3분의 1(30--33\%)을 차지하지만 AEI 대화로는 10--11\%다. 즉 \textbf{Claude 이용자 1인당 대화 수가 고소득국에서 신흥국보다 몇 배 많다}. 이는 Sensor Tower 이용자 추정의 국가별 측정 오차일 수도 있지만, 어느 쪽이든 ``이용자 수 $\times$ 공통 1인당 메시지''로 국가 사용량을 만들면 신흥국을 과대, 고소득국을 과소 추정하게 된다.
+  \item \textbf{시점에 따라 크게 바뀌지 않는다.} 세 기간의 상관$\cdot$$D$가 비슷하다. 2026년 2월(1주)에는 미국 비중이 37.7\%로 더 높고 4--5월로 갈수록 낮아진다.
+\end{enumerate}
+
+% ============================================================
+\section{업무용 비중 수준 비교}
+% ============================================================
+
+\begin{table}[htbp]
+\centering
+\caption{국가별 업무용 비중(\%): Signals ChatGPT 메시지 대 AEI Claude.ai 대화}\label{tab:worklevel}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{2026-02} & \multicolumn{2}{c}{2026-04} & \multicolumn{2}{c}{2026-05} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+국가 & Signals & AEI & Signals & AEI & Signals & AEI \\
+\midrule
+\input{../table/18_work_level.tex}
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize 주: 18개국 가중 평균 --- Signals는 Sensor Tower 메시지 가중(report 17의 함의 비중 계산과 같음), AEI는 AEI 대화 가중. 전 세계 --- Signals 전 세계 비중, AEI GLOBAL 행.
+\end{table}
+
+\paragraph{결과}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Claude가 ChatGPT보다 업무 비중이 훨씬 높다.} 18개국 가중 평균으로 AEI 42--44\% 대 Signals 32--33\%, 전 세계 값으로 43--46\% 대 30.5--31.7\%다. 국가별로 보면 인도네시아를 뺀 17개국에서 AEI가 높고, 차이는 튀르키예$\cdot$베트남$\cdot$브라질$\cdot$아르헨티나(약 18--27\%p)에서 특히 크다.
+  \item \textbf{국가 순서도 맞지 않는다.} 두 비중의 국가 간 상관은 $-0.27$--$0.04$, 순위 상관은 $-0.30$--$0.17$이다(표 \ref{tab:summary}). Signals에서 업무 비중이 가장 낮은 튀르키예(18--20\%)는 AEI에서는 40--45\%로 중간이고, Signals에서 높은 인도네시아(37--42\%)는 AEI에서 가장 낮다(29--32\%).
+  \item \textbf{분류 기준 차이를 감안해야 한다.} Signals의 \texttt{work\_related}는 메시지 단위 이진 분류, AEI의 use case는 대화 단위 3분류(work/personal/coursework)다. 분류기도 다르다. 따라서 수준 차이 일부는 정의 차이일 수 있다. 그러나 국가 순서가 무관하다는 점은 정의 차이만으로는 설명하기 어렵고, 제품별 이용자층 구성이 국가마다 다르다는 것을 시사한다.
+\end{enumerate}
+
+이 결과는 (A2)가 Claude에 대해서는 맞지 않음을 뜻한다. report 17의 업무용 메시지는 Claude 몫에서 업무용을 과소 추정하며, 그 정도는 국가마다 다르다.
+
+% ============================================================
+\section{업무용 국가 비중 비교}
+% ============================================================
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{업무용 메시지$\cdot$대화의 18개국 안 비중(\%)}\label{tab:workshare}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{2026-02} & \multicolumn{3}{c}{2026-04} & \multicolumn{3}{c}{2026-05} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+국가 & ST 8개 & ST Claude & AEI & ST 8개 & ST Claude & AEI & ST 8개 & ST Claude & AEI \\
+\midrule
+\input{../table/18_work_share.tex}
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize 주: ST 8개 = report 17 업무용 메시지(8개 제품 메시지 $\times$ Signals 업무 비중). ST Claude = Claude 이용자 $\times$ Signals 업무 비중. AEI = \texttt{usage\_pct} $\times$ \texttt{use\_case\_work\_pct}.
+\end{table}
+
+업무용 국가 분포의 비교 결과는 전체 분포와 거의 같다. 8개 제품 기준 $D$는 35--37\%p, Claude 이용자 기준 24--28\%p다. 업무 비중의 국가 간 차이(대략 20--60\%)가 국가 규모 차이(18개국 안 비중 1--35\%)보다 훨씬 작기 때문이다. AEI 업무용 대화에서 미국은 31--35\%, 인도는 12\%, 한국은 5.7--5.9\%이고, Sensor Tower 업무용 메시지에서는 각각 13.6--15.1\%, 35--36\%, 2.5--2.8\%다.
+
+% ============================================================
+\section{요약 통계}
+% ============================================================
+
+\begin{table}[htbp]
+\centering
+\caption{18개국 비교 요약}\label{tab:summary}
+\begin{tabular}{lrrr}
+\toprule
+ & 2026-02 & 2026-04 & 2026-05 \\
+\midrule
+\input{../table/18_summary.tex}
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize 주: 상관은 Pearson, 순위 상관은 Spearman, $D = \tfrac12\sum|a-b|$(\%p). 모든 비중은 18개국 합계 = 100. 요약 통계 전체는 \texttt{results/table/18\_sensortower\_aei\_country\_share.xlsx}의 \texttt{summary} 시트.
+\end{table}
+
+% ============================================================
+\section{함의}
+% ============================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{report 17 국가별 메시지의 해석.} 이용자 수 기반 국가 메시지는 ``이용자 분포''에 가깝고, 실제 사용 분포와는 상당히 다를 수 있다. 적어도 Claude에서는 사용량이 고소득국에 훨씬 집중되어 있다. 국가 비교에 쓸 때는 신흥국 과대$\cdot$고소득국 과소 가능성을 명시해야 한다.
+  \item \textbf{보정 방향.} (i) Claude 몫은 AEI 국가 비중을 직접 써서 Claude Worldwide 메시지를 나누는 방식, (ii) 국가별 1인당 사용 강도 지표(AEI \texttt{usage\_per\_capita\_index}, Sensor Tower 앱 세션$\cdot$웹 방문의 국가별 값)로 (A1)을 국가별로 완화하는 방식을 생각할 수 있다. ChatGPT는 Signals가 국가별 메시지 비중 대신 분기별 순위(\texttt{share\_of\_messages\_by\_country\_quarter\_rank.csv})만 공개하므로 순위 수준의 점검만 할 수 있다.
+  \item \textbf{업무 비중.} 제품별로 업무 비중을 달리 두는 것이 바람직하다. Claude는 AEI 국가별 \texttt{use\_case\_work\_pct}를, ChatGPT는 Signals를 쓰고, 나머지 제품은 범위를 두어 민감도를 보이는 방식이 현실적이다.
+\end{enumerate}
+
+\paragraph{한계} AEI 03-24는 1주 표본이다. AEI 06-26 비중은 소수 둘째 자리 반올림 값이다(작은 나라에서 상대 오차가 큼). AEI는 대화, Sensor Tower 기반 값은 메시지 단위다. AEI는 Claude.ai만 포함하고 API는 포함하지 않는다. Sensor Tower의 Claude 이용자는 독립 앱+웹 True Audience이며 AEI의 Claude.ai(웹$\cdot$앱)와 범위가 대체로 같지만 정확히 같지는 않다.
+
+\paragraph{재현} \texttt{code/01\_import\_aei\_country\_usage.do} $\to$ (report 17의 do 파일들) $\to$ \texttt{code/04\_analysis\_sensortower\_aei\_country\_share.do}. 마지막 do 파일이 \texttt{results/table/18\_*.tex}와 \texttt{18\_sensortower\_aei\_country\_share.xlsx}(시트 \texttt{panel}, \texttt{summary})를 만든다.
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

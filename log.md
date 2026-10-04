@@ -353,3 +353,29 @@
   - 확인: 모든 월 합 100%(assert), residual 음수 없음. 2026-05: India 30.3%, United States 12.3%, Brazil 8.8%, South Korea 2.6%, residual 9.8%. `_download_manifest.md`에 ⑮로 기록.
   - 참고: 기존 `02_clean_sensortower_share_within_product.do`는 머리 주석에 출력이 `$proc`라고 되어 있으나 실제 save/export는 `src`(raw)로 되어 있어 raw·proc 양쪽에 같은 파일이 있음(이번에는 수정하지 않음).
   - GitHub 연동: do 파일과 `log.md` 커밋·push(데이터는 `.gitignore`로 제외).
+
+## 2026-10-04
+
+- Sensor Tower True Audience로 제품별 Worldwide 점유율(⑯) 생성 후 공개 점유율(⑥)과 비교(사용자 요청).
+  - `code/02_clean_sensortower_share_all_products.do`에 2부 추가(Stata 17 배치 실행, 오류 없음). 입력 ①의 Worldwide 행. `share_ww_pct` = 100 × 제품 이용자 수 ÷ Worldwide 8개 항목(Other 포함) 합계. 출력 `data/raw/macro/scaling/sensortower_state_of_ai_2026/sensortower_share_worldwide_by_product_monthly_long.{csv,dta}`(304행 = 8개 제품 × 38개월). ⑮와 같이 사용자 지정 위치(raw).
+  - 비교 대상: 사용자는 raw의 `sensortower_share_all_products_monthly_long.csv`(⑮)를 지목했으나 ⑮는 국가별 점유율이라 제품별 점유율과 직접 비교할 수 없어, 같은 정의의 Sensor Tower 공개 제품별 점유율 ⑥(`sensortower_true_audience_share_monthly_long.csv`) Worldwide 행과 비교함. 매칭 키 assistant × month.
+  - 결과: 304행 모두 매칭, 상관 1.0000, |차이| 평균 0.025%p, 최대 0.108%p(ChatGPT 2026-02). 0.05%p 초과 24행은 ①의 유효숫자 3자리 반올림 때문. 즉 ⑥ Worldwide는 ①의 제품별 이용자 수 ÷ 8개 항목 합계로 정확히 재현됨. `_download_manifest.md`에 ⑯로 기록.
+- Sensor Tower 이용자 수 × ChatGPT 1인당 메시지 수로 월간 메시지·업무용 메시지·대화량 데이터 5종 생성(사용자 요청).
+  - 새 do 파일 `code/03_merge_sensortower_openai_messages.do`(Stata 17 배치 실행, 오류 없음). `02_clean_sensortower_share_all_products.do`는 수정하지 않음(사용자 지시). 입력: `scaling_parameters_public.csv`의 `chatterji_msgs_week_2025_07`, ⑯·⑮ `.dta`, OpenAI Signals `share_of_messages_by_work_related_{country_,}month.csv`.
+  - 가정(사용자 지정): (A1) 모든 제품의 1인당 메시지 수가 같음(시점 불변도 함께 가정), (A2) 모든 제품의 업무용 비중이 같고 국가별 ChatGPT 비중(Signals)과 같음.
+  - 계산: 2025-07 ChatGPT 월 메시지 = 주 180억 × 31/7 = 797.1억(report 15와 같은 환산) ÷ ⑯ ChatGPT 2025-07 이용자 9.94억 = 1인당 월 80.195건. 제품별 = 80.195 × ⑯ `unique_users`, 국가별 = 80.195 × ⑮ `all_users`(residual 포함), Worldwide = 80.195 × Worldwide 합계(제품 합계·국가 합계와 일치를 assert). 업무용 = 국가 메시지 × Signals 국가별 비중. residual(나머지 7개 시장)은 국가를 몰라 Signals 전 세계 비중을 씀(작업자 판단). Worldwide 업무용 = 18개국 + residual 합계, 비교용으로 Worldwide 메시지 × 전 세계 비중(`work_messages_global`)도 저장. 대화량 `conv_k{1p5,3,5,7,10}` = 업무용 메시지 ÷ 대화당 메시지 수.
+  - 출력(`data/proc/macro/scaling/sensortower_state_of_ai_2026/`, 각 `.csv`/`.dta`): `sensortower_messages_by_product_monthly`(304행), `sensortower_messages_by_country_monthly`(722행), `sensortower_messages_worldwide_monthly`(38행, 2023-04~2026-05), `sensortower_work_messages_by_country_monthly`(437행), `sensortower_work_messages_worldwide_monthly`(23행). 업무용 파일은 Signals가 있는 2024-07~2026-05만.
+  - 매칭 키: Sensor Tower 시장명 → ISO2(do 파일에 표) × month(Signals `YYYY-MM-01` → `YYYY-MM`). Signals에 18개국 모두 있음.
+  - 결과: Worldwide 월 메시지 2025-07 1,374억 → 2026-05 1,916억 건. 업무용 2026-05 612억 건(함의된 비중 31.9%, Signals 전 세계 30.5%), k = 3이면 업무용 대화 204억 건. 함의된 비중은 모든 달에서 전 세계 비중보다 1.4–3.3%p 높음(Sensor Tower 시장 구성이 Signals 전 세계 메시지 구성과 달라서로 보임. 예: 2026-05 India 33.2% > 전 세계 30.5%).
+  - 주의: 180억은 전 세계 ChatGPT(소비자 요금제) 값인데 분모는 25개 시장 True Audience라 1인당 메시지 수가 다소 과대. 국가 메시지는 제품별 이용자 합(중복 계산)에 1인당 값을 곱한 것이라 "모든 제품 메시지 합"으로 읽어야 함.
+- 보고서 17 작성(사용자 요청: `02_clean_sensortower_share_all_products.do`·`03_merge_sensortower_openai_messages.do`로 만든 데이터의 원자료와 구축 과정). 사용자 지정에 따라 `results/paper/`에 저장: `17_SensorTower_메시지수_업무용대화_구축.tex`/`.md`.
+  - CLAUDE.md는 `paper/`를 `main.tex` 중심의 최종 논문 공간으로 두지만, 사용자 지시로 report 형식의 단독 문서를 `paper/`에 둠.
+  - 표는 새 do 파일 `code/04_analysis_sensortower_messages_summary.do`가 만듦: `results/table/17_{anchor,products,country,worldwide}.tex`, `17_sensortower_messages.xlsx`. `.md`의 표는 같은 `.tex` 행을 변환해 넣음(수치 직접 입력 없음). `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+- AEI Claude.ai 국가별 대화 비중 정리와 Sensor Tower 기반 국가 비중 비교, 보고서 18 작성(사용자 요청).
+  - 새 do 파일 `code/01_import_aei_country_usage.do`: release_2026_03_24(2026-02-05~02-11 1주, 표본 100만 건, ISO2)와 release_2026_06_26(2026-04·05 월별, ISO3)의 국가·GLOBAL `usage_pct`, `use_case_{work,personal,coursework}_pct`, 03_24의 `usage_count`·`work_count`, 06_26의 `usage_per_capita_index` → `data/proc/usage/anthropic_economic_index/aei_claude_ai_country_usage.{csv,dta}`(416행).
+    - 확인: 03_24 `usage_pct` = `usage_count` ÷ 100만 × 100, use case pct 분모 = 국가 `usage_count`(assert). 소국은 use case 셀이 없어 결측(177개국 중 161개국만 업무 비중 있음). 03_24에 국가 미상 `NONE`(0.234%)이 국가 행으로 들어 있어 `geo_level = "unknown"`으로 분리. 06_26 공개 국가 합계 82.0%(4월, 114개국)·87.5%(5월, 121개국). 처음에 `import delimited`가 float로 읽어 assert가 실패해 `asdouble` 추가.
+  - 새 do 파일 `code/04_analysis_sensortower_aei_country_share.do`: 18개국 × 3기간(2026-02, 04, 05)에서 18개국 합계 = 100으로 정규화한 비중 비교. 비교 대상: ST 8개 제품 메시지(= 이용자) 비중, ST Claude 이용자 비중(`sensortower_share_within_product_monthly_long.dta`, raw 폴더본), AEI 대화 비중; 업무용은 ST 업무용 메시지, ST Claude 이용자 × Signals 업무 비중, AEI `usage_pct` × `use_case_work_pct`; 업무 비중 수준은 Signals 대 AEI. 요약: Pearson·Spearman 상관, 비유사도 지수 D. 출력 `results/table/18_{share_202602,share_202604,share_202605,work_level,work_share,summary}.tex`, `18_sensortower_aei_country_share.xlsx`(panel, summary).
+  - 매칭 키: Sensor Tower 시장명 ↔ ISO2(AEI 03_24, Signals)·ISO3(AEI 06_26) 대응표(do 파일 안) × 달. AEI 03_24 1주는 ST 2026-02 월간과 짝지음.
+  - 결과: AEI 대 ST 8개 제품 상관 0.48–0.51, D 35–38%p(미국 AEI 32–38% 대 ST 13.6–14.7%, 인도 10–11% 대 33–34%). ST Claude 이용자와는 상관 0.64–0.74, D 25–28%p로 가까워지나 고소득국(미국·호주·한국·영국·프랑스·캐나다) AEI/ST Claude 1.5–2.4, 인도 0.35. 업무 비중은 AEI(18개국 가중 42–44%)가 Signals(32–33%)보다 10–11%p 높고 국가 간 상관 −0.27–0.04. 업무용 국가 분포 D 35–37%p(Claude 기준 24–28%p).
+  - 보고서 `results/paper/18_SensorTower_AEI_국가비중_비교.tex`/`.md`. 함의: report 17의 (A1)·(A2)는 국가 간·제품 간에 지지되지 않음, 신흥국 과대·고소득국 과소 가능성.
+  - 참고: Signals `share_of_messages_by_country_quarter_rank.csv`는 순위만 있고 비중이 없음.
