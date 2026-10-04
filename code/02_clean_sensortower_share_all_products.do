@@ -7,8 +7,12 @@
 * 출력: $raw/macro/scaling/sensortower_state_of_ai_2026/ (사용자 지정 위치)
 *       sensortower_share_all_products_monthly_long.{csv,dta}
 *       sensortower_share_all_products_monthly_wide.csv
+*       sensortower_share_worldwide_by_product_monthly_long.{csv,dta}  (2부, ⑯)
+*   2부 비교 입력: sensortower_true_audience_share_monthly_long.csv (⑥ 공개 점유율)
 *
-* 정의: 월 t, 시장 c에 대해 8개 제품의 이용자 수를 합한 뒤
+* 2부(파일 끝): 제품별 Worldwide 점유율을 ①에서 다시 계산하고 ⑥ 공개값과 비교한다.
+*
+* 정의(1부): 월 t, 시장 c에 대해 8개 제품의 이용자 수를 합한 뒤
 *   all_users(c,t)         = Σ_p users(c,p,t)
 *   share_all_products_pct = 100 × all_users(c,t) / all_users(Worldwide,t)
 *   Worldwide는 25개 시장 합계이고 국가 시트는 18개뿐이므로, 나머지 7개 시장(이름 미공개)은
@@ -107,3 +111,78 @@ rename share_all_products_pct* *
 sort residual market
 drop residual
 export delimited using "`out'/sensortower_share_all_products_monthly_wide.csv", replace datafmt
+
+
+* =============================================================================
+* 2부: 제품별 Worldwide 점유율(⑯)
+*   Worldwide 시장 안에서 제품 p가 차지하는 비중
+*   ww_total_users(t) = Σ_p users(Worldwide,p,t)   (Other 포함 8개 항목)
+*   share_ww_pct(p,t) = 100 × users(Worldwide,p,t) / ww_total_users(t)
+*   Sensor Tower가 공개한 ⑥(sensortower_true_audience_share_monthly_long.csv)의 Worldwide 행과
+*   정의가 같으므로 ⑥ 값(share_pct_st)을 붙여 비교한다. diff_pp = share_ww_pct − share_pct_st.
+*   차이는 ①의 이용자 수가 유효숫자 약 3자리로, ⑥이 소수 첫째 자리로 반올림된 데서 생긴다.
+* 출력: `out'/sensortower_share_worldwide_by_product_monthly_long.{csv,dta}
+* 매칭 키: assistant(①·⑥의 표기 그대로) × month(YYYY-MM).
+* =============================================================================
+
+* ⑥ Worldwide 행(비교 대상)
+import delimited using "`src'/sensortower_true_audience_share_monthly_long.csv", ///
+    varnames(1) encoding("utf-8") stringcols(1 2 3) clear
+confirm numeric variable share_pct
+keep if market == "Worldwide"
+isid assistant month
+rename share_pct share_pct_st
+keep assistant month share_pct_st
+tempfile st6
+save `st6'
+
+import delimited using "`src'/sensortower_true_audience_monthly_long.csv", ///
+    varnames(1) encoding("utf-8") stringcols(1 2 3) clear
+keep if market == "Worldwide"
+isid assistant month
+bysort month: assert _N == 8
+
+bysort month: egen double ww_total_users = total(unique_users)
+generate double share_ww_pct = 100 * unique_users / ww_total_users if ww_total_users > 0
+assert !missing(share_ww_pct)
+bysort month: egen double chk = total(share_ww_pct)
+assert abs(chk - 100) < 1e-6
+drop chk
+
+merge 1:1 assistant month using `st6', assert(match) nogenerate
+generate double diff_pp = share_ww_pct - share_pct_st
+
+* ⑥의 월별 합계(반올림 때문에 100이 아님)
+bysort month: egen double sum_st_pct = total(share_pct_st)
+
+* 비교 결과 출력
+display as text _n "== ⑯ 다시 계산한 Worldwide 점유율 vs ⑥ 공개값 =="
+generate double absdiff_pp = abs(diff_pp)
+summarize diff_pp absdiff_pp, detail
+summarize sum_st_pct
+tabstat diff_pp absdiff_pp, by(assistant) statistics(mean min max) format(%9.3f) nototal
+correlate share_ww_pct share_pct_st
+count if absdiff_pp > 0.05 + 1e-9
+display as text "|차이| > 0.05%p(⑥ 반올림 폭 초과) 행 수: " r(N) " / " _N
+gsort -absdiff_pp
+list month assistant unique_users share_ww_pct share_pct_st diff_pp in 1/10, noobs sep(0)
+drop absdiff_pp
+
+label variable market         "시장(Worldwide = 25개 시장)"
+label variable assistant      "제품(①의 표기 그대로, Other 포함 8개)"
+label variable month          "월(YYYY-MM)"
+label variable unique_users   "Worldwide True Audience 이용자 수(①)"
+label variable ww_total_users "Worldwide 8개 제품 이용자 수 합계"
+label variable share_ww_pct   "제품별 Worldwide 점유율(%), ①에서 다시 계산"
+label variable share_pct_st   "제품별 Worldwide 점유율(%), Sensor Tower 공개값(⑥)"
+label variable diff_pp        "share_ww_pct − share_pct_st (%p)"
+label variable sum_st_pct     "⑥ Worldwide 월별 점유율 합계(%)"
+
+order month market assistant unique_users ww_total_users share_ww_pct share_pct_st diff_pp sum_st_pct
+sort month assistant
+compress
+format unique_users ww_total_users %15.0f
+format share_ww_pct diff_pp %9.4f
+format share_pct_st sum_st_pct %9.1f
+save "`out'/sensortower_share_worldwide_by_product_monthly_long.dta", replace
+export delimited using "`out'/sensortower_share_worldwide_by_product_monthly_long.csv", replace datafmt
