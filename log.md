@@ -382,3 +382,29 @@
 - report 17·18 `.docx`/`.pdf` 생성(사용자 요청, `results/paper/`): 이전과 같은 파이프라인(`.md` → node HTML 변환 → Word COM, A4·여백 72pt, 표 폭 100%·AllowAutoFit=false·머리행 반복). 이번에는 열 6개 이상인 표에 열 폭을 지정(첫 열 2단위, 나머지 1단위, 합계 451pt)해 월·국가명이 줄바꿈되지 않게 함. `.md` 상단의 ".tex를 옮긴 것" 안내문은 docx에서 뺌. 17은 9쪽, 18은 11쪽. PDF 전 페이지를 이미지로 렌더링해 표 폭 확인.
   - report 18 `.md`의 번호 목록 안 들여쓴 문단 2곳을 하위 글머리로 바꿈(변환기에서 번호가 1부터 다시 시작하는 문제). 내용 변경 없음.
   - pdf/docx는 `.gitignore` 대상이라 GitHub에는 `.md`와 `log.md`만 반영.
+
+## 2026-10-05
+
+- `code/02_clean_sensortower_share_all_products.do` 2부(⑯) 수정(사용자 요청): Worldwide를 18개국으로 한정(Stata 17 배치 실행, 오류 없음).
+  - 이전: ①의 Worldwide(25개 시장) 행. 변경: ①의 18개국 행을 제품 × 월로 합산(`unique_users`), `ww_total_users` = 18개국 8개 제품 합계, `share_ww_pct` = 100 × 제품 ÷ 합계. `market` = "18 countries". 변수명은 그대로 둠(`03_merge_sensortower_openai_messages.do` 호환). 출력 파일명·위치 동일(304행).
+  - 검증: 18개국 합계 ≤ Worldwide × 1.01. 10행(Claude 2023-05~06, Grok 2023-11~2024-11 일부 소규모 월)은 ①의 유효숫자 3자리 반올림으로 18개국 합계가 Worldwide를 최대 0.67% 넘음.
+  - ⑥(25개 시장 공개 점유율)과의 비교는 유지하되 이제 시장 범위 차이가 포함됨: 상관 0.9993, 최대 |차이| 3.7%p(Gemini 2024-02 14.8% 대 18.5%). 2025-07 ChatGPT 18개국 이용자 9.05억(25개 시장 9.94억). 이전의 "|차이| > 0.05%p 행 수" 출력은 의미가 없어져 삭제.
+  - 주의: `03_merge_sensortower_openai_messages.do`는 ⑯의 ChatGPT 2025-07 `unique_users`로 1인당 메시지 수를 정하므로, 다시 실행하면 결과(1인당 메시지·메시지 수)와 report 17·18 수치가 바뀜. 또 175행 assert(제품 합계 메시지 = Worldwide 25개 시장 메시지)가 실패하게 됨. → 아래 항목에서 수정.
+- `code/03_merge_sensortower_openai_messages.do` (1) 이용자 1인당 월 메시지 수 수정(사용자 요청, Stata 17 배치 실행, 오류 없음).
+  - 이유: Chatterji 180억 건은 전 세계 값인데 ⑯ 이용자 수는 이제 18개국 합계. 전 세계 월 메시지 M에 AEI Claude.ai 2026-05 18개국 대화 비중 s18을 곱해 할인: mpu = M × s18 ÷ 18개국 ChatGPT 2025-07 이용자. 가정 (A3)으로 추가: 18개국 비중이 모든 제품·시기에서 같음(사용자 지정).
+  - s18은 `data/proc/usage/anthropic_economic_index/aei_claude_ai_country_usage.dta`(release 20260626, period 2026-05, 18개국 ISO3)의 `usage_pct` 합계로 do 파일 안에서 계산(= 63.33%, 사용자가 제시한 63.3%와 일치함을 assert). 매칭: Sensor Tower 18개국 ↔ ISO3.
+  - 결과: 18개국 메시지 = 797.1억 × 0.6333 = 504.8억, ÷ 9.05억 명 = 1인당 월 55.797건(이전 80.195건). Worldwide(25개 시장) 2026-05 월 메시지 1,333억 건(이전 1,916억), 업무용 425.7억 건, k = 3이면 업무용 대화 141.9억 건. 함의된 업무 비중(31.9%)은 mpu가 비례로 바뀌어 그대로.
+  - (2-3) 검증 수정: 제품 합계(⑯, 18개국) = 18개국 국가 메시지 합계, 국가 합계(18개국 + residual) = Worldwide. 국가별·Worldwide 파일은 할인된 mpu를 residual·25개 시장 이용자에도 그대로 곱함.
+  - report 17·18과 `04_analysis_sensortower_messages_summary.do` 표는 아직 다시 만들지 않음(수치가 바뀜).
+- `code/03_merge_sensortower_openai_messages.do` (1)의 18개국 비중 s18을 AEI 2026-05(63.33%)에서 AEI 2025-08(61.01%)로 교체(사용자 요청, 대안 ② 채택. Stata 17 배치 실행, 오류 없음).
+  - 이유: 기준값(Chatterji 2025-07)과 시점 차이를 10개월 → 약 1개월로 줄임. 비교로 검토한 대안: Sensor Tower ChatGPT 앱 세션 61.0%·앱+웹 이용시간 67.0%·웹 방문 69.6%(2025-07, 18개국 ÷ Worldwide), AEI 2026-02 59.0%·2026-04 61.0%.
+  - 입력: `data/raw/usage/anthropic_economic_index/release_2025_09_15/data/intermediate/aei_raw_claude_ai_2025-08-04_to_2025-08-11.csv`를 03 파일에서 직접 읽음(Signals처럼 raw 직접 사용. `01_import_aei_country_usage.do`·proc 파일은 수정하지 않음). geography == "country" & facet == "country" & variable == "usage_pct", 18개국 ISO2. usage_pct 분모는 공개된 173개국 대화 합계(합 100%를 assert).
+  - 결과: 18개국 메시지 = 797.1억 × 0.6101 = 486.3억 → 1인당 월 53.750건(직전 55.797, 최초 80.195). Worldwide(25개 시장) 2026-05 월 메시지 1,284억 건, 업무용 410.1억 건, k = 3이면 업무용 대화 136.7억 건.
+  - report 17·18과 `04_analysis_sensortower_messages_summary.do` 표는 아직 다시 만들지 않음.
+- 04 분석 재실행과 report 17·18 갱신(사용자 요청). `.tex`·`.md`·`.docx`·`.pdf` 모두 수정.
+  - `code/04_analysis_sensortower_messages_summary.do` 수정: 1인당 메시지 표(`17_anchor.tex`)에 전 세계 월 메시지, 18개국 비중(61.01%, 메시지 ÷ 전 세계 월 메시지로 역산해 assert), 18개국 월 메시지, 18개국 이용자 행을 넣음. 기존 assert(메시지 = 주 메시지 × 31/7)는 할인 때문에 맞지 않아 교체. Stata 17 배치 실행, 오류 없음.
+  - `code/04_analysis_sensortower_aei_country_share.do`도 다시 실행: `results/table/18_*.tex` 6개 모두 이전과 바이트 단위로 같음(18개국 = 100 정규화라 1인당 메시지 배율이 상쇄됨).
+  - report 17: 초록·개요·원자료 표(AEI release 2025-09-15 행 추가)·2.3절 AEI 18개국 비중(신설)·3.2절 ⑯(18개국 합계로 재작성, ⑥과 비교 상관 0.9993·최대 3.66%p)·가정 (A3) 추가·1인당 메시지 식과 민감도(s18 59.0~69.6% → m 52.0~61.3건)·메시지 식과 검사·한계 3번((A3)과 범위 보정)·재현 갱신. 인용 `appel-2025-uneven-geographic-and-enterprise-ai` 추가(bib에 이미 있음).
+  - report 18: 표는 그대로. 2.2절에 report 17 변경과 비중 불변 설명, 2.3절에 AEI 2025-08 18개국 비중 61.0% 언급, 초록 "두 가정" → "가정".
+  - `.md`: report 17은 이전 세션 템플릿(`*.md.in`, 표 자리표시)을 고친 뒤 `results/table/17_*.tex`로 채움. report 18은 템플릿이 목록 서식 수정 전 버전이라 커밋된 `.md`에 같은 문단 변경만 직접 적용.
+  - `.docx`/`.pdf`: 이전과 같은 파이프라인(md → node HTML → Word COM, A4·여백 72pt, 열 6개 이상 표 열 폭 지정). 17·18 모두 11쪽. 17 PDF를 이미지로 렌더링해 표 폭 확인.

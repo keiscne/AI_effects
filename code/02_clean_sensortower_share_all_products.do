@@ -10,7 +10,8 @@
 *       sensortower_share_worldwide_by_product_monthly_long.{csv,dta}  (2부, ⑯)
 *   2부 비교 입력: sensortower_true_audience_share_monthly_long.csv (⑥ 공개 점유율)
 *
-* 2부(파일 끝): 제품별 Worldwide 점유율을 ①에서 다시 계산하고 ⑥ 공개값과 비교한다.
+* 2부(파일 끝): 제품별 점유율을 18개국 합계(Worldwide를 18개국으로 한정) 기준으로 ①에서 계산하고
+*   ⑥ 공개 Worldwide(25개 시장) 값과 비교한다.
 *
 * 정의(1부): 월 t, 시장 c에 대해 8개 제품의 이용자 수를 합한 뒤
 *   all_users(c,t)         = Σ_p users(c,p,t)
@@ -114,15 +115,18 @@ export delimited using "`out'/sensortower_share_all_products_monthly_wide.csv", 
 
 
 * =============================================================================
-* 2부: 제품별 Worldwide 점유율(⑯)
-*   Worldwide 시장 안에서 제품 p가 차지하는 비중
-*   ww_total_users(t) = Σ_p users(Worldwide,p,t)   (Other 포함 8개 항목)
-*   share_ww_pct(p,t) = 100 × users(Worldwide,p,t) / ww_total_users(t)
-*   Sensor Tower가 공개한 ⑥(sensortower_true_audience_share_monthly_long.csv)의 Worldwide 행과
-*   정의가 같으므로 ⑥ 값(share_pct_st)을 붙여 비교한다. diff_pp = share_ww_pct − share_pct_st.
-*   차이는 ①의 이용자 수가 유효숫자 약 3자리로, ⑥이 소수 첫째 자리로 반올림된 데서 생긴다.
+* 2부: 제품별 Worldwide 점유율(⑯) — Worldwide를 18개국으로 한정
+*   ①의 Worldwide 행(25개 시장) 대신, 국가 시트가 있는 18개국의 제품별 이용자 수를 합해
+*   "18개국 Worldwide"를 만든다(나머지 7개 시장 residual은 제외).
+*   users18(p,t)      = Σ_{c∈18개국} users(c,p,t)
+*   ww_total_users(t) = Σ_p users18(p,t)            (Other 포함 8개 항목)
+*   share_ww_pct(p,t) = 100 × users18(p,t) / ww_total_users(t)
+*   unique_users에는 users18을 저장한다(03_merge_sensortower_openai_messages.do와 변수명 호환).
+*   비교용으로 Sensor Tower 공개 ⑥(sensortower_true_audience_share_monthly_long.csv)의 Worldwide
+*   (25개 시장) 점유율 share_pct_st를 붙인다. diff_pp = share_ww_pct − share_pct_st 는
+*   ⑥의 반올림 외에 시장 범위 차이(18개국 vs 25개 시장)를 함께 반영한다.
 * 출력: `out'/sensortower_share_worldwide_by_product_monthly_long.{csv,dta}
-* 매칭 키: assistant(①·⑥의 표기 그대로) × month(YYYY-MM).
+* 매칭 키: assistant(①·⑥의 표기 그대로) × month(YYYY-MM). 18개국 합산: ①의 market(국가 표기).
 * =============================================================================
 
 * ⑥ Worldwide 행(비교 대상)
@@ -136,11 +140,35 @@ keep assistant month share_pct_st
 tempfile st6
 save `st6'
 
+* ①의 Worldwide 행(25개 시장): 18개국 합계가 이를 넘지 않는지 확인용
 import delimited using "`src'/sensortower_true_audience_monthly_long.csv", ///
     varnames(1) encoding("utf-8") stringcols(1 2 3) clear
 keep if market == "Worldwide"
 isid assistant month
+rename unique_users users25
+keep assistant month users25
+tempfile ww25
+save `ww25'
+
+* ①의 18개국 행을 제품 × 월로 합산
+import delimited using "`src'/sensortower_true_audience_monthly_long.csv", ///
+    varnames(1) encoding("utf-8") stringcols(1 2 3) clear
+drop if market == "Worldwide"
+quietly levelsof market
+assert r(r) == 18
+isid market assistant month
+collapse (sum) unique_users, by(assistant month)
+isid assistant month
 bysort month: assert _N == 8
+generate market = "18 countries"
+
+merge 1:1 assistant month using `ww25', assert(match) nogenerate
+* ①은 유효숫자 약 3자리로 반올림되어 있어 이용자가 거의 18개국에만 있는 소규모 제품·월
+* (Claude 2023-05~06, Grok 2023-11~2024-11 일부)은 18개국 합계가 Worldwide를 최대 0.7% 넘는다.
+assert unique_users <= users25 * 1.01
+count if unique_users > users25
+display as text "18개국 합계 > Worldwide(반올림) 행 수: " r(N) " / " _N
+drop users25
 
 bysort month: egen double ww_total_users = total(unique_users)
 generate double share_ww_pct = 100 * unique_users / ww_total_users if ww_total_users > 0
@@ -156,25 +184,23 @@ generate double diff_pp = share_ww_pct - share_pct_st
 bysort month: egen double sum_st_pct = total(share_pct_st)
 
 * 비교 결과 출력
-display as text _n "== ⑯ 다시 계산한 Worldwide 점유율 vs ⑥ 공개값 =="
+display as text _n "== ⑯ 18개국 기준 점유율 vs ⑥ 공개 Worldwide(25개 시장) 점유율 =="
 generate double absdiff_pp = abs(diff_pp)
 summarize diff_pp absdiff_pp, detail
 summarize sum_st_pct
 tabstat diff_pp absdiff_pp, by(assistant) statistics(mean min max) format(%9.3f) nototal
 correlate share_ww_pct share_pct_st
-count if absdiff_pp > 0.05 + 1e-9
-display as text "|차이| > 0.05%p(⑥ 반올림 폭 초과) 행 수: " r(N) " / " _N
 gsort -absdiff_pp
 list month assistant unique_users share_ww_pct share_pct_st diff_pp in 1/10, noobs sep(0)
 drop absdiff_pp
 
-label variable market         "시장(Worldwide = 25개 시장)"
+label variable market         "시장(18 countries = 국가 시트 18개국 합계)"
 label variable assistant      "제품(①의 표기 그대로, Other 포함 8개)"
 label variable month          "월(YYYY-MM)"
-label variable unique_users   "Worldwide True Audience 이용자 수(①)"
-label variable ww_total_users "Worldwide 8개 제품 이용자 수 합계"
-label variable share_ww_pct   "제품별 Worldwide 점유율(%), ①에서 다시 계산"
-label variable share_pct_st   "제품별 Worldwide 점유율(%), Sensor Tower 공개값(⑥)"
+label variable unique_users   "18개국 True Audience 이용자 수 합계(①)"
+label variable ww_total_users "18개국 8개 제품 이용자 수 합계"
+label variable share_ww_pct   "제품별 점유율(%), 18개국 기준"
+label variable share_pct_st   "제품별 Worldwide(25개 시장) 점유율(%), Sensor Tower 공개값(⑥)"
 label variable diff_pp        "share_ww_pct − share_pct_st (%p)"
 label variable sum_st_pct     "⑥ Worldwide 월별 점유율 합계(%)"
 

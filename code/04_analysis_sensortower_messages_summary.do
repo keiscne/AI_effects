@@ -10,7 +10,7 @@
 * 출력: $results/table/
 *   17_sensortower_messages.xlsx (시트 products, country_202605, worldwide)
 *   17_anchor.tex     1인당 메시지 수 산출
-*   17_products.tex   제품별 이용자·메시지(2024-07, 2025-07, 2026-05)
+*   17_products.tex   제품별 18개국 합계 이용자·메시지(2024-07, 2025-07, 2026-05)
 *   17_country.tex    국가별 메시지·업무용 메시지·대화(2026-05)
 *   17_worldwide.tex  Worldwide 월별 메시지·업무용 메시지·대화(2024-07~2026-05)
 * 단위: 이용자 백만 명(국가표)·억 명(제품표), 메시지·대화 억 건, 비중 %.
@@ -61,14 +61,18 @@ keep if assistant == "ChatGPT" & month == "2025-07"
 assert _N == 1
 local mpu = msgs_per_user[1]
 local u   = unique_users[1]
-local mo  = messages[1]
-assert abs(`mo' - `wk' * 31 / 7) < 1
+local mo  = messages[1]                                   // 18개국 ChatGPT 월 메시지
+local mw  = `wk' * 31 / 7                                 // 전 세계 ChatGPT 월 메시지
+local s18 = `mo' / `mw'                                   // 18개국 비중(03에서 AEI 2025-08로 적용)
+assert abs(`s18' - 0.610) < 0.0005
 file open `fh' using "`out'/17_anchor.tex", write replace
 file write `fh' "`hdr'" _n
-wrow `fh' "ChatGPT 주 메시지(억 건, 2025-07)"                       %9.1f `=`wk' / 1e8'
-wrow `fh' "ChatGPT 월 메시지(억 건) = 주 메시지 $\times$ 31/7"      %9.1f `=`mo' / 1e8'
-wrow `fh' "ChatGPT True Audience 이용자(억 명, Worldwide 25개 시장)" %9.2f `=`u' / 1e8'
-wrow `fh' "이용자 1인당 월 메시지(건)"                               %9.2f `mpu'
+wrow `fh' "ChatGPT 주 메시지(억 건, 2025-07, 전 세계)"                  %9.1f `=`wk' / 1e8'
+wrow `fh' "ChatGPT 월 메시지(억 건, 전 세계) = 주 메시지 $\times$ 31/7" %9.1f `=`mw' / 1e8'
+wrow `fh' "18개국 비중(\%, AEI Claude.ai 2025-08-04--08-11)"            %9.2f `=100 * `s18''
+wrow `fh' "ChatGPT 월 메시지(억 건, 18개국) = 전 세계 $\times$ 18개국 비중" %9.1f `=`mo' / 1e8'
+wrow `fh' "ChatGPT True Audience 이용자(억 명, 18개국 합계)"            %9.2f `=`u' / 1e8'
+wrow `fh' "이용자 1인당 월 메시지(건)"                                   %9.2f `mpu'
 file close `fh'
 
 * -----------------------------------------------------------------------------
