@@ -408,3 +408,11 @@
   - report 18: 표는 그대로. 2.2절에 report 17 변경과 비중 불변 설명, 2.3절에 AEI 2025-08 18개국 비중 61.0% 언급, 초록 "두 가정" → "가정".
   - `.md`: report 17은 이전 세션 템플릿(`*.md.in`, 표 자리표시)을 고친 뒤 `results/table/17_*.tex`로 채움. report 18은 템플릿이 목록 서식 수정 전 버전이라 커밋된 `.md`에 같은 문단 변경만 직접 적용.
   - `.docx`/`.pdf`: 이전과 같은 파이프라인(md → node HTML → Word COM, A4·여백 72pt, 열 6개 이상 표 열 폭 지정). 17·18 모두 11쪽. 17 PDF를 이미지로 렌더링해 표 폭 확인.
+- 한국 직업(SOC)별 월간 업무용 대화량 데이터 생성(사용자 요청). 새 do 파일 `code/03_merge_sensortower_aei_kor_soc_conversations.do`(Stata 17 배치 실행, 오류 없음).
+  - 확인: AEI release_2026_06_26 `aei_claude_ai_2026-06-26.csv`에 KOR `soc_occupation`이 있음. 2026-04·05 두 달, 대분류(hierarchy_level 1) 22개는 `pct`·`use_case_work_pct` 등 모든 지표, 세부 직업(level 0, O*NET-SOC 코드)은 `pct`만(4월 389개·5월 424개). 공개 합계는 대분류 97.4%·98.9%, 세부 96.2%·98.1%.
+  - 방법(작업자 판단): `conv_k*`는 업무용 대화이므로 대분류 비중을 업무용 기준으로 바꿈. share_work(g) = pct × use_case_work_pct ÷ Σ(같은 값), conv_kK(g) = 한국 conv_kK × share_work. 세부 직업은 대분류 안 pct 비중으로 나눔(세부 직업 업무 비중 = 대분류 값 가정). 공개되지 않은 셀은 비례 배분(합 = 1로 정규화). 모든 use case 기준 비중 `share_all`도 저장.
+  - 2026-04 Farming, Fishing, and Forestry(45)는 공개된 세부 직업이 없어 `soc_code` = "45-XXXX.XX", `detail_missing` = 1 한 행으로 둠.
+  - 매칭 키: Sensor Tower market "South Korea"(iso2 KR) ↔ AEI geo_id KOR, month(YYYY-MM) ↔ AEI date_start 앞 7자리, 세부 → 대분류는 SOC 코드 앞 2자리. SOC가 2026-04·05뿐이라 두 달만 남김.
+  - 출력(`data/proc/macro/scaling/sensortower_state_of_ai_2026/`, 각 .csv/.dta): `sensortower_aei_kor_soc_major_conversations`(44행 = 22 × 2), `sensortower_aei_kor_soc_detailed_conversations`(814행). 월별 합계 = 한국 conv_kK(assert).
+  - 결과(2026-05, k = 3, 한국 업무용 대화 3.46억 건): Computer and Mathematical 27.7%(0.96억 건), Arts·Design·Entertainment·Sports·Media 19.0%(0.66억), Office and Administrative Support 11.0%(0.38억), Educational Instruction and Library 9.1%(0.31억), Management 6.8%(0.24억). 세부 직업 1위는 Document Management Specialists(0.23억). 검증: 대분류로 함의된 한국 업무용 비중 47.36%가 AEI 공개 한국 전체 값 47.24%와 거의 같음.
+  - 주의: AEI SOC는 사용자 직업이 아니라 대화 과업의 직업. Claude.ai 직업 구성을 8개 제품 전체에 적용한 가정.
