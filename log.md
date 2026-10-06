@@ -420,3 +420,14 @@
   - 새 do 파일 `code/04_analysis_kor_soc_conversations_summary.do`(Stata 17 배치 실행, 오류 없음): `results/table/19_{korea,coverage,workpct,major,major_months,detailed}.tex`, `19_kor_soc_conversations.xlsx`(시트 korea, major, detailed_top30, coverage). 대분류 한국어 명칭은 do 파일 안 대응표(작업자 번역). 검증용 AEI 한국 전체 업무용 비중은 `aei_claude_ai_country_usage.dta`에서 가져옴.
   - 구성: 원자료, 한국 월간 업무용 대화량(report 17), AEI 한국 SOC 공개 범위, **업무용 대화 비중의 적용**(필요성: 대분류 업무용 비중 8.06~85.29%; 식 s_work = pct × work_pct / Σ; 전체 기준 대 업무용 기준 비교: 컴퓨터·수학 +4.88%p, 교육·도서관 −3.82%p 등; 검증: 함의 47.36% 대 AEI 공개 47.24%; Signals 총량 대 AEI 구성의 정의 차이), 세부 직업 배분((B3), 농림어업 2026-04 처리), 월별 비교(대분류 비중 변화 ±0.6%p 안), 산출 파일, 가정과 한계(B1~B3, SOC = 과업 직업, report 17 가정 승계), 재현.
   - `.md`는 템플릿(표 자리표시)을 `results/table/19_*.tex`로 채움. `.docx`/`.pdf`는 이전과 같은 파이프라인. 표 6(세부 직업)은 코드 1.5 : 직업 3.5 : 나머지 1 단위로 열 폭을 따로 지정. 11쪽. PDF를 이미지로 렌더링해 표 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+
+## 2026-10-07
+
+- 보고서 20 작성(사용자 요청: 한국 대화량과 observed exposure의 직업 매칭 범위 정리). `results/paper/20_한국_대화량_exposure_직업매칭.{tex,md,docx,pdf}`.
+  - 새 do 파일 `code/04_analysis_kor_soc_exposure_coverage.do`(Stata 17 배치 실행, 오류 없음). raw 두 파일을 직접 읽음: AEI release_2026_06_26 `aei_claude_ai_2026-06-26.csv`(soc_occupation, level 0, pct, KOR·GLOBAL, 2026-04·05), `labor_market_impacts/job_exposure.csv`(Massenkoff & McCrory 2026). 출력 `results/table/20_{units,match,match_months,bins,by_major,reverse,kor_not_in_exposure}.tex`, `20_kor_soc_exposure_coverage.xlsx`(756개 직업별 집단·pct는 `occupations` 시트).
+  - 매칭 키: AEI O*NET-SOC 8자리 코드의 앞 7자리(XX-XXXX) = job_exposure `occ_code`(SOC 2018 세부 직업). 한 6자리에 8자리 코드가 여럿이면 pct 합산.
+  - 확인 사항: AEI 세부 직업은 O*NET-SOC 8자리(SOC 세부 직업보다 한 단계 아래). 2026-05 한국 424개(.00 345, .01 이상 79) → 6자리 365개, global 718개 → 614개. job_exposure는 SOC 2018 세부 직업 756개(broad 코드 없음).
+  - 결과(2026-05): 756개 = 한국 매칭 342 + global에만 공개 236 + global에서도 미공개 178. 평균 exposure 0.144 / 0.036 / 0.002, exposure 0 비율 25.7% / 65.3% / 94.9%. 생산·건설·운송·정비 대분류가 미매칭 414개 중 226개. 4월 매칭 317개.
+  - 대화량 기준: 매칭 직업이 한국 pct 94.87%. 미매칭 414개는 미공개 몫 1.92% 안. 반대로 한국 공개 직업 23개(3.21%)가 job_exposure에 없음(SOC 2018 신설·분할 직업이 많음, 원인은 미확인 추정). 대화 직후 답변에서 "손실 약 2%"라고 한 것을 이 두 방향으로 정정해 보고서에 반영.
+  - 원인 해석: AEI 공개 기준(집계 기준·지역 표본 하한, data_documentation.md)과 한국 표본 크기, Claude 대화의 직업 집중, observed exposure의 WorkUsage ≥ 100 게이트(같은 Claude 자료에서 옴).
+  - `.md`는 템플릿(표 자리표시)을 `results/table/20_*.tex`로 채움. `.docx`/`.pdf`는 이전과 같은 파이프라인(md → node HTML → Word COM, A4·여백 72pt), 표 8개 열 폭은 표별로 지정. 10쪽. PDF를 이미지로 렌더링해 표 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
