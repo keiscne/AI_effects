@@ -431,3 +431,7 @@
   - 대화량 기준: 매칭 직업이 한국 pct 94.87%. 미매칭 414개는 미공개 몫 1.92% 안. 반대로 한국 공개 직업 23개(3.21%)가 job_exposure에 없음(SOC 2018 신설·분할 직업이 많음, 원인은 미확인 추정). 대화 직후 답변에서 "손실 약 2%"라고 한 것을 이 두 방향으로 정정해 보고서에 반영.
   - 원인 해석: AEI 공개 기준(집계 기준·지역 표본 하한, data_documentation.md)과 한국 표본 크기, Claude 대화의 직업 집중, observed exposure의 WorkUsage ≥ 100 게이트(같은 Claude 자료에서 옴).
   - `.md`는 템플릿(표 자리표시)을 `results/table/20_*.tex`로 채움. `.docx`/`.pdf`는 이전과 같은 파이프라인(md → node HTML → Word COM, A4·여백 72pt), 표 8개 열 폭은 표별로 지정. 10쪽. PDF를 이미지로 렌더링해 표 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+- `code/03_merge_sensortower_aei_kor_soc_conversations.do` 수정(사용자 요청: observed exposure와 결합할 수 있는 형태로. 결합은 하지 않음). Stata 17 배치 실행, 오류 없음.
+  - 8자리 파일(`sensortower_aei_kor_soc_detailed_conversations`)에 `soc6`(soc_code 앞 7자리) 변수 추가. 값은 그대로.
+  - 새 출력 (3) `sensortower_aei_kor_soc6_conversations.{csv,dta}`: 월 × SOC 2018 세부 직업 6자리. 같은 soc6의 8자리 코드를 합산(`pct`, `share_in_major`, `share_work`, `conv_k*`), `n_onet`(합친 8자리 코드 수), `has00`(.00 코드 공개 여부), `soc6_title`(.00 명칭 우선). 2026-04 337행(농림어업 미공개 행 "45-XXXX" 포함), 2026-05 365행. 월별 합계 = 한국 conv_kK(assert).
+  - 매칭 키(결합 시): `soc6` = `job_exposure.csv`의 `occ_code`(str7, XX-XXXX). 2026-05 기준 365개 중 342개가 매칭 가능(report 20과 같음). "45-XXXX"는 매칭되지 않음.
