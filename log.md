@@ -469,3 +469,8 @@
   - `.docx`/`.pdf`는 만들지 않음. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
 - 참고문헌 2편 등록(report 17 인용용, econ-wiki에 이미 있음): `chang-2022-technology-change-skill-labor-demand`, `kiet-2026-task-distance-occupational-mobility`. PDF(`reference/papers/`), 노트(`reference/notes/`, econ-wiki `sources/` 복사), bib 항목 추가.
 - 통계청 KSCO 8차–ISCO-08 연계표 수집(사용자 요청, `D:\data\AI\data`에서 복사). `data/raw/exposure/kostat_ksco_isco_crosswalk/ksco8_isco08/` + `_download_manifest.md`(MD5, 시트 구성). 세분류 연계 시트 `4-1`: 701행(고유 쌍 700), KSCO 세분류 494개(군인 5 포함), ISCO-08 431개, KSCO→복수 ISCO 139개, ISCO→복수 KSCO 152개, 대분류 벗어난 연계 75행. 같은 폴더의 KECO 2025–KSCO 8차 연계표 등은 가져오지 않음. SOC 2018–ISCO-08 연계표(BLS)는 아직 없음. proc 폴더·do 파일은 만들지 않음.
+- BLS ISCO-08–SOC 2010 연계표 다운로드(사용자 요청: "SOC 2018–ISCO-08 연계표"). `data/raw/exposure/bls_soc_crosswalk/isco08_soc/{ISCO_SOC_Crosswalk.xls, ISCO_SOC_Crosswalk_process.pdf}`, 기록은 `bls_soc_crosswalk/_download_manifest.md`에 추가.
+  - 확인: BLS·O*NET 모두 **SOC 2018–ISCO-08 공식 연계표를 배포하지 않음**. BLS 공식 표는 ISCO-08–SOC 2010(2012년 작성, 2015년 갱신)뿐. SOC 2018로 가려면 SOC 2010→2018 변환표와 이어 써야 함.
+  - bls.gov 403 → Internet Archive `id_` 사본(2026-08-19 보관, 원 서버 Last-Modified 2024-08-16). 2026-09-22 보관본은 gzip 전송본이며 풀면 MD5 동일.
+  - 내용: 1,125쌍, ISCO-08 438개(소분류 211·315 포함), SOC 2010 840개 전체. ISCO→복수 SOC 283개, SOC→복수 ISCO 154개.
+  - report 17(`.tex`, `.md`) 9절 수정: 확보 자료에 ISCO-08–SOC 2010 연계표 추가, "SOC 2018–ISCO-08 연계표 미확보" 문장을 "공식 연계표 없음, SOC 2010→2018 변환표와 이어 씀"으로 바꾸고 제안 절차 1단계를 SOC 2018→2010→ISCO-08로 수정. 초록도 같은 내용으로 수정. GitHub에는 아직 반영하지 않음.
