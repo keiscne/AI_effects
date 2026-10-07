@@ -435,3 +435,31 @@
   - 8자리 파일(`sensortower_aei_kor_soc_detailed_conversations`)에 `soc6`(soc_code 앞 7자리) 변수 추가. 값은 그대로.
   - 새 출력 (3) `sensortower_aei_kor_soc6_conversations.{csv,dta}`: 월 × SOC 2018 세부 직업 6자리. 같은 soc6의 8자리 코드를 합산(`pct`, `share_in_major`, `share_work`, `conv_k*`), `n_onet`(합친 8자리 코드 수), `has00`(.00 코드 공개 여부), `soc6_title`(.00 명칭 우선). 2026-04 337행(농림어업 미공개 행 "45-XXXX" 포함), 2026-05 365행. 월별 합계 = 한국 conv_kK(assert).
   - 매칭 키(결합 시): `soc6` = `job_exposure.csv`의 `occ_code`(str7, XX-XXXX). 2026-05 기준 365개 중 342개가 매칭 가능(report 20과 같음). "45-XXXX"는 매칭되지 않음.
+- exposure 원자료 3종 다운로드(사용자 요청, 결합은 아직 하지 않음). 각 폴더에 `_download_manifest.md`(출처·커밋·MD5·내용 요약) 작성.
+  - `data/raw/exposure/eloundou_gpts_are_gpts/repo_2025_10_04/`: GitHub openai/GPTs-are-GPTs 커밋 0471612 zip과 압축 푼 폴더. 직업 단위는 `data/occ_level.csv`(O*NET-SOC 8자리 923개, SOC 2018 기반, 6자리 798개). 한국 2026-05 365개·job_exposure 756개 모두 포함.
+  - `data/raw/exposure/felten_aioe/repo_2024_06_03/`: GitHub AIOE-Data/AIOE 커밋 adca5fc zip과 압축 푼 폴더(`AIOE_DataAppendix.xlsx`, `Language Modeling AIOE and AIIE.xlsx` 등). SOC 2010 6자리 774개. 코드 그대로 일치는 한국 365개 중 299개.
+  - `data/raw/exposure/bls_soc_crosswalk/soc_2018/soc_2010_to_2018_crosswalk.xlsx`: bls.gov가 자동 다운로드에 403을 반환해 Internet Archive `id_` 사본(2025-01-01 보관, 원 서버 Last-Modified 2024-08-16)을 받음. 900쌍(일대다·다대일 포함).
+  - 대응하는 `data/proc/exposure/` 하위 폴더와 import do 파일은 아직 만들지 않음.
+- SOC 세부 직업(6자리)별 AI 시간 절감 데이터 생성(사용자 요청: human_only_time_mean − human_with_ai_time_mean, 단위 통일, soc 6자리). 새 do 파일 `code/01_import_aei_soc_time_savings.do`(Stata 17 배치 실행, 오류 없음).
+  - 입력: AEI release_2026_06_26 `aei_claude_ai_2026-06-26.csv`, GLOBAL × soc_occupation × hierarchy_level 0(O*NET-SOC 8자리), `pct`·`human_only_time_mean`·`human_with_ai_time_mean`, 2026-04(696개)·05(718개). 세부 직업 시간 지표는 GLOBAL에만 공개(국가는 대분류만) → 전 세계 값.
+  - 단위: data_documentation.md 기준 human_only = 시간(hours), human_with_ai = 분(minutes). human_only × 60 해서 분으로 통일, `time_saved_min` = 차이(분), `time_saved_hr` = ÷ 60.
+  - 8자리 → 6자리(soc6 = 앞 7자리): pct 가중평균(작업자 판단). pct = 0.00(반올림, 1,414개 중 407개)은 가중치 0.0025(구간 중점). 단순평균 `*_uw`도 저장(6자리 pooled 상관 0.991). 2026-05 51-5113.00은 human_only 미공개로 제외. 두 달 합칠 때도 월별 pct 가중(두 달 대화 수 같다고 가정).
+  - 출력(`data/proc/usage/anthropic_economic_index/`): `aei_soc6_time_savings_monthly.{csv,dta}`(2026-04 595행, 05 613행), `aei_soc6_time_savings.{csv,dta}`(soc6 613행, 595개는 두 달 모두).
+  - 결과(pooled): time_saved_min 평균 204분, 중앙값 189분, 음수 없음. 최대 Microbiologists 848분, 최소 Dishwashers 13분.
+  - 매칭 키(결합 시): soc6 = job_exposure `occ_code`(613개 중 577개 일치, 756개 중), = Eloundou `occ_level.csv` O*NET-SOC 앞 7자리(613개 모두 일치). Felten AIOE는 SOC 2010이라 crosswalk 필요. 결합은 아직 하지 않음.
+- Felten 언어모델 AIOE를 SOC 2018로 변환(사용자 요청: SOC 2010인지 확인 후 BLS 변환표로 변환, `01_import_aei_soc_time_savings.do` 뒤에 추가). 4절로 추가, Stata 17 배치 실행, 오류 없음.
+  - 입력: `data/raw/exposure/felten_aioe/repo_2024_06_03/.../Language Modeling AIOE and AIIE.xlsx` 시트 "LM AIOE"(774개, Felten·Raj·Seamans 2023), `data/raw/exposure/bls_soc_crosswalk/soc_2018/soc_2010_to_2018_crosswalk.xlsx`(900쌍, 2010 코드 840개·2018 코드 867개).
+  - SOC 버전 확인: 774개 중 773개가 변환표 2010 목록에 있고, 그중 87개는 2010에만 있는 코드(예: 15-1132), 2018에만 있는 코드 0개 → SOC 2010(assert로 고정). 예외 19-1020 "Biologists"는 O*NET 고유 코드(19-1020.01)라 변환표에 없음 → 제외(19-1029는 Felten에 따로 있음).
+  - 변환(작업자 판단, 고용 가중치 없음): 일대다는 값 복사, 다대일은 Felten에 값이 있는 2010 코드의 단순평균. 변수 `n_src2010`, `n_cw2010`, `split`(값 복사 76개), `partial`(일부 2010 코드 없음 6개), `src2010`.
+  - 출력: `data/proc/exposure/felten_aioe/felten_lm_aioe_soc2018.{csv,dta}`, SOC 2018 800개(변환표 2018 코드 867개 중 67개는 원천 2010 코드가 Felten에 없어 빠짐: 예 11-1031 Legislators, 15-2051 Data Scientists). lm_aioe는 원자료 값 그대로(다시 표준화 안 함), 평균 0.027·표준편차 0.991.
+  - 매칭 키: soc6 = AEI 시간 절감 soc6. AEI 613개 중 607개 매칭(미매칭 11-1031, 15-2051, 27-2091, 29-1129, 33-1091, 39-4012). 결합 파일은 만들지 않음.
+  - (같은 날 아래 항목에서 별도 do 파일로 분리)
+- Felten 변환 코드를 `code/01_import_felten_aioe.do`로 분리(사용자 요청). `01_import_aei_soc_time_savings.do`에서 4절과 머리말 안내를 지우고 Felten 안내를 새 파일을 가리키도록 수정. 새 파일은 자체 머리말·global 설정을 두고 절 번호를 1~3으로 바꿈. 마지막 AEI 매칭 확인은 `aei_soc6_time_savings.dta`가 있을 때만 실행(`capture confirm file`).
+  - 두 파일 Stata 17 배치 실행, 오류 없음. 출력 CSV 3개(`felten_lm_aioe_soc2018`, `aei_soc6_time_savings`, `aei_soc6_time_savings_monthly`)가 분리 전과 MD5 동일.
+- SOC 2018 6자리 AI 지표 4종 결합(사용자 요청). 새 do 파일 `code/03_merge_soc6_ai_indicators.do`(Stata 17 배치 실행, 오류 없음).
+  - 입력: `aei_soc6_time_savings.dta`(613개), `labor_market_impacts/job_exposure.csv`(observed exposure, 756개, raw 직접), Eloundou `occ_level.csv`(O*NET-SOC 8자리 923개, raw 직접), `felten_lm_aioe_soc2018.dta`(800개).
+  - Eloundou 8자리 → 6자리: 앞 7자리, 단순평균(작업자 판단, 가중치 없음) → 798개. GPT-4·사람 평가 alpha·beta·gamma 6개 모두 유지(`elo_gpt4_*`, `elo_human_*`), `n_onet_eloundou`.
+  - 결합: soc6 합집합 1:1 merge. 출력 `data/proc/merged/soc6_ai_indicators.{csv,dta}` 808행. `in_aei`·`in_obs`·`in_eloundou`·`in_felten`, `n_sources`. 명칭은 observed exposure → Felten → Eloundou → AEI 순.
+  - 범위: 네 자료 모두 574개, 3개 215개. AEI 613개 중 observed exposure 없음 36개(13-1082 Project Management Specialists, 21-1014 Mental Health Counselors 등).
+  - 확인(574개, 피어슨): time_saved_min과 observed exposure 0.32, Eloundou GPT-4 beta 0.41, 사람 beta 0.44, Felten 0.45. observed exposure와 Eloundou GPT-4 beta 0.61.
+- `code/01_import_felten_aioe.do` 수정: BLS 변환표 명칭 끝의 각주 표시 " (#)", " (##)" 삭제(2010 명칭 102개, 2018 명칭 64개). 값은 그대로, `soc6_title`만 바뀜.
