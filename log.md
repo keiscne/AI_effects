@@ -463,3 +463,9 @@
   - 범위: 네 자료 모두 574개, 3개 215개. AEI 613개 중 observed exposure 없음 36개(13-1082 Project Management Specialists, 21-1014 Mental Health Counselors 등).
   - 확인(574개, 피어슨): time_saved_min과 observed exposure 0.32, Eloundou GPT-4 beta 0.41, 사람 beta 0.44, Felten 0.45. observed exposure와 Eloundou GPT-4 beta 0.61.
 - `code/01_import_felten_aioe.do` 수정: BLS 변환표 명칭 끝의 각주 표시 " (#)", " (##)" 삭제(2010 명칭 102개, 2018 명칭 64개). 값은 그대로, `soc6_title`만 바뀜.
+- 작업노트 report 17 작성(사용자 요청: SOC 기준 지표를 한국 직업분류에 적용한 선행연구의 연계 방법 정리). `results/report/17_SOC_한국직업분류_연계방법.{tex,md}`.
+  - 구성: 연계 방식 4유형((1) SOC→ISCO-08→KSCO 공식 연계표, (2) KSCO→KECO 2차 변환, (3) 한국 자료로 재계산(Felten 계열, report 05 참조), (4) 직업명 텍스트 매칭), 유형별 문헌 표, 확인 못 한 연구, 쟁점 비교(연계 단위, 1:N, 미대응, 값 희석, 통계청 1:1 권고), 본 프로젝트 적용 방안(확보·미확보 자료, 제안 절차, 결정 사항).
+  - 원문 확인: 한지우·오삼일(2023) 각주 4, 김진성(2025), 노세리 외(2025) 2장(pdftotext). 김수현·이정아(2026)는 PDF가 이미지라 노트에 의존.
+  - `.docx`/`.pdf`는 만들지 않음. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
+- 참고문헌 2편 등록(report 17 인용용, econ-wiki에 이미 있음): `chang-2022-technology-change-skill-labor-demand`, `kiet-2026-task-distance-occupational-mobility`. PDF(`reference/papers/`), 노트(`reference/notes/`, econ-wiki `sources/` 복사), bib 항목 추가.
+- 통계청 KSCO 8차–ISCO-08 연계표 수집(사용자 요청, `D:\data\AI\data`에서 복사). `data/raw/exposure/kostat_ksco_isco_crosswalk/ksco8_isco08/` + `_download_manifest.md`(MD5, 시트 구성). 세분류 연계 시트 `4-1`: 701행(고유 쌍 700), KSCO 세분류 494개(군인 5 포함), ISCO-08 431개, KSCO→복수 ISCO 139개, ISCO→복수 KSCO 152개, 대분류 벗어난 연계 75행. 같은 폴더의 KECO 2025–KSCO 8차 연계표 등은 가져오지 않음. SOC 2018–ISCO-08 연계표(BLS)는 아직 없음. proc 폴더·do 파일은 만들지 않음.

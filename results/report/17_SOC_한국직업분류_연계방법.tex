@@ -1,0 +1,208 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 — SOC(O*NET) 기준 AI 지표를 한국 직업분류(KSCO·KECO)에 적용한
+% 선행연구들이 직업분류를 어떻게 연계했는지 정리하고, 본 프로젝트의 SOC 2018 지표 4종
+% (data/proc/merged/soc6_ai_indicators)을 한국 직업분류로 옮길 때의 선택지를 정리한다.
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+\footnotesize
+
+\title{SOC 기준 AI 지표의 한국 직업분류 연계 방법\\[1mm]
+\large --- 선행연구의 SOC$\to$KSCO$\cdot$KECO 전환 절차와 본 프로젝트 적용 방안 ---}
+\author{AI-effects 프로젝트}
+\date{2026년 10월 7일}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 미국 표준직업분류(SOC)나 O*NET 직업 단위로 만든 AI 지표를 한국 직업분류에 적용한 국내 선행연구가 직업분류를 어떻게 연계했는지 정리한다. 연계 방식은 네 가지로 나뉜다. (1) 공식 연계표를 써서 SOC$\to$ISCO-08$\to$KSCO로 옮기는 방식 \parencite{han-2023-ai-and-labor-market-change,kim-2026-generative-ai-korean-labor-market,chang-2022-technology-change-skill-labor-demand,kiet-2026-task-distance-occupational-mobility}, (2) 이렇게 만든 KSCO 값을 다시 KECO로 옮기는 방식 \parencite{kim-2025-youth-job-choice-ai-exposure}, (3) 직업 점수를 옮기지 않고 한국 직업조사 자료로 지표를 다시 계산하는 방식(Felten 계열, 보고서 05), (4) 직업명을 텍스트 유사도로 매칭하는 방식 \parencite{keis-2025-ai-job-exposure-labor-demand}. 본 프로젝트의 지표 4종 가운데 observed exposure를 한국에 적용한 \textcite{kim-2026-generative-ai-korean-labor-market}은 SOC 2018$\to$ISCO$\to$KSCO 8차 세분류로 연계하고, 1:N 대응은 단순평균, 대응이 없는 세분류는 상위 분류 평균으로 채웠다. 같은 경로를 따르기 위해 통계청 KSCO 8차–ISCO-08 연계표를 \texttt{data/raw/exposure/kostat\_ksco\_isco\_crosswalk/}에 확보했으며, SOC 2018–ISCO-08 연계표(BLS)는 아직 없다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적과 범위}
+% ============================================================
+
+본 프로젝트는 SOC 2018 세부 직업(6자리) 단위로 AI 지표 4종을 결합했다(\texttt{code/03\_merge\_soc6\_ai\_indicators.do}, \texttt{data/proc/merged/soc6\_ai\_indicators}, 808개 직업): AEI 과업 시간 절감(\texttt{time\_saved\_min}), observed exposure \parencite{massenkoff-2026-labor-market-impacts-of-ai}, Eloundou 노출도 \parencite{eloundou-2023-gpts-are-gpts-an-early}, Felten 언어모델 AIOE \parencite{felten-2023-how-will-language-modelers-like-chatgpt}. 한국 고용 자료(지역별고용조사, 고용보험DB 등)와 결합하려면 이 지표를 한국표준직업분류(KSCO)나 한국고용직업분류(KECO)로 옮겨야 한다.
+
+이 노트는 같은 문제를 다룬 국내 선행연구의 연계 절차를 정리한다. 자료는 \texttt{reference/notes/}와 \texttt{D:/econ-wiki/sources/}의 논문별 노트이며, 한지우$\cdot$오삼일(2023), 김진성(2025), 노세리 외(2025)는 원문 PDF의 해당 부분을 직접 확인했다. 김수현$\cdot$이정아(2026)는 PDF가 이미지라 텍스트를 추출하지 못해 노트(원문 쪽 표기 포함)에 의존했다.
+
+보고서 05(\texttt{05\_Felten계승연구\_직업분류매칭여부.tex})는 Felten 계열 8편이 직업분류 매칭 없이 한국 자료로 AIOE를 다시 계산했음을 보였다. 이 노트는 그와 반대로 \emph{직업 단위 점수 자체를 옮기는} 연구를 중심으로 다룬다.
+
+% ============================================================
+\section{연계 방식의 네 유형}
+% ============================================================
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{공식 연계표 경유(SOC$\to$ISCO-08$\to$KSCO)}: 미국 직업 단위 점수를 국제표준직업분류(ISCO-08)로 옮긴 뒤 통계청 KSCO–ISCO 연계표로 한국 직업에 부여한다. 1:N 대응 처리와 대응 없는 직업 처리가 연구마다 다르다.
+  \item \textbf{KSCO$\to$KECO 2차 변환}: (1)로 만든 KSCO 값을 고용보험DB 등 KECO 기준 자료에 쓰려고 KECO로 다시 옮긴다.
+  \item \textbf{한국 자료로 재계산}: Felten AIOE의 AI 응용–능력 행렬만 가져와 한국직업정보(KNOW) 재직자조사의 능력 점수에 적용한다. 직업 점수를 옮기지 않으므로 직업분류 연계가 필요 없다(보고서 05).
+  \item \textbf{직업명 텍스트 매칭}: 공식 연계표 대신 한국 직업명(채용공고 등)을 O*NET 직업명에 문자열$\cdot$의미 유사도로 매칭한다.
+\end{enumerate}
+
+% ============================================================
+\section{유형 (1): 공식 연계표 경유}
+% ============================================================
+
+\begin{longtable}{L{2.6cm}L{2.4cm}L{3.6cm}L{3.4cm}L{3.0cm}}
+\caption{SOC$\to$ISCO$\to$KSCO 연계 연구}\label{tab:type1}\\
+\toprule
+\textbf{문헌} & \textbf{지표} & \textbf{연계 경로와 단위} & \textbf{1:N 대응} & \textbf{대응 없는 직업}\\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\small (표 \thetable\ 계속)}\\
+\toprule
+\textbf{문헌} & \textbf{지표} & \textbf{연계 경로와 단위} & \textbf{1:N 대응} & \textbf{대응 없는 직업}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\textcite{kim-2026-generative-ai-korean-labor-market} &
+observed exposure (SOC 2018, 약 800개) &
+SOC 2018$\to$ISCO$\to$KSCO 8차 \textbf{세분류 490개}, 공식 연계표(pp.37--38) &
+대응 코드 값의 \textbf{단순평균}(Hardy, Keister and Lewandowski 2018 방식) &
+상위 분류(소$\cdot$중분류) 평균. 그 평균도 세분류 단위 값으로 계산\\
+
+\textcite{han-2023-ai-and-labor-market-change} &
+Webb(2020) 특허 기반 노출지수 &
+O*NET$\to$ISCO$\to$KSCO \textbf{소분류}(표 1은 153개 기준) &
+여러 직업 값의 \textbf{가중평균}, 또는 직무가 가장 비슷한 직업에 매칭(각주 4). 가중치 종류는 밝히지 않음 &
+직무가 가장 비슷한 직업을 골라 매칭(각주 4)\\
+
+\textcite{chang-2022-technology-change-skill-labor-demand} &
+특허–O*NET 텍스트 연계 기술노출도 &
+SOC$\to$ISCO-08$\to$KSCO 7차. 세분류 값을 \textbf{소분류(3자리)로 재집계} &
+명시 없음 &
+명시 없음. 재집계 과정의 정보 손실을 한계로 적음\\
+
+\textcite{kiet-2026-task-distance-occupational-mobility} &
+O*NET 과업 벡터(AI 지표 아님) &
+Rhee(2020) 방법: 통계청 KSCO 6차–ISCO-08 연계표와 BLS ISCO-08–SOC 2010 연계표를 차례로 적용, KSCO \textbf{소분류} &
+명시 없음 &
+소분류 149개 중 148개 매핑, 분석 표본 141개\\
+\end{longtable}
+
+\subsection{김수현$\cdot$이정아(2026)의 연계 절차}
+
+본 프로젝트와 같은 observed exposure를 한국에 적용한 연구여서 절차를 자세히 적는다(노트 기준, pp.37--38).
+
+\begin{itemize}
+  \item \textbf{세분류 단위 연계}: 소분류 단위로 연계하면 평균 때문에 노출도가 낮아지는 경우가 많아 세분류 단위에서 연계했다.
+  \item \textbf{1:N 대응}: 한 코드가 여러 코드에 대응하면 대응 코드 값의 평균을 썼다.
+  \item \textbf{빈 세분류}: 연계표상 세분류에 노출도가 직접 대응되지 않으면 상위 분류 평균을 쓰되, 그 평균은 세분류 단위 관찰 노출도로 직접 계산했다.
+  \item \textbf{결과}: 세분류 490개 중 직접 연계 90.3\%, 소분류 평균 7.5\%, 중분류 평균 1.2\%.
+  \item \textbf{부작용}: 연계 후 노출도 절대 수준이 원자료보다 낮아졌다(예: 소프트웨어 개발 직업이 국내 세분류에서 다른 직업과 평균됨). 저자들은 상대 순위만 쓰므로 보정하지 않았고, 연계 후에도 상품기획$\cdot$소프트웨어 개발$\cdot$데이터 분석$\cdot$고객상담 직업이 상위에 남는 것을 확인했다.
+\end{itemize}
+
+\subsection{한지우$\cdot$오삼일(2023)의 연계 절차}
+
+원문 각주 4: ``미국직업분류(O*NET)를 국제표준직업분류(ISCO)로 변환하고 이를 다시 한국표준직업분류(KSCO)로 변환하였다. 1:N으로 매칭이 되는 경우 여러 직업의 수치를 가중 평균하거나 가장 직무가 비슷하다고 판단되는 직업을 매칭하였다. 한편 매칭이 되지 않는 경우 직무가 가장 비슷한 직업을 선별하여 매칭하였다.'' 어떤 경우에 가중평균을, 어떤 경우에 최유사 매칭을 썼는지와 가중치 종류는 밝히지 않았다. 같은 방법으로 Felten et al.(2019)의 AIOI도 KSCO로 옮겨 비교했다(참고 1).
+
+% ============================================================
+\section{유형 (2): KSCO 값을 KECO로 다시 변환}
+% ============================================================
+
+\textcite{kim-2025-youth-job-choice-ai-exposure}는 한지우$\cdot$오삼일(2023)의 KSCO 기준 노출지수를 저자가 KECO 소분류(125개)로 다시 바꿔 고용보험 피보험자 이력DB와 연결했다(원문 확인). 변환에 쓴 연계표나 평균 방식은 본문에 없다. 원 값의 단위를 이 논문은 ``KSCO 세분류''로, 한지우$\cdot$오삼일(2023)은 ``소분류''로 적어 서로 다르다.
+
+% ============================================================
+\section{유형 (3): 한국 자료로 재계산}
+% ============================================================
+
+Felten 계열은 AI 응용–능력 행렬만 가져와 한국 재직자조사의 능력 점수에 적용하므로 SOC 직업코드를 옮기지 않는다(자세한 내용은 보고서 05).
+
+\begin{itemize}
+  \item \textcite{cheon-2022-ai-employment-wage-effects}: 능력 15개, 재직자조사(2020) 537개 직업 $\to$ KECO 3자리(125개).
+  \item \textcite{kiet-2025-ai-occupational-employment-effect}: 능력 19개, 537개 직업 $\to$ KECO 2018 소분류 136개 \textbf{단순평균}.
+  \item \textcite{yoon-2026-employment-admin-db-ai-exposure}: 능력 18개, 2025년 조사 492개 직업 $\to$ KECO2025 세분류 415개. 함께 조사된 8개 직종은 나뉜 각 코드에 같은 값 부여.
+  \item \textcite{cheon-2025-ai-exposure-vs-ai-adoption}: 위 한국형 AIOE(미국 AIOE와 상관 0.86)를 재사용하고, Eloundou 방식의 GPT 프롬프트를 KECO 451개 직업의 과업 텍스트에 직접 적용해 지표를 새로 만들었다.
+\end{itemize}
+
+% ============================================================
+\section{유형 (4): 직업명 텍스트 매칭}
+% ============================================================
+
+\textcite{keis-2025-ai-job-exposure-labor-demand}는 O*NET 923개 직업의 LLM 기반 노출도를 한국 채용공고(KISDI) 직업명에 5단계로 매칭했다: (1) 노동시장 표준 용어집 기반 영문 번역, (2) 전처리, (3) 문자열 유사도(Levenshtein$\cdot$Jaccard, 90 이상 확정, 80--90 재검토), (4) BERT 임베딩 의미 유사도, (5) 전문가 검토(O*NET DWA 교차 확인). 1:N 대응은 평균 또는 최댓값을 썼고, 대응 직업이 없는 경우(병역특례, 자원봉사자 등)는 제외했다.
+
+% ============================================================
+\section{연계 방법을 확인하지 못한 연구}
+% ============================================================
+
+\begin{itemize}
+  \item \textcite{noh-2025-ai-labor-coexistence} 제2장: Webb(2020)과 Felten et al.(2023) 지표를 고용보험DB의 KECO 직업코드에 연결했다. 원문에서 확인한 범위에는 SOC$\to$KECO 변환 방법이 없고, KECO 2$\sim$4차 코드 일치화(이환웅$\cdot$방형준 2025: 겹치는 코드를 합산해 4차 149개를 92개 단위로 재구성)만 적혀 있다. 보고서 05는 이 연구의 Felten 지표를 한국형 AIOE 재사용으로 분류했다.
+  \item \textcite{kiet-2024-ai-labor-market-industry}: Webb(2019) 지수를 KECO 2자리에 썼으나 노트에 변환 방법이 정리되어 있지 않다.
+\end{itemize}
+
+% ============================================================
+\section{비교: 연계 단계의 쟁점}
+% ============================================================
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{어느 단위에서 연계하는가}: 소분류(한지우$\cdot$오삼일 2023, 장지연 외 2022, 이주현 2026) 또는 세분류(김수현$\cdot$이정아 2026). 세분류 연계는 평균으로 값이 희석되는 정도를 줄인다. 고용 자료가 제공하는 가장 세밀한 단위(지역별고용조사는 KSCO 8차 세분류)에 맞추는 것이 일반적이다.
+  \item \textbf{1:N 대응}: 단순평균(김수현$\cdot$이정아 2026), 가중평균 또는 최유사 직업 하나 선택(한지우$\cdot$오삼일 2023), 평균 또는 최댓값(노희용 외 2025). 가중치로 고용을 쓴 사례는 확인하지 못했다.
+  \item \textbf{대응 없는 직업}: 상위 분류 평균(김수현$\cdot$이정아 2026), 최유사 직업 선택(한지우$\cdot$오삼일 2023), 제외(노희용 외 2025).
+  \item \textbf{값의 희석}: 여러 미국 직업이 한 한국 직업으로 평균되면 극단값이 줄어든다. 김수현$\cdot$이정아(2026)는 절대 수준 하락을 한계로 적고 상대 순위만 해석했다.
+  \item \textbf{통계청 연계표의 권고}: KSCO 8차–ISCO-08 연계표의 일러두기는 세분류 수준에서 쓸 때 ILO 규칙(수적 우위 80\% 이상 $\to$ 직능수준이 가장 높은 직업 $\to$ 생산직 우선)을 순서대로 적용해 1:1로 맞춘 뒤 쓰기를 권고한다. 확인한 선행연구는 이 규칙 대신 평균을 썼다.
+\end{enumerate}
+
+% ============================================================
+\section{본 프로젝트 적용 방안}
+% ============================================================
+
+\subsection{확보한 자료}
+
+\begin{itemize}
+  \item \textbf{KSCO 8차–ISCO-08 연계표}(통계청): \texttt{data/raw/exposure/kostat\_ksco\_isco\_crosswalk/ksco8\_isco08/}, 기록은 같은 폴더의 \texttt{\_download\_manifest.md}. 세분류 연계 시트(\texttt{4-1})는 701행(고유 쌍 700개), KSCO 세분류 494개(군인 5개 포함)와 ISCO-08 세분류 431개를 잇는다. ISCO 2개 이상과 연계된 KSCO 139개, KSCO 2개 이상과 연계된 ISCO 152개, 대분류를 벗어난 연계 75행. 일러두기 기준 약 68\%가 1:1.
+  \item \textbf{SOC 2010–2018 연계표}(BLS): \texttt{data/raw/exposure/bls\_soc\_crosswalk/}(Felten 변환에 사용).
+\end{itemize}
+
+\subsection{필요하지만 없는 자료}
+
+\begin{itemize}
+  \item \textbf{SOC 2018–ISCO-08 연계표}(BLS 배포). 김수현$\cdot$이정아(2026)와 같은 경로를 따르려면 필요하다.
+  \item KECO 기준 자료(고용보험DB)와 결합하려면 \textbf{KECO 2025–KSCO 8차 연계표}. 사용자 폴더 \texttt{D:/data/AI/data}에 있으나 이번에는 가져오지 않았다.
+\end{itemize}
+
+\subsection{제안하는 절차}
+
+김수현$\cdot$이정아(2026)와 비교할 수 있도록 같은 원칙을 기본으로 하고, 선택 사항을 변수로 남긴다.
+
+\begin{enumerate}[label=\arabic*.]
+  \item SOC 2018 6자리 $\to$ ISCO-08 4자리: 1:N은 단순평균. 원천 SOC 수와 목록을 함께 저장.
+  \item ISCO-08 $\to$ KSCO 8차 세분류: \texttt{4-1} 시트 사용, 1:N은 단순평균.
+  \item 값이 없는 KSCO 세분류: 같은 소분류(없으면 중분류)에 속한 세분류 값의 평균. 채운 단계를 표시 변수로 저장.
+  \item 민감도: (a) 고용 가중평균(가중치 자료 확보 시), (b) 통계청 권고의 1:1 규칙, (c) 소분류 단위 연계와 비교.
+  \item 지표 4종을 같은 절차로 옮기고, observed exposure는 김수현$\cdot$이정아(2026) 표 2(세분류 상위 10개)와 대조해 절차를 검증한다.
+\end{enumerate}
+
+\subsection{정해야 할 사항}
+
+\begin{itemize}
+  \item 1:N 평균 방식: 단순평균(선행연구 비교 가능) 대 고용 가중평균(미국 OEWS 또는 한국 고용 자료 필요).
+  \item 최종 단위: KSCO 8차 세분류(지역별고용조사) 또는 KECO(고용보험DB).
+  \item AEI 시간 절감처럼 ``분'' 단위인 지표를 평균할 때도 같은 규칙을 쓸지 여부.
+\end{itemize}
+
+\printbibliography
+
+\end{document}
