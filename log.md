@@ -474,3 +474,13 @@
   - bls.gov 403 → Internet Archive `id_` 사본(2026-08-19 보관, 원 서버 Last-Modified 2024-08-16). 2026-09-22 보관본은 gzip 전송본이며 풀면 MD5 동일.
   - 내용: 1,125쌍, ISCO-08 438개(소분류 211·315 포함), SOC 2010 840개 전체. ISCO→복수 SOC 283개, SOC→복수 ISCO 154개.
   - report 17(`.tex`, `.md`) 9절 수정: 확보 자료에 ISCO-08–SOC 2010 연계표 추가, "SOC 2018–ISCO-08 연계표 미확보" 문장을 "공식 연계표 없음, SOC 2010→2018 변환표와 이어 씀"으로 바꾸고 제안 절차 1단계를 SOC 2018→2010→ISCO-08로 수정. 초록도 같은 내용으로 수정. GitHub에는 아직 반영하지 않음.
+
+## 2026-10-09
+
+- SOC 2018–KSCO 8차 연계표 생성(사용자 요청: SOC 2018 기준 AI 대화량·노출도·시간 절감 자료를 한국 경제 자료와 결합하기 위해). 새 do 파일 `code/01_import_soc2018_ksco8_crosswalk.do`(Stata 17 배치 실행, 오류 없음). report 17 9.3절 제안 절차 1·2단계를 연계표로 구현(값 변환은 아직 하지 않음).
+  - 경로: SOC 2018 → SOC 2010(BLS `soc_2010_to_2018_crosswalk.xlsx`, 900쌍) → ISCO-08(BLS `ISCO_SOC_Crosswalk.xls`, 1,125쌍) → KSCO 8차 세분류(통계청 연계표 `4-1` 시트, 고유 쌍 700개). KSCO 표는 사용자가 넣은 `bls_soc_crosswalk/isco08_ksco08/` 사본을 읽음(`kostat_ksco_isco_crosswalk/`와 MD5 같음). 이 폴더 기록을 `bls_soc_crosswalk/_download_manifest.md`에 추가.
+  - 처리(작업자 판단): BLS의 ISCO 3자리 연결 2개(19-2099→211, 53-2022→315)는 그 소분류의 ISCO 4자리 전부에 연결(`isco3_link`). KSCO 표 중복 행(2365–3119) 삭제. ISCO 국문 명칭 표기 차이 8개 코드는 가장 많이 쓰인 표기로 통일(오타 "핀매 대리인" 수정). BLS 표에만 있는 ISCO 5개(1113, 6310~6340)는 KSCO와 이어지지 않아 빠짐(해당 SOC는 다른 ISCO로 모두 연결됨).
+  - 출력(`data/proc/exposure/bls_soc_crosswalk/`): `soc2018_ksco8_paths.{csv,dta}`(경로 2,545행), `soc2018_ksco8_crosswalk.{csv,dta}`(고유 쌍 2,412행).
+  - 가중치(고용 가중 없음, 단계마다 균등): `w_mean` = 비율 지표용, 단계별 단순평균(SOC 2018→2010→ISCO→KSCO)을 이은 것, ksco8 안 합 1. `w_flat` = 연결된 SOC 2018 단순평균(민감도용). `w_alloc` = 양(대화 건수 등) 배분용, soc2018 안 합 1. 합이 1인지 assert로 확인.
+  - 범위: SOC 2018 867개 전부, KSCO 세분류 494개(군인 5개 포함) 전부 연결. SOC 하나에 KSCO 1개 351개(40%), 최대 45개. KSCO 하나에 SOC 1개 73개, 최대 37개. `soc6_ai_indicators` 808개 전부, 한국 대화량 soc6 368개 전부 매칭(자리표시 "45-XXXX"만 제외).
+  - 매칭 키: `soc2018`(str7) = 각 SOC 파일의 `soc6`, `ksco8`(str4, 군인은 A011 등).
