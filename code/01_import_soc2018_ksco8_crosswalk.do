@@ -1,9 +1,11 @@
 * =============================================================================
 * 01_import_soc2018_ksco8_crosswalk.do
-* SOC 2018 세부 직업(6자리) ↔ 한국표준직업분류 8차(KSCO 8차) 세분류(4자리) 연계표
+* SOC 2018 세부 직업(6자리) ↔ 한국표준직업분류 8차(KSCO 8차) 세분류(4자리)
+*   ↔ 한국고용직업분류 2025(KECO 2025) 세분류(4자리) 연계표
 *
 * 공식 SOC 2018–ISCO-08 연계표가 없으므로(BLS·O*NET 모두 미배포), BLS·통계청 연계표 3개를 이어 쓴다.
 *   SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차   (report 17, 9.3절 제안 절차 1·2단계)
+* KSCO 8차 → KECO 2025는 통계청 연계표(세분류 1:1 대응)로 붙인다. 1:1이므로 가중치는 KSCO 기준과 같다.
 *
 * 입력: $raw/exposure/bls_soc_crosswalk/
 *   soc_2018/soc_2010_to_2018_crosswalk.xlsx      시트 "Sorted by 2010", 10~909행 = 900쌍
@@ -11,9 +13,17 @@
 *   isco08_ksco08/한국표준직업분류(KSCO 8차)-국제표준직업분류(ISCO-08) 연계표_20260127034430.xlsx
 *       시트 "4-1. (연계표) 세분류 연계표(KSCO-ISCO)", 1행 머리글 + 701행(고유 쌍 700)
 *       (kostat_ksco_isco_crosswalk/ksco8_isco08/의 같은 파일과 MD5 동일)
+*   isco08_ksco08/한국고용직업분류 2025 개정 - 한국표준직업분류 8차 간 연계표_20250103043442.xlsx
+*       시트 "통계분류포털 요청", 1~3행 제목·머리글, 4~498행 = (KECO 2025, KSCO 8차) 495쌍, 모두 1:1
+*       KECO 대분류 0의 코드는 숫자 셀이라 앞자리 0이 빠져 3자리(예: 111)로 읽힘 → 0을 붙여 4자리(0111)로 맞춤
 * 출력: $proc/exposure/bls_soc_crosswalk/
-*   soc2018_ksco8_paths.{csv,dta}       행 = 연결 경로(soc2018, soc2010, isco08, ksco8)
-*   soc2018_ksco8_crosswalk.{csv,dta}   행 = 고유 (soc2018, ksco8) 쌍 + 가중치 → 결합에 쓰는 파일
+*   soc2018_ksco8_paths.{csv,dta}       행 = 연결 경로(soc2018, soc2010, isco08, ksco8) + keco2025
+*   soc2018_ksco8_crosswalk.{csv,dta}   행 = 고유 (soc2018, ksco8) 쌍 + keco2025 + 가중치 → 결합에 쓰는 파일
+*     KECO 기준으로 쓸 때도 이 파일을 그대로 쓴다(keco2025 하나 = ksco8 하나이므로
+*     w_mean·w_flat은 keco2025 안에서도 합 1). 대응이 없는 KSCO가 생기면 keco2025는 빈칸.
+*   결과: KSCO–ISCO 표의 KSCO 494개(군인 A011~A090 → KECO 2501~2509 포함) 모두 KECO와 대응.
+*     KECO 표에만 있는 KSCO 8631(일차전지 및 이차전지 제조 기계 조작원, KECO 8352)은
+*     KSCO–ISCO 표에 없어 SOC와 이어지지 않는다(KECO 495개 중 494개 연결).
 *
 * 처리(작업자 판단):
 *   - ISCO 3자리 2개(BLS가 ISCO 세분류 없이 소분류에 연결): 19-2099 → 211, 53-2022 → 315.
@@ -31,6 +41,7 @@
 *             SOC 2018 → 대응 SOC 2010에 균등, SOC 2010 → 대응 ISCO에 균등, ISCO → 대응 KSCO에 균등.
 * 매칭 키: soc2018(str7, XX-XXXX) = soc6_ai_indicators·sensortower_aei_kor_soc6_conversations의 soc6
 *          ksco8(str4) = KSCO 8차 세분류 코드(군인은 A011 등 문자 포함)
+*          keco2025(str4) = KECO 2025 세분류 코드(앞자리 0 포함, 예: 0111)
 * =============================================================================
 
 version 17
@@ -162,7 +173,46 @@ list isco08 isco08_title_ko if _merge == 1, noobs abbreviate(20)
 list isco08 isco08_title_en if _merge == 2, noobs abbreviate(20)
 
 * -----------------------------------------------------------------------------
-* 4. 경로 연결: SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차
+* 4. KECO 2025 ↔ KSCO 8차 (통계청, 세분류)
+* -----------------------------------------------------------------------------
+import excel using ///
+    "`cw'/isco08_ksco08/한국고용직업분류 2025 개정 - 한국표준직업분류 8차 간 연계표_20250103043442.xlsx", ///
+    sheet("통계분류포털 요청") cellrange(A4:D498) clear allstring
+rename (A B C D) (keco2025 keco2025_title ksco8 ksco8_title_keco)
+foreach v of varlist _all {
+    replace `v' = strtrim(`v')
+}
+count
+assert r(N) == 495
+* 대분류 0의 앞자리 0 복원(3자리 77개)
+assert regexm(keco2025, "^[0-9][0-9][0-9][0-9]?$")
+count if strlen(keco2025) == 3
+assert r(N) == 77
+replace keco2025 = "0" + keco2025 if strlen(keco2025) == 3
+assert regexm(keco2025, "^[0-9][0-9][0-9][0-9]$") & regexm(ksco8, "^[0-9A][0-9][0-9][0-9]$")
+* 세분류끼리 1:1
+isid keco2025
+isid ksco8
+tempfile kk
+save `kk'
+
+* 연결 확인: KSCO–ISCO 표의 KSCO와 KECO 표의 KSCO
+use `ki', clear
+keep ksco8 ksco8_title
+duplicates drop
+merge 1:1 ksco8 using `kk'
+display as text "KSCO–ISCO 표에만 있는 KSCO(_merge==1) / KECO 표에만 있는 KSCO(_merge==2)"
+tabulate _merge
+list ksco8 ksco8_title if _merge == 1, noobs abbreviate(20)
+list ksco8 ksco8_title_keco keco2025 keco2025_title if _merge == 2, noobs abbreviate(20)
+* 같은 KSCO 코드의 명칭이 두 표에서 다른 경우(확인용)
+list ksco8 ksco8_title ksco8_title_keco if _merge == 3 & ksco8_title != ksco8_title_keco, noobs abbreviate(20)
+use `kk', clear
+drop ksco8_title_keco
+save `kk', replace
+
+* -----------------------------------------------------------------------------
+* 5. 경로 연결: SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차 (→ KECO 2025)
 * -----------------------------------------------------------------------------
 * 단계별 대응 수(배분·평균 가중치용). 각 표 전체 기준으로 센다.
 use `s1018', clear
@@ -202,8 +252,9 @@ save `ki', replace
 use `s1018', clear
 joinby soc2010 using `i10'                        // SOC 2010이 ISCO와 이어지지 않으면 빠짐
 joinby isco08 using `ki'
+merge m:1 ksco8 using `kk', keep(master match) nogenerate   // KECO 대응이 없는 KSCO는 keco2025 빈칸
 order soc2018 soc2018_title soc2010 soc2010_title isco08 isco08_title_en isco08_title_ko ///
-    ksco8 ksco8_title isco3_link ksco_cross_major
+    ksco8 ksco8_title keco2025 keco2025_title isco3_link ksco_cross_major
 isid soc2018 soc2010 isco08 ksco8
 
 * 경로별 가중치
@@ -233,6 +284,8 @@ label variable isco08_title_en  "ISCO-08 명칭(영문, BLS)"
 label variable isco08_title_ko  "ISCO-08 명칭(국문, 통계청)"
 label variable ksco8            "KSCO 8차 세분류(4자리)"
 label variable ksco8_title      "KSCO 8차 명칭"
+label variable keco2025         "KECO 2025 세분류(4자리, KSCO와 1:1; 빈칸 = 대응 없음)"
+label variable keco2025_title   "KECO 2025 명칭"
 label variable isco3_link       "1 = BLS가 ISCO 3자리 소분류에 연결(19-2099→211, 53-2022→315)"
 label variable ksco_cross_major "1 = 통계청 표의 대분류 벗어난 연계"
 label variable n10_per18        "SOC 2018 하나에 대응하는 SOC 2010 수(BLS 표 전체)"
@@ -250,7 +303,7 @@ export delimited using "`outf'/soc2018_ksco8_paths.csv", replace
 count
 
 * -----------------------------------------------------------------------------
-* 5. 고유 (soc2018, ksco8) 쌍
+* 6. 고유 (soc2018, ksco8) 쌍(KECO 2025 열 포함)
 * -----------------------------------------------------------------------------
 * 경로 목록 문자열(확인용)
 foreach x in soc2010 isco08 {
@@ -264,7 +317,7 @@ foreach x in soc2010 isco08 {
 }
 generate byte n_path = 1
 collapse (sum) w_mean = w_mean_p w_alloc = w_alloc_p n_path (max) isco3_link ksco_cross_major, ///
-    by(soc2018 soc2018_title ksco8 ksco8_title via_soc2010 via_isco08)
+    by(soc2018 soc2018_title ksco8 ksco8_title keco2025 keco2025_title via_soc2010 via_isco08)
 isid soc2018 ksco8
 
 bysort soc2018: generate nk_per18 = _N
@@ -284,6 +337,8 @@ label variable soc2018          "SOC 2018 세부 직업(XX-XXXX)"
 label variable soc2018_title    "SOC 2018 명칭(BLS)"
 label variable ksco8            "KSCO 8차 세분류(4자리)"
 label variable ksco8_title      "KSCO 8차 명칭"
+label variable keco2025         "KECO 2025 세분류(4자리, KSCO와 1:1; 빈칸 = 대응 없음)"
+label variable keco2025_title   "KECO 2025 명칭"
 label variable w_mean           "평균 가중치: SOC 비율 지표 → KSCO(단계별 단순평균, ksco8 안 합 1)"
 label variable w_flat           "평균 가중치: 연결된 SOC 2018 단순평균(ksco8 안 합 1)"
 label variable w_alloc          "배분 가중치: SOC 양 → KSCO(단계별 균등 배분, soc2018 안 합 1)"
@@ -294,7 +349,7 @@ label variable via_soc2010      "거친 SOC 2010 코드(;로 구분)"
 label variable via_isco08       "거친 ISCO-08 코드(;로 구분)"
 label variable isco3_link       "1 = ISCO 3자리 소분류 연결을 거침"
 label variable ksco_cross_major "1 = 통계청 표의 대분류 벗어난 연계를 거침"
-order soc2018 soc2018_title ksco8 ksco8_title w_mean w_flat w_alloc nk_per18 n18_perk n_path ///
+order soc2018 soc2018_title ksco8 ksco8_title keco2025 keco2025_title w_mean w_flat w_alloc nk_per18 n18_perk n_path ///
     via_soc2010 via_isco08 isco3_link ksco_cross_major
 sort soc2018 ksco8
 compress
@@ -302,7 +357,7 @@ save "`outf'/soc2018_ksco8_crosswalk.dta", replace
 export delimited using "`outf'/soc2018_ksco8_crosswalk.csv", replace
 
 * -----------------------------------------------------------------------------
-* 6. 요약과 범위 확인
+* 7. 요약과 범위 확인
 * -----------------------------------------------------------------------------
 count
 preserve
@@ -316,6 +371,28 @@ bysort ksco8: keep if _n == 1
 display as text "KSCO 8차 세분류 수"
 count
 tabulate n18_perk
+display as text "KECO 2025 대응이 없는 KSCO"
+list ksco8 ksco8_title if missing(keco2025), noobs abbreviate(20)
+restore
+
+* KECO 기준 확인: keco2025 하나 = ksco8 하나이므로 평균 가중치는 keco2025 안에서도 합 1
+preserve
+drop if missing(keco2025)
+bysort keco2025 (ksco8): assert ksco8 == ksco8[1]
+bysort keco2025: egen double chk = total(w_mean)
+assert abs(chk - 1) < 1e-9
+bysort keco2025: keep if _n == 1
+display as text "SOC와 이어지는 KECO 2025 세분류 수"
+count
+restore
+
+* KECO 2025 세분류(통계청 표 495개) 가운데 SOC에 이어지지 않는 코드
+preserve
+use `kk', clear
+merge 1:m keco2025 using "`outf'/soc2018_ksco8_crosswalk.dta", keepusing(keco2025)
+bysort keco2025: keep if _n == 1
+tabulate _merge
+list keco2025 keco2025_title ksco8 if _merge == 1, noobs abbreviate(20)
 restore
 
 * SOC 2018 목록(BLS 867개) 가운데 KSCO에 이어지지 않는 코드

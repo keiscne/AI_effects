@@ -484,3 +484,8 @@
   - 가중치(고용 가중 없음, 단계마다 균등): `w_mean` = 비율 지표용, 단계별 단순평균(SOC 2018→2010→ISCO→KSCO)을 이은 것, ksco8 안 합 1. `w_flat` = 연결된 SOC 2018 단순평균(민감도용). `w_alloc` = 양(대화 건수 등) 배분용, soc2018 안 합 1. 합이 1인지 assert로 확인.
   - 범위: SOC 2018 867개 전부, KSCO 세분류 494개(군인 5개 포함) 전부 연결. SOC 하나에 KSCO 1개 351개(40%), 최대 45개. KSCO 하나에 SOC 1개 73개, 최대 37개. `soc6_ai_indicators` 808개 전부, 한국 대화량 soc6 368개 전부 매칭(자리표시 "45-XXXX"만 제외).
   - 매칭 키: `soc2018`(str7) = 각 SOC 파일의 `soc6`, `ksco8`(str4, 군인은 A011 등).
+- `code/01_import_soc2018_ksco8_crosswalk.do` 수정: KECO 2025 연계 추가(사용자 요청). Stata 17 배치 실행, 오류 없음.
+  - 입력 추가: `bls_soc_crosswalk/isco08_ksco08/한국고용직업분류 2025 개정 - 한국표준직업분류 8차 간 연계표_20250103043442.xlsx`(495쌍, KECO 2025 세분류 ↔ KSCO 8차 세분류 모두 1:1). KECO 대분류 0 코드 77개는 앞자리 0이 빠져 3자리로 읽혀 "0"을 붙여 4자리로 맞춤.
+  - 두 출력 파일(`soc2018_ksco8_paths`, `soc2018_ksco8_crosswalk`)에 `keco2025`, `keco2025_title` 열 추가. 1:1이므로 가중치는 그대로이고 `w_mean`·`w_flat`은 keco2025 안에서도 합 1(assert). 파일명은 그대로 둠.
+  - 범위: KSCO 494개 모두 KECO와 대응(군인 A011~A090 → KECO 2501~2509). KECO 495개 중 KECO 8352(KSCO 8631 일차전지 및 이차전지 제조 기계 조작원)는 통계청 KSCO–ISCO 연계표에 없어 SOC와 이어지지 않음. KSCO 명칭 표기 차이 4개(가운뎃점 문자, 띄어쓰기)는 KSCO–ISCO 표 명칭을 씀.
+  - 매칭 키: `keco2025`(str4, 앞자리 0 포함).
