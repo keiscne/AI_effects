@@ -19,6 +19,7 @@
 * 출력: $proc/exposure/bls_soc_crosswalk/
 *   soc2018_ksco8_paths.{csv,dta}       행 = 연결 경로(soc2018, soc2010, isco08, ksco8) + keco2025
 *   soc2018_ksco8_crosswalk.{csv,dta}   행 = 고유 (soc2018, ksco8) 쌍 + keco2025 + 가중치 → 결합에 쓰는 파일
+*   soc2018_ksco8_stages.{csv,dta}      행 = 단계별 연계쌍(정리 후 4개 표, 경로 연결 전; 확인·보고서용)
 *     KECO 기준으로 쓸 때도 이 파일을 그대로 쓴다(keco2025 하나 = ksco8 하나이므로
 *     w_mean·w_flat은 keco2025 안에서도 합 1). 대응이 없는 KSCO가 생기면 keco2025는 빈칸.
 *   결과: KSCO–ISCO 표의 KSCO 494개(군인 A011~A090 → KECO 2501~2509 포함) 모두 KECO와 대응.
@@ -208,8 +209,49 @@ list ksco8 ksco8_title_keco keco2025 keco2025_title if _merge == 2, noobs abbrev
 * 같은 KSCO 코드의 명칭이 두 표에서 다른 경우(확인용)
 list ksco8 ksco8_title ksco8_title_keco if _merge == 3 & ksco8_title != ksco8_title_keco, noobs abbreviate(20)
 use `kk', clear
+tempfile kk_full
+save `kk_full'
 drop ksco8_title_keco
 save `kk', replace
+
+* 단계별 연계쌍(정리 후, 경로 연결 전) → soc2018_ksco8_stages (report 21의 단계별 표에 사용)
+*   왼쪽 = SOC 2018에 가까운 쪽, 오른쪽 = KECO에 가까운 쪽
+use `s1018', clear
+generate byte stage = 1
+rename (soc2018 soc2018_title soc2010 soc2010_title) (left left_title right right_title)
+tempfile st
+save `st'
+use `i10', clear
+generate byte stage = 2
+rename (soc2010 soc2010_title_isco isco08 isco08_title_en) (left left_title right right_title)
+append using `st'
+save `st', replace
+use `ki', clear
+generate byte stage = 3
+rename (isco08 isco08_title_ko ksco8 ksco8_title) (left left_title right right_title)
+append using `st'
+save `st', replace
+use `kk_full', clear
+generate byte stage = 4
+rename (ksco8 ksco8_title_keco keco2025 keco2025_title) (left left_title right right_title)
+append using `st'
+label define stage_l 1 "SOC 2018–SOC 2010" 2 "SOC 2010–ISCO-08" 3 "ISCO-08–KSCO 8차" 4 "KSCO 8차–KECO 2025"
+label values stage stage_l
+keep stage left left_title right right_title isco3_link ksco_cross_major
+order stage left left_title right right_title isco3_link ksco_cross_major
+isid stage left right
+label variable stage            "연계 단계"
+label variable left             "왼쪽 코드(SOC 2018에 가까운 쪽)"
+label variable left_title       "왼쪽 명칭"
+label variable right            "오른쪽 코드(KECO에 가까운 쪽)"
+label variable right_title      "오른쪽 명칭"
+label variable isco3_link       "1 = 2단계, BLS의 ISCO 3자리 연결을 4자리로 펼친 쌍"
+label variable ksco_cross_major "1 = 3단계, 통계청 표의 대분류 벗어난 연계"
+sort stage left right
+compress
+save "`outf'/soc2018_ksco8_stages.dta", replace
+export delimited using "`outf'/soc2018_ksco8_stages.csv", replace
+tabulate stage
 
 * -----------------------------------------------------------------------------
 * 5. 경로 연결: SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차 (→ KECO 2025)

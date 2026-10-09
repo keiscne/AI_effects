@@ -1,0 +1,448 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- SOC 2018–KSCO 8차(–KECO 2025) 직업 연계표 구축과 1:1이 아닌 대응의 처리.
+% 표 본문: results/table/21_*.tex (code/04_analysis_soc2018_ksco8_crosswalk_summary.do가 생성)
+% 연계표: code/01_import_soc2018_ksco8_crosswalk.do → data/proc/exposure/bls_soc_crosswalk/
+% 관련: report 17(results/report/17_SOC_한국직업분류_연계방법.tex), report 20
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{SOC 2018–KSCO 8차 직업 연계표 구축\\[2mm]
+\large --- 연계 경로, 1:1로 대응하지 않는 경우의 구조와 처리 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 이 프로젝트의 AI 지표(Anthropic Economic Index의 한국 대화량과 시간 절감, observed exposure, Eloundou 노출도, Felten AIOE)는 미국 표준직업분류 SOC 2018 세부 직업(6자리) 단위로 만들어져 있다. 이를 한국 고용$\cdot$임금 자료와 결합하려면 한국표준직업분류 8차(KSCO 8차) 세분류로 옮겨야 한다. SOC 2018과 KSCO를 직접 잇는 공식 연계표는 없다. 본 문서는 BLS와 통계청의 공식 연계표 4개를 이어 SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차(→ KECO 2025)로 연결한 연계표의 구축 과정을 정리한다. 결과 연계표는 SOC 2018 867개 전부와 KSCO 세분류 494개 전부를 2,412개 쌍으로 잇는다. 그러나 양쪽 모두 상대가 하나뿐인 1:1 쌍은 29개(1.2\%)에 그친다. SOC 직업의 60\%는 KSCO 2개 이상으로 나뉘고, KSCO 직업의 85\%는 SOC 2개 이상을 받는다. 1:1이 아닌 대응은 주로 두 단계에서 생긴다. 하나는 SOC 2010 840개를 ISCO-08 431개로 묶는 2단계이고, 다른 하나는 ISCO와 KSCO가 양방향으로 엇갈리는 3단계다. 본 문서는 이 구조를 단계별 유형(1:1, 1:N, N:1, M:N)으로 나누어 보여 준다. 이어 각 유형이 생기는 원인(SOC 2018 개정, 감독직 연결 원칙, ``All Other'' 직업, ISCO의 거친 분류, 대분류를 벗어난 연계)과 예시를 설명한다. 1:1이 아닌 대응은 평균 가중치(\texttt{w\_mean}, \texttt{w\_flat})와 배분 가중치(\texttt{w\_alloc})로 처리한다. 한국 업무용 대화의 69.5\%는 KSCO 2개 이상으로 나뉘는 SOC 직업에서 나온다. observed exposure를 KSCO로 옮기면 최댓값이 0.745에서 0.504로 줄어드는 희석이 생긴다.
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적}
+% ============================================================
+
+report 17은 SOC 기준 AI 지표를 한국 직업분류에 적용한 선행연구의 연계 방법을 정리했다. 이를 바탕으로 SOC 2018 → SOC 2010 → ISCO-08 → KSCO 8차 경로를 제안 절차로 삼았다. 본 문서는 그 절차를 실제 연계표로 구현한 결과를 기록한다. 다음 세 질문에 답한다.
+\begin{enumerate}[leftmargin=*]
+  \item 어떤 공식 연계표를 어떤 순서로 이었고, 이을 때 어떤 정리가 필요했는가?
+  \item 각 단계와 최종 연계표에서 1:1로 대응하지 않는 경우는 얼마나 되며, 왜 생기는가?
+  \item 1:1이 아닌 대응을 어떤 가중치로 처리했고, 그 처리가 이 프로젝트의 자료에 어떤 영향을 주는가?
+\end{enumerate}
+본 문서는 연계표만 다룬다. AI 지표를 KSCO로 실제로 옮긴 결과와 그 분석은 이후 보고서에서 다룬다.
+
+% ============================================================
+\section{원자료: 공식 연계표 4개}
+% ============================================================
+
+BLS와 O*NET은 SOC 2018–ISCO-08 연계표를 배포하지 않는다. BLS가 배포하는 ISCO-08 연계표는 SOC 2010 기준이다(2012년 작성, 2015년 갱신). 따라서 SOC 2018에서 출발하면 먼저 SOC 2010으로 거슬러 가야 한다. 이어 ISCO-08을 거쳐, 통계청의 KSCO 8차–ISCO-08 연계표로 KSCO에 닿는다. 마지막으로 통계청의 KECO 2025–KSCO 8차 연계표로 고용행정 자료의 분류(KECO)를 붙인다. 표~\ref{tab:sources}는 네 연계표의 규모다. 왼쪽은 SOC 2018에 가까운 쪽, 오른쪽은 KECO에 가까운 쪽이다.
+
+\begin{longtable}{L{5.0cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.6cm}R{1.6cm}R{1.6cm}}
+\caption{단계별 연계표의 규모}\label{tab:sources}\\
+\toprule
+ & \multicolumn{3}{c}{원 연계표(정리 후)} & \multicolumn{3}{c}{경로에 쓰인 것} \\
+연계표 & 쌍 & 왼쪽 코드 & 오른쪽 코드 & 쌍 & 왼쪽 코드 & 오른쪽 코드 \\
+\midrule
+\input{../table/21_sources.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{1단계 SOC 2018–SOC 2010}: BLS \texttt{soc\_2010\_to\_2018\_crosswalk.xlsx}. 900쌍으로 SOC 2018 867개와 SOC 2010 840개를 모두 잇는다.
+  \item \textbf{2단계 SOC 2010–ISCO-08}: BLS \texttt{ISCO\_SOC\_Crosswalk.xls}. 원표는 1,125쌍이다. ISCO 3자리 소분류에 연결된 2쌍을 4자리 9쌍으로 펼쳐(6.1절) 1,132쌍이 된다. 이 가운데 8쌍은 KSCO 표에 없는 ISCO 5개로 가므로 경로에서 빠진다(6.3절).
+  \item \textbf{3단계 ISCO-08–KSCO 8차}: 통계청 연계표의 세분류 시트(\texttt{4-1})다. 원표 701행에서 같은 쌍 1개(2365–3119)를 지워 700쌍이 된다. ISCO 431개와 KSCO 세분류 494개(군인 5개 포함)를 잇는다.
+  \item \textbf{4단계 KSCO 8차–KECO 2025}: 통계청 연계표. 495쌍이 모두 1:1이다. KSCO 8631(일차전지 및 이차전지 제조 기계 조작원) 하나는 3단계 표에 없어 SOC와 이어지지 않는다(6.3절).
+\end{itemize}
+
+% ============================================================
+\section{연계 절차와 산출 파일}
+% ============================================================
+
+\subsection{절차}
+
+\texttt{code/01\_import\_soc2018\_ksco8\_crosswalk.do}가 네 연계표를 읽어 다음 순서로 처리한다.
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{표 정리.} 명칭 끝의 BLS 각주 표시(``(\#)'')를 지운다. 3단계 표의 중복 행 1개를 지운다. 같은 ISCO 코드에 국문 명칭이 여러 가지로 적힌 8개 코드는 가장 많이 쓰인 표기로 통일한다. 띄어쓰기 차이가 대부분이고, 오타 ``핀매 대리인''(3322)도 여기서 바로잡힌다. KECO 대분류 0의 코드 77개는 엑셀 숫자 셀이라 앞자리 0이 빠져 있다(예: \texttt{111}). 0을 붙여 4자리(\texttt{0111})로 맞춘다.
+  \item \textbf{ISCO 3자리 펼치기.} BLS는 SOC 2개를 ISCO 4자리가 아닌 3자리 소분류에 연결했다. 이 연결은 같은 소분류의 ISCO 4자리 전부로 펼친다(6.1절).
+  \item \textbf{경로 연결.} 네 표를 차례로 결합(joinby)해 (SOC 2018, SOC 2010, ISCO-08, KSCO 8차) 경로 2,545개를 만든다. 끝까지 이어지지 않는 연결은 버린다.
+  \item \textbf{가중치 계산.} 경로마다 평균 가중치와 배분 가중치를 계산한다(7절). 경로를 (SOC 2018, KSCO) 쌍으로 묶어 합산한다. 합이 1이 되는지는 do 파일 안에서 assert로 확인한다.
+\end{enumerate}
+
+\subsection{산출 파일}
+
+산출 파일은 \texttt{data/proc/exposure/bls\_soc\_crosswalk/}에 있다. 결합에 쓰는 파일은 \texttt{soc2018\_ksco8\_crosswalk}다. 나머지 두 파일은 추적과 확인용이다. 표~\ref{tab:vars}는 주요 변수다.
+\begin{itemize}[leftmargin=*]
+  \item \texttt{soc2018\_ksco8\_crosswalk.\{csv,dta\}}: 고유 (SOC 2018, KSCO) 쌍 2,412행. KECO 코드와 가중치를 포함한다.
+  \item \texttt{soc2018\_ksco8\_paths.\{csv,dta\}}: 경로 2,545행. 쌍마다 거친 SOC 2010과 ISCO를 보여 준다.
+  \item \texttt{soc2018\_ksco8\_stages.\{csv,dta\}}: 정리 후 네 연계표의 단계별 쌍 3,227행. 본 문서 4절의 표가 이 파일에서 나온다.
+\end{itemize}
+
+\begin{longtable}{L{3.2cm}L{13.0cm}}
+\caption{연계표(\texttt{soc2018\_ksco8\_crosswalk})의 주요 변수}\label{tab:vars}\\
+\toprule
+변수 & 내용 \\
+\midrule
+\endfirsthead
+\toprule
+변수 & 내용 \\
+\midrule
+\endhead
+\texttt{soc2018} & SOC 2018 세부 직업(XX-XXXX). 다른 SOC 파일의 \texttt{soc6}와 같다. \\
+\texttt{ksco8} & KSCO 8차 세분류(4자리, 군인은 A011 등). \\
+\texttt{keco2025} & KECO 2025 세분류(4자리, 앞자리 0 포함). KSCO와 1:1이다. \\
+\texttt{w\_mean} & 평균 가중치(단계별 단순평균). 한 \texttt{ksco8} 안에서 합이 1이다. \\
+\texttt{w\_flat} & 평균 가중치(연결된 SOC 2018 단순평균). 한 \texttt{ksco8} 안에서 합이 1이다. \\
+\texttt{w\_alloc} & 배분 가중치(단계별 균등 배분). 한 \texttt{soc2018} 안에서 합이 1이다. \\
+\texttt{nk\_per18}, \texttt{n18\_perk} & SOC 하나에 연결된 KSCO 수, KSCO 하나에 연결된 SOC 수. \\
+\texttt{n\_path}, \texttt{via\_soc2010}, \texttt{via\_isco08} & 이 쌍을 잇는 경로 수, 거친 SOC 2010과 ISCO 코드(;로 구분). \\
+\texttt{isco3\_link}, \texttt{ksco\_cross\_major} & ISCO 3자리 펼침을 거친 쌍, 통계청 표의 ``대분류 벗어난 연계''를 거친 쌍(6절). \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{1:1로 대응하지 않는 경우의 구조}
+% ============================================================
+
+\subsection{대응 유형의 정의}
+
+연계쌍 하나를 두 코드의 대응 수로 분류한다. 왼쪽 코드가 대응하는 오른쪽 코드 수를 $n_r$, 오른쪽 코드가 대응하는 왼쪽 코드 수를 $n_l$이라 하자.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{1:1} ($n_r = 1$, $n_l = 1$): 두 코드 모두 상대가 이 쌍 하나뿐이다. 값을 그대로 옮기면 된다.
+  \item \textbf{1:N} ($n_r > 1$, $n_l = 1$): 왼쪽 코드 하나가 오른쪽 여러 코드로 나뉜다. 오른쪽 코드는 이 왼쪽만 받는다.
+  \item \textbf{N:1} ($n_r = 1$, $n_l > 1$): 왼쪽 여러 코드가 오른쪽 코드 하나로 합쳐진다.
+  \item \textbf{M:N} ($n_r > 1$, $n_l > 1$): 두 코드 모두 여러 코드와 대응한다. 나뉨과 합쳐짐이 함께 일어난다.
+\end{itemize}
+방향은 언제나 SOC 2018 → KECO다. 예를 들어 1단계(왼쪽 SOC 2018, 오른쪽 SOC 2010)의 1:N은 SOC 2018 하나가 SOC 2010 여럿을 합친 코드라는 뜻이다. N:1은 SOC 2010 하나가 SOC 2018 여럿으로 나뉘었다는 뜻이다.
+
+표~\ref{tab:types}는 단계별 쌍을 유형별로 센 결과다. 표~\ref{tab:multi}는 상대가 둘 이상인 코드의 수와 최대 대응 수다.
+
+\begin{longtable}{L{5.0cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.6cm}R{2.0cm}}
+\caption{단계별 연계쌍의 대응 유형(경로에 쓰인 쌍 기준)}\label{tab:types}\\
+\toprule
+연계표 & 1:1 & 1:N & N:1 & M:N & 합계 & 1:1 비율(\%) \\
+\midrule
+\input{../table/21_types.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{5.0cm}R{1.5cm}R{1.6cm}R{1.3cm}R{1.5cm}R{1.6cm}R{1.3cm}}
+\caption{상대 코드가 둘 이상인 코드 수(경로에 쓰인 코드 기준)}\label{tab:multi}\\
+\toprule
+ & \multicolumn{3}{c}{왼쪽 코드} & \multicolumn{3}{c}{오른쪽 코드} \\
+연계표 & 코드 수 & 둘 이상 & 최대 & 코드 수 & 둘 이상 & 최대 \\
+\midrule
+\input{../table/21_multi.tex}
+\bottomrule
+\end{longtable}
+
+\noindent 단계별로 보면 1:1 비율이 크게 다르다. 1단계는 85.1\%, 2단계는 8.3\%, 3단계는 18.0\%, 4단계는 100\%다. 단계를 이을수록 나뉨과 합쳐짐이 곱해지므로, 최종 연계표의 1:1 비율은 1.2\%로 떨어진다. 아래에서 단계별 원인을 설명한다. 표~\ref{tab:examples}는 단계별 예시다.
+
+\begin{longtable}{R{0.8cm}L{6.2cm}L{6.8cm}L{1.2cm}}
+\caption{단계별 1:1이 아닌 대응 예시(유형은 단계 전체에서 계산)}\label{tab:examples}\\
+\toprule
+단계 & 왼쪽 코드 & 오른쪽 코드 & 유형 \\
+\midrule
+\endfirsthead
+\toprule
+단계 & 왼쪽 코드 & 오른쪽 코드 & 유형 \\
+\midrule
+\endhead
+\input{../table/21_examples.tex}
+\bottomrule
+\end{longtable}
+
+\subsection{1단계 SOC 2018–SOC 2010: SOC 개정}
+
+900쌍 가운데 766쌍(85.1\%)이 1:1이다. 나머지는 SOC 2018 개정에서 직업이 나뉘거나 합쳐진 결과다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{SOC 2010 하나가 SOC 2018 여럿으로 나뉨(N:1, 70쌍).} SOC 2010 코드 42개가 둘 이상으로 나뉘었다. 예를 들어 Surgeons(29-1067)는 Orthopedic Surgeons(29-1242), Pediatric Surgeons(29-1243), Surgeons, All Other(29-1249)로 나뉘었다. 가장 많이 나뉜 코드는 Physicians and Surgeons, All Other(29-1069)로, SOC 2018 8개로 나뉘었다.
+  \item \textbf{SOC 2010 여럿이 SOC 2018 하나로 합쳐짐(1:N, 32쌍).} SOC 2018 코드 31개가 SOC 2010 둘 이상을 합쳤다. 예를 들어 Communications Equipment Operators, All Other(43-2099)는 Radio Operators(27-4013)를 흡수했다.
+  \item \textbf{나뉨과 합쳐짐이 함께 일어남(M:N, 32쌍).} 소프트웨어 직업이 대표적이다. SOC 2010의 응용$\cdot$시스템 소프트웨어 개발자(15-1132, 15-1133)는 SOC 2018에서 Software Developers(15-1252)와 Software Quality Assurance Analysts and Testers(15-1253)로 다시 짜였다. 두 SOC 2010 코드가 각각 두 SOC 2018 코드와 대응한다. Project Management Specialists(13-1082)는 SOC 2018에서 새로 생긴 직업이다. 이 직업은 ``All Other'' 코드 3개(11-9199, 13-1199, 15-1199)에서 떨어져 나왔다.
+\end{itemize}
+
+\subsection{2단계 SOC 2010–ISCO-08: ISCO의 거친 분류}
+
+1:1이 가장 적은 단계(8.3\%)다. 원인은 두 가지다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{ISCO가 SOC보다 거칠다(N:1, 593쌍).} SOC 2010 세부 직업은 840개이고, 이들이 닿는 ISCO 세분류는 431개다. 그래서 여러 SOC가 한 ISCO로 모이는 경우가 대부분이다. ISCO 282개가 SOC 둘 이상을 받는다. 가장 많이 받는 ISCO는 2310(University and higher education teachers)으로, 대학 교원(25-1011~25-1199) 37개가 모두 이 하나에 연결된다. 소프트웨어 개발자(15-1132, 15-1133)도 ISCO 2512(Software developers) 하나로 모인다.
+  \item \textbf{SOC 하나가 ISCO 여럿과 연결된다(1:N, M:N).} SOC 2010 154개가 ISCO 둘 이상과 연결된다. 상대 ISCO가 특히 많은 것은 감독직(First-Line Supervisors)이다. ISCO-08은 광업$\cdot$제조$\cdot$건설$\cdot$사무$\cdot$청소$\cdot$상점 감독자에만 별도 코드를 둔다. 나머지 감독직은 감독받는 직업 가운데 가장 숙련된 직업과 같은 코드로 분류한다. BLS는 이에 맞추어, ISCO에 대응하는 감독직이 없는 SOC 감독직(대분류 33~41, 45, 49, 53)을 감독받는 직업 가운데 가장 숙련된 직업의 ISCO에 연결했다(BLS 설명 자료 \texttt{ISCO\_SOC\_Crosswalk\_process.pdf}). 감독받는 직업이 여러 ISCO에 걸치면 감독직도 그 ISCO 모두와 연결된다. 예를 들어 운송 감독자(53-1031)는 선박 기관사부터 버스$\cdot$트럭 운전원, 폐기물 수거원까지 ISCO 17개와 연결된다. Chief Executives(11-1011)는 ISCO 1112(정부 고위 공무원), 1113(전통 마을 지도자), 1120(최고 경영자)과 연결된다. 이 가운데 1113은 KSCO 표에 없어 빠진다.
+\end{itemize}
+
+\subsection{3단계 ISCO-08–KSCO 8차: 양방향으로 엇갈리는 분류}
+
+700쌍 가운데 126쌍(18.0\%)이 1:1이다. 2단계와 달리 나뉨과 합쳐짐이 비슷한 규모로 함께 나타난다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{ISCO 하나가 KSCO 여럿으로 나뉨(1:N 229쌍).} ISCO 152개가 KSCO 둘 이상과 연결된다(최대 9개). 한국 분류가 더 세밀하거나 한국 고유 직업을 따로 둔 경우다. 예를 들어 ISCO 5311(보육 종사자)은 보육교사(2510), 보육 관련 시설 돌봄 종사원(4212), 기타 교사 보조 및 아동 돌봄 종사원(4219), 육아 도우미(9512)로 나뉜다.
+  \item \textbf{KSCO 하나가 ISCO 여럿을 받음(N:1 153쌍).} KSCO 139개가 ISCO 둘 이상과 연결된다(최대 7개). 한국 분류가 더 거친 경우다. 예를 들어 경영 지원 관리자(1212)는 ISCO의 재무 관리자(1211), 인사 관리자(1212), 정책 및 기획 관리자(1213), 그외 경영지원 및 행정 관리자(1219)를 모두 받는다.
+  \item \textbf{대분류를 벗어난 연계(75쌍).} 통계청 표는 대분류가 다른 코드끼리 잇는 연계를 따로 표시한다. 위 5311의 예에서 보육교사(KSCO 대분류 2 전문가)와 육아 도우미(대분류 9 단순노무)가 여기에 해당한다(6.2절).
+\end{itemize}
+
+\subsection{4단계 KSCO 8차–KECO 2025: 모두 1:1}
+
+KECO 2025 세분류와 KSCO 8차 세분류는 495쌍이 모두 1:1이다. 따라서 KECO를 붙여도 대응 구조와 가중치는 바뀌지 않는다. 한 KECO 코드 안의 \texttt{w\_mean}, \texttt{w\_flat} 합도 1이다. KECO 기준 분석에도 같은 연계표를 \texttt{keco2025}를 키로 쓰면 된다. 군인(KSCO A011~A090)은 KECO 2501~2509에 대응한다.
+
+% ============================================================
+\section{최종 연계표의 구조}
+% ============================================================
+
+\subsection{대응 수의 분포}
+
+표~\ref{tab:dist}는 최종 연계표에서 SOC 하나가 몇 개의 KSCO와, KSCO 하나가 몇 개의 SOC와 연결되는지 보여 준다.
+
+\begin{longtable}{L{4.0cm}R{2.4cm}R{2.0cm}R{2.4cm}R{2.0cm}}
+\caption{최종 연계표의 대응 수 분포}\label{tab:dist}\\
+\toprule
+ & \multicolumn{2}{c}{SOC 2018 하나당 KSCO 수} & \multicolumn{2}{c}{KSCO 하나당 SOC 2018 수} \\
+대응 수 & SOC 수 & 비율(\%) & KSCO 수 & 비율(\%) \\
+\midrule
+\input{../table/21_dist.tex}
+\bottomrule
+\end{longtable}
+
+SOC 직업 351개(40.5\%)는 KSCO 하나에만 연결된다. 그러나 그 KSCO가 다른 SOC도 함께 받는 경우가 대부분이어서, 양쪽 모두 1:1인 쌍은 29개다. Computer and Information Systems Managers(11-3021) → 정보 통신 관련 관리자(1350), Electrical Engineers(17-2071) → 전기공학 기술자 및 연구원(2341) 같은 경우다. 반대 방향으로는 KSCO 421개(85.2\%)가 SOC 둘 이상을 받는다. 중앙값은 4개다.
+
+\subsection{나뉨이 생기는 단계}
+
+어느 단계에서 나뉨이 생기는지 보기 위해, SOC 직업마다 거치는 SOC 2010, ISCO, KSCO 수를 셌다(표~\ref{tab:patsoc}). KSCO 쪽도 같은 방법으로 셌다(표~\ref{tab:patksco}).
+
+\begin{longtable}{L{7.4cm}R{1.4cm}R{1.4cm}R{2.0cm}R{2.0cm}R{1.6cm}}
+\caption{SOC 2018 직업이 여러 KSCO로 나뉘는 단계}\label{tab:patsoc}\\
+\toprule
+경로 유형 & SOC 수 & 비율(\%) & 평균 ISCO 수 & 평균 KSCO 수 & 최대 KSCO \\
+\midrule
+\input{../table/21_pattern_soc.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{7.4cm}R{1.4cm}R{1.4cm}R{2.0cm}R{2.0cm}R{1.6cm}}
+\caption{KSCO 직업이 여러 SOC 2018을 받는 단계}\label{tab:patksco}\\
+\toprule
+경로 유형 & KSCO 수 & 비율(\%) & 평균 ISCO 수 & 평균 SOC 수 & 최대 SOC \\
+\midrule
+\input{../table/21_pattern_ksco.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{SOC 쪽}: 경로 전체가 하나로 이어지는 SOC는 342개(39.4\%)다. 가장 흔한 나뉨은 ISCO가 하나여도 3단계에서 KSCO 여럿으로 갈라지는 경우로, 324개(37.4\%)다. 다만 평균 KSCO 수는 3.15개로 크지 않다. 2단계에서 ISCO 여럿과 연결되는 SOC(170개)와 1단계에서 합쳐진 SOC(31개)는 나뉨이 커서, 평균 KSCO 수가 5개를 넘는다.
+  \item \textbf{KSCO 쪽}: 절반 이상(268개, 54.3\%)이 ISCO 하나를 거쳐 SOC 2010 여럿을 받는다. 2단계의 N:1, 곧 ISCO가 SOC보다 거친 것이 KSCO 쪽 합쳐짐의 주된 원인이다. 3단계에서 ISCO 여럿을 받는 KSCO는 139개(28.1\%)이고, 평균 SOC 수가 6.88개로 가장 많다.
+\end{itemize}
+
+\subsection{극단 사례}
+
+표~\ref{tab:xsoc}과 표~\ref{tab:xksco}는 대응 수가 가장 많은 직업들이다.
+
+\begin{longtable}{L{1.5cm}L{9.6cm}R{1.6cm}R{1.4cm}R{1.4cm}}
+\caption{KSCO 수가 가장 많은 SOC 2018 직업 10개}\label{tab:xsoc}\\
+\toprule
+SOC 2018 & 직업 & SOC 2010 수 & ISCO 수 & KSCO 수 \\
+\midrule
+\input{../table/21_extreme_soc.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{1.3cm}L{7.6cm}R{1.6cm}R{1.9cm}R{1.9cm}}
+\caption{SOC 2018 수가 가장 많은 KSCO 직업 10개}\label{tab:xksco}\\
+\toprule
+KSCO & 직업 & ISCO 수 & SOC 2010 수 & SOC 2018 수 \\
+\midrule
+\input{../table/21_extreme_ksco.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{감독직}: 상위 10개 SOC 가운데 8개가 First-Line Supervisors다. 2단계에서 감독받는 직업들의 ISCO에 모두 연결되기 때문이다(4.3절). 가장 많은 Supervisors of Passenger Attendants(53-1044)는 SOC 2018에서 SOC 2010 감독직 2개를 합친 코드다. 하나는 운송 감독자(53-1031, ISCO 17개)이고, 다른 하나는 개인 서비스 감독자(39-1021, ISCO 10개)다. 이 코드는 ISCO 27개를 거쳐 KSCO 45개로 나뉜다.
+  \item \textbf{``All Other''에서 나온 신설 직업}: Project Management Specialists(13-1082)는 ``All Other'' 코드 3개를 거치므로, 관리자$\cdot$IT 전문가$\cdot$공연 기획자 등 KSCO 18개와 연결된다.
+  \item \textbf{대학 교원}: 대학교수(2611), 대학 강사(2612), 대학 교육 조교(2692)는 각각 SOC 37개를 받는다. ISCO 2310 하나에 대학 교원 SOC 37개가 모두 모이기 때문이다(2단계). 이 세 KSCO의 값은 37개 전공별 교원의 평균이 되므로, 전공 간 차이가 사라진다.
+\end{itemize}
+
+% ============================================================
+\section{특수 처리와 경로에서 빠지는 코드}
+% ============================================================
+
+\subsection{ISCO 3자리 연결}
+
+BLS 표에서 Physical Scientists, All Other(19-2099)는 ISCO 211(물리$\cdot$지구과학 전문가)에, Airfield Operations Specialists(53-2022)는 ISCO 315(선박$\cdot$항공기 관제사 및 기술자)에 3자리로 연결되어 있다. ISCO 세분류에 맞는 직업이 없어서다(BLS 설명 자료). KSCO 표는 ISCO 4자리만 쓰므로, 이 두 연결을 해당 소분류의 ISCO 4자리 전부로 펼쳤다(211 → 2111~2114, 315 → 3151~3155, 모두 9쌍). 각 4자리 코드는 대등한 연결로 다룬다. 이 두 SOC는 펼친 연결로만 KSCO와 이어진다. 19-2099는 KSCO 1개, 53-2022는 항공기 조종사(2381), 선장 및 항해사$\cdot$도선사(2382), 관제사(2383) 3개와 이어진다. 해당 쌍은 \texttt{isco3\_link} = 1로 표시했다(표~\ref{tab:flags}).
+
+\subsection{대분류를 벗어난 연계}
+
+통계청 표는 대분류가 다른 코드끼리 잇는 연계 75쌍을 표시한다. KSCO 대분류 2(전문가)는 ISCO 대분류 2와 3을 함께 포함하므로, 이 조합은 대분류를 벗어난 연계로 보지 않는다. 75쌍은 최종 연계표에서 228쌍으로 늘어나 SOC 146개에 영향을 준다. 그 가운데 SOC 38개는 이런 연계로만 KSCO와 이어진다. 이 연계는 공식 표의 판단이므로 그대로 두었다. 다만 직능 수준이 다른 직업이 섞이므로, 분석에서는 \texttt{ksco\_cross\_major}로 확인할 수 있게 했다.
+
+\begin{longtable}{L{5.6cm}R{1.6cm}R{1.6cm}R{1.6cm}R{2.4cm}R{1.6cm}}
+\caption{특수 처리된 연계의 규모}\label{tab:flags}\\
+\toprule
+항목 & 단계 쌍 & 최종 쌍 & SOC 수 & 이 연계로만 이어지는 SOC & KSCO 수 \\
+\midrule
+\input{../table/21_flags.tex}
+\bottomrule
+\end{longtable}
+
+\subsection{경로에서 빠지는 코드}
+
+표~\ref{tab:unlinked}는 한 표에는 있으나 다음 표에 없어 경로에서 빠지는 코드다.
+
+\begin{longtable}{L{4.4cm}L{6.2cm}L{2.6cm}L{2.8cm}}
+\caption{경로에서 빠지는 코드}\label{tab:unlinked}\\
+\toprule
+구분 & 코드 & 연결된 코드 & 영향 \\
+\midrule
+\input{../table/21_unlinked.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{BLS 표에만 있는 ISCO 5개}: 전통 마을 지도자(1113)와 자급 농어업(6310~6340)이다. 통계청 연계표의 안내(\texttt{3-1} 시트)는 이 다섯 ISCO를 연계에서 제외한 코드로 적고 있다. 이 ISCO와 연결된 SOC 2010 코드는 모두 다른 ISCO로도 이어진다. 따라서 SOC 직업은 하나도 빠지지 않고, 해당 연결만 경로에서 빠진다.
+  \item \textbf{KSCO 8631(일차전지 및 이차전지 제조 기계 조작원, KECO 8352)}: KECO 표에는 있으나 통계청 KSCO–ISCO 표에는 없다. 그래서 SOC와 이어지지 않는다. 이 직업에 값을 주려면 가까운 ISCO(예: 8212 Electrical and electronic equipment assemblers, 8189 Stationary plant and machine operators not elsewhere classified)를 골라 직접 연결해야 한다. 공식 표에 없는 판단이므로 이번에는 넣지 않았다.
+\end{itemize}
+
+% ============================================================
+\section{1:1이 아닌 대응의 처리: 가중치}
+% ============================================================
+
+\subsection{세 가지 가중치}
+
+1:1이 아닌 대응에서는 한 KSCO에 여러 SOC의 값을 어떻게 합칠지, 한 SOC의 양을 여러 KSCO에 어떻게 나눌지 정해야 한다. 고용 가중치는 쓰지 않았다. 각 단계에서 대응 코드 사이를 똑같이 나누었다(작업자 판단, report 17의 선행연구 비교 가능성을 우선함). SOC 2018 코드를 $s$, SOC 2010을 $c$, ISCO를 $i$, KSCO를 $k$라 하자. $C(s)$는 $s$와 대응하는 SOC 2010 집합이고, $S(c)$, $I(c)$, $C(i)$, $K(i)$, $I(k)$도 같은 방식으로 정의한다. 경로 $s \to c \to i \to k$에 대해 다음과 같다.
+\begin{align}
+  w^{\text{mean}}_{sk} &= \sum_{(c,i)} \frac{1}{|S(c)|}\cdot\frac{1}{|C(i)|}\cdot\frac{1}{|I(k)|}, & \sum_s w^{\text{mean}}_{sk} &= 1, \\
+  w^{\text{alloc}}_{sk} &= \sum_{(c,i)} \frac{1}{|C(s)|}\cdot\frac{1}{|I(c)|}\cdot\frac{1}{|K(i)|}, & \sum_k w^{\text{alloc}}_{sk} &= 1, \\
+  w^{\text{flat}}_{sk} &= \frac{1}{|\{s' : (s',k)\ \text{연결}\}|}, & \sum_s w^{\text{flat}}_{sk} &= 1.
+\end{align}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{\texttt{w\_mean}}: 노출도$\cdot$시간 절감처럼 비율로 된 지표에 쓴다. KSCO 값은 $x_k = \sum_s w^{\text{mean}}_{sk} x_s$다. 단계마다 단순평균을 이어 붙인 것과 같다. 먼저 SOC 2010 값을 대응 SOC 2018의 평균으로 구한다. 다음으로 ISCO 값을 대응 SOC 2010의 평균으로, 마지막으로 KSCO 값을 대응 ISCO의 평균으로 구한다. report 17이 정리한 단계별 평균 방식(김수현$\cdot$이정아 2026 등)과 같은 구조다.
+  \item \textbf{\texttt{w\_flat}}: KSCO에 연결된 SOC 2018을 단계와 상관없이 단순평균한다. 민감도 확인용이다.
+  \item \textbf{\texttt{w\_alloc}}: 대화 건수처럼 양으로 된 지표에 쓴다. KSCO 양은 $Y_k = \sum_s w^{\text{alloc}}_{sk} Y_s$다. SOC 하나의 양을 대응 SOC 2010, ISCO, KSCO에 단계마다 똑같이 나눈다. 따라서 KSCO 양의 합계는 SOC 양의 합계와 같다.
+\end{itemize}
+값이 없는 SOC가 있으면 그 쌍을 빼고, 한 KSCO 안에서 \texttt{w\_mean}을 다시 나누어 합을 1로 맞춘다.
+
+\subsection{계산 예시}
+
+표~\ref{tab:wksco}는 KSCO 2223(응용 소프트웨어 개발자)의 평균 가중치다. 이 KSCO는 ISCO 3개(2512 Software developers, 2513 Web and multimedia developers, 2514 Applications programmers)를 받는다. 그래서 \texttt{w\_mean}은 먼저 ISCO마다 1/3씩 준다. ISCO 2514는 Computer Programmers(15-1251) 하나에서만 오므로, 이 SOC가 1/3을 모두 받는다. ISCO 2512는 SOC 2010 둘에서 오고, 그 SOC 2010이 다시 SOC 2018 둘로 나뉜다. 그래서 15-1252와 15-1253이 1/6씩 받는다. \texttt{w\_flat}은 SOC 5개에 1/5씩 준다.
+
+\begin{longtable}{L{6.6cm}L{2.6cm}L{1.6cm}R{1.6cm}R{1.6cm}}
+\caption{평균 가중치 예시: KSCO 2223 응용 소프트웨어 개발자}\label{tab:wksco}\\
+\toprule
+SOC 2018 & 거친 SOC 2010 & 거친 ISCO & \texttt{w\_mean} & \texttt{w\_flat} \\
+\midrule
+\input{../table/21_w_ksco.tex}
+\bottomrule
+\end{longtable}
+
+표~\ref{tab:wsoc}는 SOC 쪽 배분 가중치다. Software Developers(15-1252)는 ISCO 2512를 거쳐 KSCO 2개로 가므로 양을 절반씩 나눈다. Project Management Specialists(13-1082)는 SOC 2010 3개, ISCO 11개를 거쳐 KSCO 18개로 나뉜다. 그래서 배분 가중치가 0.016~0.167로 작게 흩어진다.
+
+\begin{longtable}{L{1.4cm}L{6.0cm}L{1.9cm}L{2.0cm}R{1.5cm}R{1.5cm}}
+\caption{배분 가중치 예시: SOC 15-1252, 13-1082}\label{tab:wsoc}\\
+\toprule
+SOC 2018 & KSCO & 거친 SOC 2010 & 거친 ISCO & \texttt{w\_alloc} & \texttt{w\_mean} \\
+\midrule
+\endfirsthead
+\toprule
+SOC 2018 & KSCO & 거친 SOC 2010 & 거친 ISCO & \texttt{w\_alloc} & \texttt{w\_mean} \\
+\midrule
+\endhead
+\input{../table/21_w_soc.tex}
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{이 프로젝트의 자료에 주는 영향}
+% ============================================================
+
+\subsection{나뉘는 직업의 비중}
+
+표~\ref{tab:coverage}는 프로젝트의 SOC 자료에 있는 직업을 KSCO 수 구간별로 나눈 것이다. 함께 결합된 AI 지표 4종(\texttt{soc6\_ai\_indicators}, 808개)과 2026년 5월 한국 업무용 대화량(365개, $k = 3$)을 보았다. 모든 직업이 연계표와 매칭된다. 남는 것은 농림어업 미공개 몫을 담은 자리표시 코드 \texttt{45-XXXX}뿐이며, 2026년 5월에는 비중이 0이다.
+
+\begin{longtable}{L{4.2cm}R{2.4cm}R{2.4cm}R{2.4cm}R{3.2cm}}
+\caption{SOC 하나당 KSCO 수 구간별 직업 수와 한국 대화 비중}\label{tab:coverage}\\
+\toprule
+SOC 하나당 KSCO 수 & SOC 2018 전체 & AI 지표 4종 & 한국 대화량 & 한국 업무용 대화 비중(\%) \\
+\midrule
+\input{../table/21_coverage.tex}
+\bottomrule
+\end{longtable}
+
+한국 업무용 대화의 30.5\%만 KSCO 하나로 그대로 옮겨진다. 나머지 69.5\%는 KSCO 둘 이상으로 나뉘는 SOC 직업에서 나온다. 표~\ref{tab:topconv}는 대화 비중 상위 10개 직업의 배분이다.
+
+\begin{longtable}{L{4.6cm}R{1.2cm}R{1.2cm}L{9.0cm}}
+\caption{한국 업무용 대화 비중 상위 10개 SOC 직업의 KSCO 배분(2026-05, 괄호 안은 \texttt{w\_alloc})}\label{tab:topconv}\\
+\toprule
+SOC 2018 & 비중(\%) & KSCO 수 & KSCO 배분 \\
+\midrule
+\endfirsthead
+\toprule
+SOC 2018 & 비중(\%) & KSCO 수 & KSCO 배분 \\
+\midrule
+\endhead
+\input{../table/21_top_conv.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Computer Occupations, All Other(15-1299, 한국 대화의 9.7\%)}: SOC 2018에서 SOC 2010의 Computer Occupations, All Other(15-1199)와 Computer Operators(43-9011)를 합친 코드다. 그래서 절반은 Computer Operators의 ISCO 3511을 거쳐 정보 시스템 운영자(2251)로 가고, 나머지 절반은 소프트웨어$\cdot$정보 보안 전문가 3개로 나뉜다. AEI는 이 코드 안의 O*NET 세분 직업(Web Administrators 등) 대화를 합해 보여 주므로, 실제 과업과 KSCO 배분이 어긋날 수 있다.
+  \item \textbf{Writers and Authors(27-3043, 4.7\%)}: BLS가 ISCO 2641(작가)과 2431(광고$\cdot$마케팅 전문가)에 함께 연결한다. SOC 정의상 광고 문안 작성자(copywriter)가 이 직업에 포함되기 때문으로 보인다(BLS 표에 연결 사유는 적혀 있지 않음). 그래서 대화의 절반이 상품 기획 전문가, 여행 상품 개발자, 광고 및 홍보 전문가로 간다. 이 가운데 여행 상품 개발자는 원래 직업과의 관련이 약하다. 3단계에서 ISCO 2431이 KSCO 3개로 똑같이 나뉘기 때문에 생기는 결과다.
+  \item 그 밖의 상위 직업(사서, 기자, 컴퓨터 시스템 분석가 등)은 KSCO 1~3개로 비교적 자연스럽게 대응한다.
+\end{itemize}
+
+\subsection{값의 희석}
+
+평균 가중치는 여러 SOC의 값을 평균하므로 분포가 좁아진다. 표~\ref{tab:dilution}은 observed exposure(SOC 756개)를 KSCO로 옮긴 결과다. KSCO 494개 가운데 값이 있는 SOC와 연결된 480개가 대상이다.
+
+\begin{longtable}{L{5.2cm}R{1.2cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.6cm}}
+\caption{observed exposure의 분포: SOC 원 값 대 KSCO로 옮긴 값}\label{tab:dilution}\\
+\toprule
+ & 직업 수 & 평균 & 표준편차 & 중앙값 & 90백분위 & 최댓값 & 0인 직업 \\
+\midrule
+\input{../table/21_dilution.tex}
+\bottomrule
+\end{longtable}
+
+평균은 거의 같다(0.077 대 0.075). 그러나 표준편차는 0.133에서 0.108로, 최댓값은 0.745에서 0.504로 줄어든다. 값이 0인 직업의 비율도 54\%(411/756)에서 28\%(134/480)로 낮아진다. 노출도가 높은 SOC 직업이 노출도가 낮은 직업과 같은 KSCO로 묶이기 때문이다. \texttt{w\_mean}과 \texttt{w\_flat}의 결과는 거의 같다. 참고로, 연결된 SOC의 최댓값을 쓰면(노희용 외 2025의 대안) 평균이 0.134로 높아진다. 따라서 KSCO로 옮긴 값은 순위와 상대 비교에 쓰는 것이 안전하다. 절대 수준을 SOC 원 값과 직접 비교해서는 안 된다(report 17이 정리한 김수현$\cdot$이정아 2026의 해석 방식과 같다).
+
+% ============================================================
+\section{한계와 유의점}
+% ============================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{균등 배분 가정.} 모든 가중치는 각 단계에서 대응 코드를 똑같이 다룬다. 고용 규모가 크게 다른 직업이 같은 무게를 받는다. 예를 들어 운송 감독자의 양이 버스 운전원과 선박 기관사 쪽에 똑같이 나뉜다. 미국 OEWS 고용(SOC 쪽)이나 한국 지역별고용조사 고용(KSCO 쪽)을 가중치로 쓰는 민감도 분석이 필요하다.
+  \item \textbf{공식 표의 연결 원칙이 그대로 들어온다.} 감독직 연결 원칙, ``All Other'' 코드, 광고 문안 작성자처럼 직업 범위가 넓은 SOC는 의미가 먼 KSCO까지 연결된다. 대화량처럼 직업 비중이 큰 지표에서는 상위 직업의 배분(표~\ref{tab:topconv})을 직접 점검하는 것이 좋다.
+  \item \textbf{SOC 2018 → SOC 2010 역방향 사용.} BLS 연계표는 SOC 2010 → 2018 방향으로 만들어졌다. 이를 거꾸로 쓰므로, SOC 2018 신설 직업(예: 13-1082)은 원천 ``All Other'' 코드 전체의 ISCO를 물려받는다.
+  \item \textbf{통계청 권고와의 차이.} KSCO–ISCO 연계표의 일러두기는 세분류 수준에서 ILO 규칙(수적 우위 → 직능 수준 → 생산직 우선)을 적용해 1:1로 맞춘 뒤 쓰기를 권고한다. 본 연계표는 선행연구와의 비교를 위해 모든 대응을 남기고 평균했다. 1:1 규칙을 적용한 연계는 민감도 분석으로 남긴다.
+  \item \textbf{과업의 직업 대 사람의 직업.} AEI의 SOC는 대화 과업이 속한 직업이다. KSCO로 옮긴 대화량을 한국 종사자 수와 비교할 때는 이 차이를 해석에 반영해야 한다(report 19, 20).
+\end{enumerate}
+
+% ============================================================
+\section{재현}
+% ============================================================
+
+Stata 17에서 다음 두 do 파일을 차례로 실행한다.
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{code/01\_import\_soc2018\_ksco8\_crosswalk.do}: \texttt{data/raw/exposure/bls\_soc\_crosswalk/}의 연계표 4개(\texttt{soc\_2018/}, \texttt{isco08\_soc/}, \texttt{isco08\_ksco08/})를 읽는다. 연계표 3종(\texttt{soc2018\_ksco8\_\{crosswalk,paths,stages\}})을 만든다.
+  \item \texttt{code/04\_analysis\_soc2018\_ksco8\_crosswalk\_summary.do}: 위 연계표와 \texttt{soc6\_ai\_indicators}, 한국 대화량 파일을 읽는다. 본 문서의 표(\texttt{results/table/21\_*.tex})와 \texttt{21\_soc2018\_ksco8\_crosswalk.xlsx}(SOC별$\cdot$KSCO별 대응 수)를 만든다.
+\end{enumerate}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

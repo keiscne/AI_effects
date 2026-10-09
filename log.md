@@ -489,3 +489,10 @@
   - 두 출력 파일(`soc2018_ksco8_paths`, `soc2018_ksco8_crosswalk`)에 `keco2025`, `keco2025_title` 열 추가. 1:1이므로 가중치는 그대로이고 `w_mean`·`w_flat`은 keco2025 안에서도 합 1(assert). 파일명은 그대로 둠.
   - 범위: KSCO 494개 모두 KECO와 대응(군인 A011~A090 → KECO 2501~2509). KECO 495개 중 KECO 8352(KSCO 8631 일차전지 및 이차전지 제조 기계 조작원)는 통계청 KSCO–ISCO 연계표에 없어 SOC와 이어지지 않음. KSCO 명칭 표기 차이 4개(가운뎃점 문자, 띄어쓰기)는 KSCO–ISCO 표 명칭을 씀.
   - 매칭 키: `keco2025`(str4, 앞자리 0 포함).
+- 보고서 21 작성(사용자 요청: SOC 2018 → KSCO 8차 연계 과정, 1:1이 아닌 대응의 상세 설명 필수). `results/paper/21_SOC2018_KSCO8_연계표_구축.{tex,md,docx,pdf}`.
+  - `code/01_import_soc2018_ksco8_crosswalk.do` 수정: 단계별 연계쌍(정리 후 4개 표, 3,227행)을 `soc2018_ksco8_stages.{csv,dta}`로 추가 저장. 기존 두 출력은 그대로.
+  - 새 do 파일 `code/04_analysis_soc2018_ksco8_crosswalk_summary.do`(Stata 17 배치 실행, 오류 없음): `results/table/21_{sources,types,multi,examples,dist,pattern_soc,pattern_ksco,extreme_soc,extreme_ksco,w_ksco,w_soc,flags,unlinked,coverage,top_conv,dilution}.tex`, `21_soc2018_ksco8_crosswalk.xlsx`(시트 soc2018, ksco8: 직업별 대응 수와 경로 유형).
+  - 대응 유형(쌍 단위, 왼쪽 = SOC 2018 쪽): 1:1 비율 1단계 85.1%, 2단계(SOC 2010–ISCO) 8.3%, 3단계(ISCO–KSCO) 18.0%, 4단계(KSCO–KECO) 100%, 최종 1.2%(2,412쌍 중 29쌍). SOC 351개(40.5%)만 KSCO 1개, KSCO 421개(85.2%)가 SOC 2개 이상.
+  - 원인 정리: 2단계 ISCO가 SOC보다 거침(ISCO 2310 ← 대학 교원 SOC 37개), BLS 감독직 연결 원칙(감독직 → 가장 숙련된 피감독 직업의 ISCO, 53-1044는 KSCO 45개; BLS 설명 PDF에서 확인), "All Other"에서 나온 SOC 2018 신설 직업(13-1082, KSCO 18개), 3단계 양방향 엇갈림과 대분류 벗어난 연계(75쌍 → 최종 228쌍, SOC 146개).
+  - 영향: 한국 업무용 대화(2026-05, k = 3)의 69.5%가 KSCO 2개 이상으로 나뉘는 SOC에서 나옴. 15-1299(9.7%)는 절반이 Computer Operators 경로로 정보 시스템 운영자(2251)에, 27-3043 Writers and Authors(4.7%)는 ISCO 2431 경로로 상품 기획·여행 상품·광고 직업에 절반이 감. observed exposure를 w_mean으로 옮기면 표준편차 0.133 → 0.108, 최댓값 0.745 → 0.504(희석).
+  - `.md`는 템플릿(표 자리표시)을 `results/table/21_*.tex`로 채움. `.docx`/`.pdf`는 이전과 같은 파이프라인(md → node HTML → Word COM, A4·여백 72pt, 표 17개 열 폭 표별 지정). 19쪽. PDF를 이미지로 렌더링해 표 확인. `.tex`는 로컬에 TeX가 없어 컴파일하지 않음.
