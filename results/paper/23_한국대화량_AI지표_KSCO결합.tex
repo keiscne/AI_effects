@@ -1,0 +1,248 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 한국 직업별 AI 대화량과 SOC AI 지표의 결합, KSCO 8차 변환과 특이사항.
+% 표 본문: results/table/23_*.tex (code/04_analysis_kor_ksco8_merge_summary.do가 생성)
+% 결합 파일: code/03_merge_kor_conv_ai_ksco8.do → data/proc/merged/kor_{soc6,ksco8}_conv_ai_indicators
+% 관련: paper 19(한국 대화량), paper 20(observed exposure 매칭), paper 21(연계표), report 22(연계표 비교)
+% 컴파일: xelatex (kotex 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{한국 AI 대화량$\cdot$AI 지표의 KSCO 8차 결합\\[2mm]
+\large --- 결합 절차와 연계표 결합에서 생긴 특이사항 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 한국 직업별 월간 업무용 AI 대화량(paper 19)과 SOC 2018 세부 직업별 AI 지표 4종(시간 절감, observed exposure, Eloundou 노출도, Felten AIOE)을 먼저 SOC 단위에서 결합했다. 이어 이 저장소의 SOC 2018–KSCO 8차 연계표(paper 21)로 KSCO 세분류 494개(KECO 2025 포함)로 옮겼다. 대화량은 배분 가중치(\texttt{w\_alloc})로 나누었고, AI 지표는 평균 가중치(\texttt{w\_mean})로 평균했다. 월별 KSCO 대화량의 합은 SOC 대화량의 합과 같다(do 파일에서 확인). 연계표 결합에서 생긴 주요 특이사항은 다섯 가지다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{미공개 대화량}: KSCO의 대화량은 연결된 SOC 중 공개된 것만 더한 값이다. 2026년 5월 KSCO 157개는 공개된 SOC가 하나도 없어 결측이다. KSCO 228개(업무용 대화의 44.3\%)는 일부 SOC만 공개되어 대화량이 하한값이다.
+  \item \textbf{값이 같은 KSCO}: KSCO 201개(74개 묶음)는 연결된 SOC와 가중치가 같아 대화량과 지표가 모두 같다. 작가와 출판물 전문가, 대학교수$\cdot$대학 강사$\cdot$대학 교육 조교가 그 예다.
+  \item \textbf{곱한 양은 SOC에서 계산}: 대화 수 $\times$ 절감 시간 같은 곱은 SOC에서 계산한 뒤 배분해야 한다. 총량은 두 방법이 거의 같지만(100.1\%), KSCO별로는 337개 중 201개에서 10\% 넘게 다르다.
+  \item \textbf{``All Other'' 직업의 해석}: 대화량이 큰 SOC 일부는 실제로는 O*NET 세분 직업의 대화다. 예를 들어 15-1299(Web Administrators, 한국 업무용 대화의 9.7\%)가 그렇다. 연계표는 이를 ``All Other'' 범주 전체로 옮긴다.
+  \item \textbf{기타}: 4월의 농림어업 자리표시 행(0.04\%)은 배분되지 않는다. 지표 결측은 적다. 대화량이 있는데 observed exposure가 없는 KSCO는 3개(업무용 대화 0.23\%)다.
+\end{itemize}
+\end{abstract}
+
+\tableofcontents
+
+% ============================================================
+\section{목적과 산출 파일}
+% ============================================================
+
+이 저장소에는 SOC 2018 세부 직업(6자리) 단위로 만든 자료가 두 가지 있다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{한국 업무용 AI 대화량}: \texttt{sensortower\_aei\_kor\_soc6\_conversations.dta}. 월 $\times$ SOC, 2026년 4월 337행, 5월 365행(paper 19).
+  \item \textbf{AI 지표}: \texttt{soc6\_ai\_indicators.dta}. SOC 808개에 AEI 시간 절감, observed exposure, Eloundou 노출도, Felten AIOE를 결합한 파일이다.
+\end{itemize}
+본 노트는 두 자료를 결합하고 SOC 2018–KSCO 8차 연계표(paper 21)로 한국 직업분류에 옮긴 과정을 기록한다. 특히 연계표 결합에서 생긴 특이사항을 정리한다. 결합은 \texttt{code/03\_merge\_kor\_conv\_ai\_ksco8.do}가 하고, 산출 파일은 \texttt{data/proc/merged/}에 있다.
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{kor\_soc6\_conv\_ai\_indicators.\{csv,dta\}}: 월 $\times$ SOC. AI 지표가 있는 808개 직업 $\times$ 2개월에 4월 자리표시 행 \texttt{45-XXXX} 1행을 더해 1,617행이다. 대화량이 공개되지 않은 직업은 대화량 변수가 결측이고 \texttt{conv\_pub} = 0이다.
+  \item \texttt{kor\_ksco8\_conv\_ai\_indicators.\{csv,dta\}}: 월 $\times$ KSCO. 연계표의 KSCO 494개 $\times$ 2개월 = 988행이다. KECO 2025 코드와 명칭을 함께 둔다.
+\end{enumerate}
+
+% ============================================================
+\section{SOC 단계 결합}
+% ============================================================
+
+매칭 키는 월과 \texttt{soc6}다. AI 지표 파일 808개 직업을 월마다 뼈대로 두고 대화량을 붙였다. 대화량이 없는 직업을 버리지 않은 것은, 이 직업들도 KSCO 쪽 연결에는 들어가기 때문이다(4.1절). 표~\ref{tab:socmerge}는 결합 결과다.
+
+\begin{longtable}{L{6.6cm}R{1.8cm}R{2.2cm}R{1.8cm}R{2.2cm}}
+\caption{SOC 단계 결합 결과(비중은 한국 업무용 대화 \texttt{share\_work} 기준)}\label{tab:socmerge}\\
+\toprule
+ & \multicolumn{2}{c}{2026-04} & \multicolumn{2}{c}{2026-05} \\
+ & 직업 수 & 비중(\%) & 직업 수 & 비중(\%) \\
+\midrule
+\input{../table/23_soc_merge.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{대화량 직업은 모두 AI 지표 파일에 있다.} 예외는 4월의 \texttt{45-XXXX} 하나다. 이 행은 농림어업 대분류에 공개된 세부 직업이 없어, 대분류 몫을 한 행에 둔 자리표시다(paper 19). 업무용 대화의 0.04\%에 해당한다.
+  \item \textbf{지표 보유}: 시간 절감과 Eloundou 노출도는 대화량 직업 전부에 있다. observed exposure는 5월 365개 중 342개에만 있다(paper 20의 23개 미매칭과 같음). 대화 비중으로는 98.2\%를 덮는다.
+  \item \textbf{미공개는 0이 아니다.} AI 지표 808개 중 5월 443개는 한국 대화량이 공개되지 않았다. 이 직업의 대화량은 0으로 두지 않고 결측으로 두었다(paper 20의 유의점).
+  \item \textbf{명칭 차이}: 두 파일의 직업 명칭이 다른 SOC가 5월에 21개 있다. 그중 20개는 AEI가 .00 코드를 공개하지 않아, O*NET 세분 직업의 이름이 AEI 명칭(\texttt{soc6\_title\_aei})으로 들어온 경우다. 예를 들어 15-1299는 SOC 명칭이 Computer Occupations, All Other이고, AEI 명칭은 Web Administrators다. 이 문제는 4.5절에서 다시 다룬다.
+\end{itemize}
+
+% ============================================================
+\section{KSCO 변환 규칙}
+% ============================================================
+
+SOC 2018 코드를 $s$, KSCO를 $k$라 하자. 가중치는 paper 21의 연계표에서 가져온다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{양(대화 수 \texttt{conv\_k*}, 비중 \texttt{share\_work}, \texttt{pct})}: $Y_k = \sum_s w^{\text{alloc}}_{sk} Y_s$. 대화량이 공개된 SOC만 더한다. 연결된 SOC 가운데 공개된 것이 없으면 결측이다.
+  \item \textbf{비율 지표(시간 절감, observed exposure, Eloundou, Felten)}: $x_k = \sum_s w^{\text{mean}}_{sk} x_s / \sum_s w^{\text{mean}}_{sk}$. 값이 있는 SOC만 쓰고, 그 SOC의 가중치 합으로 다시 나눈다.
+  \item \textbf{덮개 변수}: 값이 있는 SOC의 $w^{\text{mean}}$ 합을 \texttt{cov\_aei}, \texttt{cov\_obs}, \texttt{cov\_elo}, \texttt{cov\_felten}으로 둔다. 대화량이 공개된 SOC의 $w^{\text{mean}}$ 합은 \texttt{conv\_cover}다. 모두 0~1이고, 1이면 연결된 SOC 전부에 값이 있다.
+  \item \textbf{보조 변수}: 연결된 SOC 수는 \texttt{n\_soc\_link}, 그중 대화량이 공개된 SOC 수는 \texttt{n\_soc\_conv}다.
+\end{itemize}
+AI 지표는 월과 무관하다. 시간 절감은 2026년 4$\cdot$5월을 합친 값이다. 그래서 두 달에 같은 값이 들어간다. 또한 시간 절감은 AEI의 전 세계(GLOBAL) 값이다. 세부 직업 단위의 시간 지표는 국가별로 공개되지 않기 때문이다. 이 값은 한국 대화량과 짝지어 쓰지만 한국 값은 아니다.
+
+% ============================================================
+\section{연계표 결합에서 생긴 특이사항}
+% ============================================================
+
+\subsection{연계표에는 있으나 AI 지표가 없는 SOC 59개}
+
+연계표의 SOC 2018은 867개이고, AI 지표 파일은 808개다. 나머지 59개는 어느 지표 자료에도 없는 SOC다(paper 21 표 15). 이 59개 SOC가 연결된 쌍(169쌍)도 KSCO 쪽에 남겼다. 그래서 \texttt{n\_soc\_link}가 연계표의 SOC 수(\texttt{n18\_perk})와 같다. 이 SOC들은 값이 없으므로 지표 평균에서는 빠지고, 덮개 변수를 1보다 작게 만든다.
+
+\subsection{4월 자리표시 행은 배분되지 않는다}
+
+\texttt{45-XXXX}는 SOC 세부 직업 코드가 아니어서 연계표에 없다. 따라서 2026년 4월 KSCO 대화량의 합은 업무용 대화의 99.96\%다(표~\ref{tab:kscoconv}의 합계). 이 몫을 농림어업 관련 KSCO에 고르게 나누는 방법도 있으나, 대상 직업을 정할 근거가 없어 하지 않았다.
+
+\subsection{대화량 공개 범위: 결측과 하한값}
+
+\begin{longtable}{L{4.6cm}R{1.2cm}R{1.8cm}R{1.8cm}R{1.2cm}R{1.8cm}R{1.8cm}}
+\caption{KSCO 494개의 대화량 공개 범위}\label{tab:kscoconv}\\
+\toprule
+ & \multicolumn{3}{c}{2026-04} & \multicolumn{3}{c}{2026-05} \\
+연결된 SOC의 대화량 공개 & KSCO 수 & 대화 비중(\%) & 평균 \texttt{conv\_cover} & KSCO 수 & 대화 비중(\%) & 평균 \texttt{conv\_cover} \\
+\midrule
+\input{../table/23_ksco_conv.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{대화량 결측 KSCO}: 5월 기준 157개(4월 182개)다. 연결된 SOC가 모두 미공개이므로, 대화량이 ``공개 기준 미만''이라는 뜻이지 0이라는 뜻이 아니다. 157개 중 93개가 KSCO 대분류 7(기능원)과 8(장치$\cdot$기계 조작 및 조립 종사자)이고, 군인 5개도 모두 여기에 든다.
+  \item \textbf{일부만 공개된 KSCO}: 5월 기준 228개다. 업무용 대화의 44.3\%가 이 KSCO들에 들어간다. 대화량은 공개된 SOC 몫만 더한 값이므로 하한값이다. 다만 미공개 SOC의 몫은 국가 전체로도 1.92\% 안이라(paper 20), 과소 정도는 작을 것으로 보인다.
+  \item 표~\ref{tab:partial}은 일부 공개 KSCO 가운데 대화량이 큰 10개다. 통계$\cdot$데이터 관련 사무원(3320)은 연결된 SOC 12개 중 8개, 자연과학 시험원(2133)은 18개 중 11개만 공개되었다.
+\end{itemize}
+
+\begin{longtable}{L{8.4cm}R{2.4cm}R{2.6cm}R{2.4cm}}
+\caption{2026-05 대화량 일부 공개 KSCO 중 대화량 상위 10개}\label{tab:partial}\\
+\toprule
+KSCO & 대화 비중(\%) & 공개 SOC / 연결 SOC & \texttt{conv\_cover} \\
+\midrule
+\input{../table/23_partial.tex}
+\bottomrule
+\end{longtable}
+
+\subsection{값이 같아지는 KSCO}
+
+연계표에서 연결된 SOC 집합과 가중치(\texttt{w\_mean}, \texttt{w\_alloc})가 같은 KSCO는 대화량과 모든 지표가 같은 값을 받는다. 이런 KSCO가 201개(74개 묶음)로, KSCO 494개의 41\%다. 표~\ref{tab:twins}는 대화량이 큰 묶음이다.
+
+\begin{longtable}{L{11.4cm}R{1.6cm}R{2.8cm}}
+\caption{값이 같아지는 KSCO 묶음(대화량 상위 12개, 비중은 KSCO 하나당 2026-05 업무용 대화 비중)}\label{tab:twins}\\
+\toprule
+KSCO 묶음 & KSCO 수 & 대화 비중(\%) \\
+\midrule
+\endfirsthead
+\toprule
+KSCO 묶음 & KSCO 수 & 대화 비중(\%) \\
+\midrule
+\endhead
+\input{../table/23_twins.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{원인}: 주로 ISCO 하나가 KSCO 여럿으로 나뉘는 3단계 1:N이다. 예를 들어 ISCO 2641(Authors and related writers)은 작가(2911)와 출판물 전문가(2912)로 나뉜다. 두 KSCO는 같은 SOC들의 값을 같은 비율로 받는다. 대학교수$\cdot$대학 강사$\cdot$대학 교육 조교는 ISCO 2310 하나를 나눠 받는다.
+  \item \textbf{의미가 먼 묶음}: 상품 기획 전문가와 여행 상품 개발자는 ISCO 2431(광고$\cdot$마케팅 전문가)을 나눠 받는다. 그래서 Writers and Authors의 대화가 여행 상품 개발자에게도 같은 크기로 간다(paper 21, 8.1절).
+  \item \textbf{분석상 유의점}: 같은 묶음 안의 KSCO는 AI 지표에 변이가 없다. KSCO 단위 회귀에서는 묶음 내부의 고용$\cdot$임금 차이가 AI 지표로 설명될 수 없다. 표준오차는 묶음(또는 ISCO) 단위로 군집화하는 것을 검토해야 한다. KSCO 단위 결과를 보고할 때 묶음 안의 순위를 해석해서는 안 된다.
+\end{itemize}
+
+\subsection{``All Other'' 직업과 O*NET 세분 직업}
+
+AEI의 직업 단위는 O*NET-SOC 8자리다. .00 코드가 공개되지 않고 세분 직업(.01 이상)만 공개된 SOC는, 그 세분 직업의 대화가 SOC 전체의 대화로 합산된다(paper 20). 한국 대화량에서 이런 SOC가 20개다. 이 가운데 대화량이 큰 것은 대부분 ``All Other'' 범주다. 대표적인 예는 15-1299(Computer Occupations, All Other, 실제 대화는 Web Administrators, 업무용 대화의 9.7\%)다. 이 밖에 17-2199(Energy Engineers 등), 19-1029(Bioinformatics Scientists), 13-1199(Business Continuity Planners), 19-4099(Quality Control Analysts), 15-2099(Bioinformatics Technicians)가 있다. 연계표는 이 대화를 ``All Other'' 범주 전체의 ISCO로 보낸다. 그래서 실제 과업과 KSCO 배분이 어긋날 수 있다. 15-1299의 대화 절반이 정보 시스템 운영자(2251)로 가서 이 KSCO가 한국 업무용 대화 1위(7.25\%)가 되는 것이 그 예다(표~\ref{tab:top}).
+
+\begin{longtable}{L{6.4cm}R{1.6cm}R{1.8cm}R{1.8cm}R{1.8cm}R{2.2cm}}
+\caption{2026-05 업무용 대화 상위 15개 KSCO}\label{tab:top}\\
+\toprule
+KSCO & 대화 비중(\%) & 대화 수(만 건, $k$ = 3) & 공개 / 연결 SOC & 시간 절감(분) & observed exposure \\
+\midrule
+\input{../table/23_top_ksco.tex}
+\bottomrule
+\end{longtable}
+
+\noindent 상위 KSCO에는 자연과학 시험원(2133, 2.51\%)도 있다. 이 대화의 69\%는 ISCO 3314(통계$\cdot$수학 준전문가)를 거쳐 들어온다. Data Scientists(15-2051)와 Statistical Assistants(43-9111) 등의 대화가 그 경로를 탄다. 통계청 공식 연계(3314 → 2133, 3320)를 따른 결과지만, 의미상 통계$\cdot$데이터 관련 사무원(3320)에 더 가깝다. 이 연계는 report 22에서 외부 연계표가 공백 때문에 빠뜨린 바로 그 연계다. 어느 쪽을 쓰느냐에 따라 2133의 대화량이 크게 달라진다.
+
+\subsection{AI 지표의 덮개와 결측}
+
+\begin{longtable}{L{3.6cm}R{1.4cm}R{1.4cm}R{1.6cm}R{1.6cm}R{1.6cm}R{1.4cm}R{2.4cm}}
+\caption{지표별 SOC$\cdot$KSCO 보유와 덮개(KSCO는 2026-05)}\label{tab:indcov}\\
+\toprule
+지표 & SOC 수 & KSCO 수 & 덮개 = 1 & 덮개 $<$ 1 & 평균 덮개 & 결측 KSCO & 결측 KSCO의 대화 비중(\%) \\
+\midrule
+\input{../table/23_ind_cov.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{시간 절감}: SOC 613개에만 있어 KSCO 39개가 결측이다. 그러나 결측 KSCO의 한국 대화 비중은 0이다. 한국 대화량이 공개된 SOC는 모두 전 세계 시간 지표도 공개되어 있기 때문이다(표~ef{tab:socmerge}). 대신 KSCO 225개는 덮개가 1보다 작다(평균 0.80). 이 KSCO의 시간 절감은 연결된 SOC 일부의 평균이다.
+  \item \textbf{observed exposure}: KSCO 14개가 결측이다. 이 가운데 대화량이 있는 KSCO는 3개로, 업무용 대화의 0.23\%다(표~\ref{tab:missind}).
+  \item \textbf{Eloundou, Felten}: 덮개가 높고(평균 0.94~0.95) 결측 KSCO의 대화 비중도 0이다.
+\end{itemize}
+
+\begin{longtable}{L{8.4cm}R{2.4cm}R{2.6cm}R{2.4cm}}
+\caption{2026-05 대화량은 있으나 observed exposure가 없는 KSCO}\label{tab:missind}\\
+\toprule
+KSCO & 대화 비중(\%) & 공개 / 연결 SOC & 시간 절감(분) \\
+\midrule
+\input{../table/23_miss_ind.tex}
+\bottomrule
+\end{longtable}
+
+\subsection{곱한 양은 SOC 단계에서 계산해야 한다}
+
+``대화 수 $\times$ 대화당 절감 시간''처럼 양과 비율을 곱한 총량은 SOC에서 곱한 뒤 \texttt{w\_alloc}으로 배분해야 한다(A). KSCO 파일의 배분된 대화 수와 KSCO 평균 절감 시간을 곱하면(B) 다른 값이 나온다. 표~\ref{tab:product}는 2026년 5월 업무용 대화($k$ = 3)로 두 방법을 비교한 것이다.
+
+\begin{longtable}{L{10.6cm}R{2.8cm}R{2.4cm}}
+\caption{2026-05 총 절감 시간: SOC에서 곱함(A) 대 KSCO에서 곱함(B)}\label{tab:product}\\
+\toprule
+ & 백만 시간 & (A) 대비(\%) \\
+\midrule
+\input{../table/23_product.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{총량}: 두 방법의 차이는 0.1\%로 작다. 그러나 KSCO별로는 337개 중 201개에서 10\% 넘게 다르다. 차이의 중앙값은 0이고, 사분위 범위는 $-14$\%~$+15$\%, 최대는 $+269$\%다.
+  \item \textbf{원인}: (B)는 KSCO 평균 절감 시간을 대화량과 무관하게 같은 가중치(\texttt{w\_mean})로 만든다. 대화가 많은 SOC와 적은 SOC의 절감 시간이 같은 무게로 섞이고, 대화량은 \texttt{w\_alloc}으로 따로 배분된다. 두 가중치가 다르므로 곱의 합이 맞지 않는다.
+  \item \textbf{권고}: 총 절감 시간, 노출도 가중 대화량 같은 곱은 SOC 파일(\texttt{kor\_soc6\_conv\_ai\_indicators})에서 계산한 뒤 연계표의 \texttt{w\_alloc}으로 KSCO에 배분한다. KSCO 파일의 지표 평균은 ``그 KSCO에 연결된 미국 직업들의 평균적 특성''으로만 쓴다.
+\end{itemize}
+
+\subsection{KECO 2025}
+
+KSCO와 KECO는 1:1이므로, KECO 기준 분석에는 \texttt{keco2025}를 키로 같은 파일을 쓰면 된다. KECO 8352(KSCO 8631, 일차전지 및 이차전지 제조 기계 조작원)는 연계표에 없어 이 파일에도 없다(paper 21, 6.3절).
+
+% ============================================================
+\section{정리}
+% ============================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item SOC 단계 결합은 문제가 거의 없다. 대화량 직업은 모두 AI 지표 파일에 있고, 지표 결측도 대화 비중으로 2\% 미만이다.
+  \item 연계표 결합에서는 1:1이 아닌 대응 때문에 네 가지를 주의해야 한다. 첫째, 대화량이 결측이거나 하한값인 KSCO가 있다. 둘째, KSCO의 41\%가 다른 KSCO와 같은 값을 받는다. 셋째, 곱한 양은 SOC에서 계산해야 한다. 넷째, ``All Other''와 O*NET 세분 직업의 대화가 넓게 배분된다.
+  \item 대화량 상위 KSCO는 연계 경로에 민감하다. 정보 시스템 운영자(15-1299 경로)와 자연과학 시험원(ISCO 3314 경로)이 대표적이다. KSCO 단위 결과를 해석할 때는 \texttt{soc2018\_ksco8\_crosswalk}의 \texttt{via\_soc2010}, \texttt{via\_isco08}로 경로를 확인한다.
+\end{enumerate}
+
+% ============================================================
+\section{재현}
+% ============================================================
+
+Stata 17에서 다음 순서로 실행한다. 1번의 세 파일은 기존 결과를 만드는 do 파일이다.
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{03\_merge\_sensortower\_aei\_kor\_soc\_conversations.do}, \texttt{03\_merge\_soc6\_ai\_indicators.do}, \texttt{01\_import\_soc2018\_ksco8\_crosswalk.do}
+  \item \texttt{03\_merge\_kor\_conv\_ai\_ksco8.do}: 결합 파일 2종을 만든다.
+  \item \texttt{04\_analysis\_kor\_ksco8\_merge\_summary.do}: 본 노트의 표(\texttt{results/table/23\_*.tex})와 \texttt{23\_kor\_ksco8\_conv\_ai.xlsx}(5월 KSCO별 전체 변수)를 만든다.
+\end{enumerate}
+
+\end{document}
