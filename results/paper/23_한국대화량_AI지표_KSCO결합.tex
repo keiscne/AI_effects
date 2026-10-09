@@ -154,8 +154,18 @@ KSCO 묶음 & KSCO 수 & 대화 비중(\%) \\
 \bottomrule
 \end{longtable}
 
+\begin{longtable}{L{11.0cm}R{2.0cm}R{2.4cm}}
+\caption{값이 같아지는 KSCO 묶음이 생기는 구조}\label{tab:twinstruct}\\
+\toprule
+ & 수 & 비율(\%) \\
+\midrule
+\input{../table/23_twins_struct.tex}
+\bottomrule
+\end{longtable}
+
 \begin{itemize}[leftmargin=*]
-  \item \textbf{원인}: 주로 ISCO 하나가 KSCO 여럿으로 나뉘는 3단계 1:N이다. 예를 들어 ISCO 2641(Authors and related writers)은 작가(2911)와 출판물 전문가(2912)로 나뉜다. 두 KSCO는 같은 SOC들의 값을 같은 비율로 받는다. 대학교수$\cdot$대학 강사$\cdot$대학 교육 조교는 ISCO 2310 하나를 나눠 받는다.
+  \item \textbf{원인}: ISCO 하나가 KSCO 여럿으로 나뉘고(3단계 1:N), 나뉜 KSCO들이 다른 ISCO를 받지 않는 경우다. 그러면 그 ISCO로 모인 SOC들의 값이 KSCO마다 똑같이 복사된다(표~\ref{tab:twinstruct}). 묶음 KSCO 201개 가운데 188개(93.5\%)는 ISCO 1개에서만 값을 받는다. 74개 묶음 가운데 72개(97.3\%)는 구성원이 받는 ISCO 집합이 모두 같다. 예를 들어 ISCO 2641(Authors and related writers)은 작가(2911)와 출판물 전문가(2912)로 나뉜다. 두 KSCO는 같은 SOC들의 값을 같은 비율로 받는다. 대학교수$\cdot$대학 강사$\cdot$대학 교육 조교는 ISCO 2310 하나를 나눠 받는다. ISCO 2310에는 대학 교원 SOC 37개가 모이므로, 세 KSCO가 같은 SOC 37개의 값을 받는다.
+  \item \textbf{``SOC 하나가 KSCO 여럿과 연결''과는 다르다}: 묶음 안의 SOC는 모두 묶음 안의 KSCO 전부와 연결되므로, SOC 쪽에서 보면 1:N이다. 그러나 KSCO 2개 이상과 연결되는 SOC는 516개(paper 21 표 4)로 훨씬 많고, 대부분은 묶음을 만들지 않는다. 받는 KSCO가 다른 ISCO나 SOC도 함께 받아 SOC 집합이 달라지기 때문이다. 예를 들어 Software Developers(15-1252)는 시스템 소프트웨어 개발자(2222)와 응용 소프트웨어 개발자(2223)에 함께 연결된다. 그러나 2223은 ISCO 2513$\cdot$2514를 거쳐 다른 SOC도 받으므로 두 KSCO의 값이 다르다. 또한 묶음 KSCO의 86.1\%는 SOC를 2개 이상(최대 37개) 받는다. SOC 1개만 받는 KSCO는 28개(13.9\%)뿐이다.
   \item \textbf{의미가 먼 묶음}: 상품 기획 전문가와 여행 상품 개발자는 ISCO 2431(광고$\cdot$마케팅 전문가)을 나눠 받는다. 그래서 Writers and Authors의 대화가 여행 상품 개발자에게도 같은 크기로 간다(paper 21, 8.1절).
   \item \textbf{분석상 유의점}: 같은 묶음 안의 KSCO는 AI 지표에 변이가 없다. KSCO 단위 회귀에서는 묶음 내부의 고용$\cdot$임금 차이가 AI 지표로 설명될 수 없다. 표준오차는 묶음(또는 ISCO) 단위로 군집화하는 것을 검토해야 한다. KSCO 단위 결과를 보고할 때 묶음 안의 순위를 해석해서는 안 된다.
 \end{itemize}

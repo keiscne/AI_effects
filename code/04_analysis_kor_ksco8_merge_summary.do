@@ -13,6 +13,7 @@
 *   23_partial.tex     2026-05 대화량 일부 공개 KSCO 중 대화량 상위 10개
 *   23_miss_ind.tex    2026-05 대화량은 있으나 observed exposure가 없는 KSCO
 *   23_twins.tex       연결된 SOC와 가중치가 같아 모든 값이 같아지는 KSCO 묶음(2026-05 대화 비중은 KSCO 하나당)
+*   23_twins_struct.tex 값이 같아지는 KSCO 묶음이 생기는 구조(ISCO 수, ISCO 집합 일치, SOC 수)
 *   23_product.tex     2026-05 총 절감 시간: SOC에서 곱한 뒤 배분(A) 대 KSCO 값끼리 곱함(B)
 *   23_kor_ksco8_conv_ai.xlsx  시트 ksco8_2026_05(KSCO별 전체 변수)
 * =============================================================================
@@ -244,6 +245,52 @@ local ntw = r(N)
 quietly levelsof gid
 local ngr : word count `r(levels)'
 display as text "값이 같아지는 KSCO: `ntw'개, 묶음 `ngr'개"
+
+* 묶음이 생기는 구조 (23_twins_struct): KSCO가 받는 ISCO 수, 묶음 구성원의 ISCO 집합 일치, KSCO당 SOC 수
+preserve
+use "$proc/exposure/bls_soc_crosswalk/soc2018_ksco8_paths.dta", clear
+keep ksco8 isco08
+duplicates drop
+bysort ksco8: generate n_isco = _N
+sort ksco8 isco08
+by ksco8: generate str244 iset = isco08 if _n == 1
+by ksco8: replace iset = iset[_n-1] + ";" + isco08 if _n > 1
+by ksco8: keep if _n == _N
+keep ksco8 n_isco iset
+tempfile is
+save `is'
+restore
+preserve
+keep if ng > 1
+merge 1:1 ksco8 using `is', keep(match) nogenerate
+quietly count if n_isco == 1
+local t_i1 = r(N)
+quietly count if n_soc_link == 1
+local t_s1 = r(N)
+quietly count if n_soc_link >= 2
+local t_s2 = r(N)
+quietly summarize n_soc_link
+local t_smax = r(max)
+bysort gid (iset): generate byte same_iset = iset[1] == iset[_N]
+bysort gid: keep if _n == 1
+quietly count if same_iset
+local t_g1 = r(N)
+restore
+local p_i1 = trim(string(100 * `t_i1' / `ntw', "%5.1f"))
+local p_s1 = trim(string(100 * `t_s1' / `ntw', "%5.1f"))
+local p_s2 = trim(string(100 * `t_s2' / `ntw', "%5.1f"))
+local p_g1 = trim(string(100 * `t_g1' / `ngr', "%5.1f"))
+file open `fh' using "`out'/23_twins_struct.tex", write replace
+file write `fh' "`hdr'" _n
+file write `fh' "값이 같아지는 KSCO & `ntw' & 100.0 \\" _n
+file write `fh' "\quad ISCO 1개에서만 값을 받는 KSCO & `t_i1' & `p_i1' \\" _n
+file write `fh' "\quad SOC 1개만 받는 KSCO & `t_s1' & `p_s1' \\" _n
+file write `fh' "\quad SOC 2개 이상 받는 KSCO(최대 `t_smax'개) & `t_s2' & `p_s2' \\" _n
+file write `fh' "\midrule" _n
+file write `fh' "묶음 & `ngr' & 100.0 \\" _n
+file write `fh' "\quad 구성원이 받는 ISCO 집합이 모두 같은 묶음 & `t_g1' & `p_g1' \\" _n
+file close `fh'
+
 * 묶음별로 대화량 합(5월) 순서
 bysort gid: egen double gconv = total(conv_k3) if ng > 1
 sort gid ksco8
@@ -259,7 +306,7 @@ forvalues i = 1/`=min(12, _N)' {
     file write `fh' "`=members[`i']' & `=ng[`i']' & `a' \\" _n
 }
 file write `fh' "\midrule" _n
-file write `fh' "합계(묶음 `ngr'개) & `ntw' & \\" _n
+file write `fh' "합계(묶음 `ngr'개) & `ntw' & -- \\" _n
 file close `fh'
 
 * -----------------------------------------------------------------------------
@@ -304,8 +351,8 @@ fmt 100*`B'/`A' %5.1f
 file write `fh' "(B) KSCO 대화 수 × KSCO 평균 절감 시간(\texttt{w\_mean}) & `b' & `r(s)' \\" _n
 file write `fh' "\midrule" _n
 fmt `rho' %5.3f
-file write `fh' "KSCO별 (A)와 (B)의 상관계수 & `r(s)' & \\" _n
-file write `fh' "KSCO별 차이가 10\% 넘는 KSCO 수 / 값이 있는 KSCO 수 & `n10' / `nr' & \\" _n
+file write `fh' "KSCO별 (A)와 (B)의 상관계수 & `r(s)' & -- \\" _n
+file write `fh' "KSCO별 차이가 10\% 넘는 KSCO 수 / 값이 있는 KSCO 수 & `n10' / `nr' & -- \\" _n
 file close `fh'
 
 use "`ks'" if month == "2026-05", clear
