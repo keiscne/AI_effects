@@ -513,3 +513,28 @@
 - 작업노트 report 24 작성(사용자 요청: 산업별 LCE 연구에 필요한 한국 통계·데이터·준비사항 정리, 실제 작업은 하지 않음). `results/report/24_산업별LCE_자료준비.{tex,md}`.
   - 구성: 연구 흐름, 필요한 통계(산업 × 직업 고용 분포: 지역별고용조사·고용형태별근로실태조사·인구총조사·고용보험DB; 임금·노동비용: 고용형태별근로실태조사·기업체노동비용조사·국민계정 피용자보수; 성과 변수: 국민계정·산업연관표·경제총조사·사업체노동력조사·한국생산성본부), 분류 연계(KSCO 7↔8, KSIC 10↔11, KSIC↔국민계정 미확보), LCE 정의(안)와 정할 사항, 분석상 유의점(시점, 역인과, 표본 크기, 고용 개념), 저장소 준비(폴더·do 파일 구성안).
   - 자료의 공개 수준과 공표 시기는 작성자 지식 기준이며 신청 전 재확인 필요(노트에 명시). 데이터·do 파일 추가 없음. `.tex`는 컴파일하지 않음.
+
+## 2026-10-10
+
+- 한국 대화량 + AI 지표를 KSCO 8차 소분류(3자리)로도 출력(사용자 요청: 지역별고용조사 원자료가 KSCO 8차 소분류이므로 결합용. 연계표는 세분류 판을 그대로 둠). `code/03_merge_kor_conv_ai_ksco8.do`에 3절 추가(Stata 17 배치 실행, 오류 없음).
+  - 검토(작업 전): 소분류 전용 연계표를 따로 만들 이점이 없다고 판단. 통계청 KSCO–ISCO 연계표에는 소분류–ISCO 연계가 없어 결국 세분류 표를 접게 되고, 양 변수는 세분류 배분 합과 정확히 같으며 비율 지표도 거의 같음(진단: SOC 1:1 351 → 479개, 업무용 대화 중 2개 이상으로 나뉘는 SOC 비중 69.5% → 53.2%). SOC→ISCO 단계 문제(ISCO 2310, 감독직, 대분류 벗어난 연계 228쌍)는 소분류에서도 그대로.
+  - 방법: 세분류 결과를 평균하지 않고 (월, SOC, 세분류) 쌍에서 다시 계산. 양 = w_alloc 그대로 소분류 안에서 합산. 비율 지표 = w_mean3(s, K) = Σ_{k∈K} w_mean(s, k) / n_ksco8(K)(소분류 안 세분류 균등, 작업자 판단, 고용 가중 없음). 모든 SOC에 값이 있으면 세분류 값의 단순평균과 같음(observed exposure 66개·시간 절감 60개 소분류에서 일치 확인).
+  - 집계 코드를 프로그램 `ksco_agg`로 묶어 세분류(2절)·소분류(3절)에 같이 씀. 기존 출력 `kor_soc6_*`·`kor_ksco8_*` CSV는 수정 전과 MD5 동일.
+  - 새 입력: 소분류 명칭은 통계청 KSCO–ISCO 연계표(`isco08_ksco08/…_20260127034430.xlsx`) 시트 3-1 E·F열(167개, 군인 4개 포함).
+  - 출력: `data/proc/merged/kor_ksco3_conv_ai_indicators.{csv,dta}`, 월 × ksco3 = 167 × 2 = 334행. 변수: `ksco3_title`, `n_ksco8`(소분류 안 세분류 수), `n_ksco8_conv`(대화량 있는 세분류 수), 그 밖은 세분류 파일과 같음. 월별 대화량 합 = 세분류 파일 합(assert).
+  - 2026-05: 대화량 결측 소분류 38개(군인 4개 포함), 일부 세분류만 있음 34개(대화량 하한값). observed exposure 164개, 시간 절감 156개 소분류에 값.
+  - 매칭 키: `ksco3`(str3) = substr(ksco8, 1, 3) = 지역별고용조사 직업 소분류 코드(문자 3자리로 맞춰 m:1 결합). 군인 A01~A09는 지역별고용조사에 없음.
+  - 대화 수 × 절감 시간 같은 곱은 소분류 값끼리 곱하지 말고 SOC 단계에서 계산해야 함(do 파일 머리말에 명시).
+
+## 2026-10-17
+
+- 문헌 추가(사용자 요청: D:/econ-wiki에 새로 들어온 문헌을 reference로 가져옴): 이으뜸·문아람(2025), 「지역별 AI 준비도(AI Readiness)를 중심으로 한 지역 균형 발전 전략 연구」, KISDI Premium Report 25-12.
+  - `reference/notes/lee-2025-regional-ai-readiness-balanced-development.md`(econ-wiki `sources/`에서 그대로 복사), `reference/papers/lee-2025-regional-ai-readiness-balanced-development.pdf`(econ-wiki `papers/local/`에서 복사), `references.bib`에 `lee-2025-regional-ai-readiness-balanced-development` 항목 추가.
+- 문헌 추가(사용자 요청: econ-wiki에 새로 들어온 장인성(2018), 「산업별 노동생산성의 수렴속도와 고용전략」(한국노동연구원 연구보고서 2018-12) 가운데 제3장 「산업별 부가가치와 노동투입의 측정」을 노트로 가져옴).
+  - `reference/notes/chang-2018-industry-labor-productivity-convergence-employment-ch3.md`: econ-wiki `sources/`의 보고서 전체 요약은 3장 내용이 짧아 그대로 옮기지 않고, 3장(본문 pp.30-63, PDF pp.52-85)을 새로 정리. 원문 PDF는 한글 텍스트 추출이 안 되어 econ-wiki 작업 때 만든 Windows 한국어 OCR 결과를 읽고, 표 3-2~3-6·3-10~3-13과 총노동투입 계산식(pp.54-55)은 페이지 이미지로 대조.
+  - 3장 노트는 이 저장소에만 있음(econ-wiki에는 보고서 전체 노트만 있음). 노트에 report 24(산업별 LCE 자료준비)와의 관련 메모를 넣음.
+  - `reference/papers/chang-2018-industry-labor-productivity-convergence-employment.pdf`(econ-wiki `papers/local/`에서 복사), `references.bib`에 `chang-2018-industry-labor-productivity-convergence-employment` 항목 추가.
+- 작업노트 report 25 작성(사용자 요청: 대화량으로 노출도와 구분되는 직업별 AI 활용도 2개 — 활용도 1 = 대화량 / 취업자 수, 활용도 2 = (절감 시간 × 대화량) / 총근로시간 — 의 자료·절차·주의사항 정리, 실제 작업은 하지 않음). `results/report/25_직업별AI활용도_자료준비.{tex,md}`.
+  - 분자는 보유 자료(`kor_ksco3_conv_ai_indicators` 등), 분모는 지역별고용조사(KSCO 소분류 취업자 수·주당 취업시간)를 기본, 고용형태별근로실태조사를 근로시간 강건성 검토용으로 제안. 활용도 2의 분자는 SOC 단계에서 곱한 뒤 w_alloc 배분(paper 23).
+  - 주의사항: AEI 직업 = 대화 과업의 직업(사용자 직업 아님), Claude 구성 가정, K는 순위에 무관, 절감 시간은 추정치(상한 성격), 결측·덮개, 소분류 표본오차, 가구조사 근로시간 과대(장인성 2018 3장 표 3-7). 작업 전 정할 사항 6개 정리.
+  - 데이터·do 파일 추가 없음. `.tex`는 컴파일하지 않음.
