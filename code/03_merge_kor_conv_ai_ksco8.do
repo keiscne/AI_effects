@@ -30,6 +30,10 @@
 *             모든 SOC에 값이 있으면 세분류 값의 단순평균과 같고, 값이 빠진 SOC가 있으면 SOC 단계에서
 *             다시 나누므로 세분류 평균과 조금 다를 수 있다. 세분류 고용 비중을 구하면 1/n_ksco8을 그것으로 바꾼다.
 *   대화 수 × 절감 시간 같은 곱은 이 파일 값끼리 곱하지 말고 SOC 단계(1)에서 곱한 뒤 w_alloc로 더해야 한다(paper 23).
+* SOC 단계에서 만드는 양 변수(report 25, 활용도 2의 분자; 2026-10-17 추가):
+*   saved_hr_kK = conv_kK × time_saved_min / 60   월간 업무용 대화로 줄어든 시간(시간). 절감 시간이 없는 SOC는 결측.
+*   conv_ts_kK  = conv_kK (절감 시간이 있는 SOC만)  절감 시간 덮개 계산용(conv_ts_kK / conv_kK).
+*   다른 양 변수와 같이 w_alloc로 KSCO에 배분한다. KSCO의 time_saved_min(w_mean 평균)과 대화량을 곱한 값과 다르다.
 * 매칭 키: (1) month + soc6(str7, SOC 2018).  (2) soc6 = 연계표 soc2018 → ksco8(str4), keco2025(str4).
 *          (3) ksco3(str3) = substr(ksco8, 1, 3) = 지역별고용조사 직업 소분류 코드(문자 3자리로 맞춰 결합).
 * 주의: 45-XXXX는 연계표에 없어 KSCO로 배분되지 않는다(2026-04 업무용 대화의 share_work 만큼 빠짐).
@@ -50,6 +54,13 @@ local kxls "$raw/exposure/bls_soc_crosswalk/isco08_ksco08/한국표준직업분�
 local outd "$proc/merged"
 
 local amt  "pct share_work conv_k1p5 conv_k3 conv_k5 conv_k7 conv_k10"
+* SOC 단계에서 만드는 양 변수(1절 끝에서 생성). amtx = 배분할 양 전체.
+local kgrid "1p5 3 5 7 10"
+local amt_new ""
+foreach k of local kgrid {
+    local amt_new "`amt_new' saved_hr_k`k' conv_ts_k`k'"
+}
+local amtx "`amt' `amt_new'"
 local rate "time_saved_min time_saved_hr human_only_min human_with_ai_min observed_exposure elo_gpt4_alpha elo_gpt4_beta elo_gpt4_gamma elo_human_alpha elo_human_beta elo_human_gamma lm_aioe"
 local kor  "kor_work_messages kor_conv_k1p5 kor_conv_k3 kor_conv_k5 kor_conv_k7 kor_conv_k10"
 
@@ -138,11 +149,22 @@ bysort month: egen double chk = total(share_work)
 assert abs(chk - 1) < 1e-6
 drop chk
 
+* 활용도 2의 분자: SOC 단계에서 대화 수 × 대화당 절감 시간(report 25)
+foreach k of local kgrid {
+    generate double saved_hr_k`k' = conv_k`k' * time_saved_min / 60 if conv_pub & !missing(time_saved_min)
+    generate double conv_ts_k`k'  = conv_k`k' if conv_pub & !missing(time_saved_min)
+    label variable saved_hr_k`k' "월간 업무용 대화로 줄어든 시간(시간; conv_k`k' × time_saved_min / 60, SOC 단계)"
+    label variable conv_ts_k`k'  "절감 시간이 있는 SOC의 conv_k`k'(덮개 계산용)"
+}
+* 확인: 대화량이 공개됐는데 절감 시간이 없는 SOC는 45-XXXX뿐
+count if conv_pub & missing(time_saved_min) & soc6 != "45-XXXX"
+assert r(N) == 0
+
 label variable month          "월(YYYY-MM)"
 label variable soc6_title_aei "AEI 직업 명칭(.00 코드 우선; soc6_title과 다를 수 있음)"
 label variable conv_pub       "1 = 이 달 한국 대화량 공개(대화량 변수 있음), 0 = 미공개(결측, 0 아님)"
 label variable in_ind         "1 = soc6_ai_indicators에 있음(45-XXXX만 0)"
-order month soc6 soc6_title soc6_title_aei soc_major conv_pub in_ind `amt' n_onet has00 detail_missing
+order month soc6 soc6_title soc6_title_aei soc_major conv_pub in_ind `amtx' n_onet has00 detail_missing
 sort month soc6
 compress
 save "`outd'/kor_soc6_conv_ai_indicators.dta", replace
@@ -191,7 +213,7 @@ isid month soc6 ksco8
 tempfile pairs
 save `pairs'
 
-ksco_agg, by(month ksco8 ksco8_title keco2025 keco2025_title) amt(`amt') rate(`rate') extra("(max) n18_perk")
+ksco_agg, by(month ksco8 ksco8_title keco2025 keco2025_title) amt(`amtx') rate(`rate') extra("(max) n18_perk")
 assert n_soc_link == n18_perk
 drop n18_perk
 merge m:1 month using `kt', nogenerate assert(match)
@@ -200,15 +222,15 @@ merge m:1 month using `kt', nogenerate assert(match)
 preserve
 use "`outd'/kor_soc6_conv_ai_indicators.dta", clear
 keep if conv_pub & soc6 != "45-XXXX"
-collapse (sum) s_conv = conv_k3 s_share = share_work, by(month)
+collapse (sum) s_conv = conv_k3 s_share = share_work s_saved = saved_hr_k3, by(month)
 tempfile sc
 save `sc'
 restore
 preserve
-collapse (sum) k_conv = conv_k3 k_share = share_work, by(month)
+collapse (sum) k_conv = conv_k3 k_share = share_work k_saved = saved_hr_k3, by(month)
 merge 1:1 month using `sc', nogenerate assert(match)
 list, noobs clean
-assert abs(k_conv - s_conv) < 1 & abs(k_share - s_share) < 1e-9
+assert abs(k_conv - s_conv) < 1 & abs(k_share - s_share) < 1e-9 & abs(k_saved / s_saved - 1) < 1e-9
 restore
 
 label variable month       "월(YYYY-MM)"
@@ -218,8 +240,10 @@ label variable keco2025    "KECO 2025 세분류(KSCO와 1:1)"
 label variable keco2025_title "KECO 2025 명칭"
 label variable pct         "AEI 한국 대화 비중(%, 모든 use case; w_alloc 배분, 공개 SOC만)"
 label variable share_work  "한국 업무용 대화 비중(w_alloc 배분, 공개 SOC만)"
-foreach k in 1p5 3 5 7 10 {
+foreach k of local kgrid {
     label variable conv_k`k' "월간 업무용 대화 수(대화당 메시지 `=subinstr("`k'", "p", ".", 1)'개; w_alloc 배분)"
+    label variable saved_hr_k`k' "월간 업무용 대화로 줄어든 시간(시간; SOC 단계 conv_k`k' × 절감 시간, w_alloc 배분)"
+    label variable conv_ts_k`k'  "절감 시간이 있는 SOC의 conv_k`k'(w_alloc 배분; 덮개 = conv_ts_k`k' / conv_k`k')"
 }
 label variable n_soc_link  "연계표상 연결된 SOC 2018 수"
 label variable n_soc_conv  "그중 이 달 대화량이 공개된 SOC 수(0이면 대화량 결측)"
@@ -239,7 +263,7 @@ foreach e in gpt4 human {
         label variable elo_`e'_`g' "Eloundou `e' `g'(w_mean 가중평균)"
     }
 }
-order month ksco8 ksco8_title keco2025 keco2025_title n_soc_link n_soc_conv conv_cover `amt' ///
+order month ksco8 ksco8_title keco2025 keco2025_title n_soc_link n_soc_conv conv_cover `amtx' ///
     `rate' cov_aei cov_obs cov_elo cov_felten
 sort month ksco8
 compress
@@ -249,7 +273,7 @@ export delimited using "`outd'/kor_ksco8_conv_ai_indicators.csv", replace
 tabulate month
 summarize conv_k3 time_saved_min observed_exposure if month == "2026-05"
 * 3절에서 같은 변수 설명을 쓰기 위해 보관
-foreach v of varlist conv_cover `amt' `rate' cov_* {
+foreach v of varlist conv_cover `amtx' `rate' cov_* {
     local lab_`v' : variable label `v'
 }
 * 세분류별 대화량 공개 여부(소분류 안 결측 세분류 수 확인용)
@@ -295,12 +319,12 @@ bysort month ksco3: egen double chk = total(w_mean3)
 assert abs(chk - 1) < 1e-9
 drop chk
 * (월, SOC, 소분류)로 접기: 같은 SOC가 한 소분류의 세분류 여러 개에 이어지면 가중치를 더함(SOC 값은 같음)
-collapse (sum) w_alloc w_mean = w_mean3 (max) conv_pub `amt' `rate', by(month soc6 ksco3 n_ksco8)
+collapse (sum) w_alloc w_mean = w_mean3 (max) conv_pub `amtx' `rate', by(month soc6 ksco3 n_ksco8)
 isid month soc6 ksco3
 bysort month soc6: egen double chk = total(w_alloc)
 assert abs(chk - 1) < 1e-9
 drop chk
-ksco_agg, by(month ksco3 n_ksco8) amt(`amt') rate(`rate')
+ksco_agg, by(month ksco3 n_ksco8) amt(`amtx') rate(`rate')
 merge m:1 ksco3 using `k3t', nogenerate assert(match)
 merge 1:1 month ksco3 using `k8c', nogenerate assert(match)
 merge m:1 month using `kt', nogenerate assert(match)
@@ -308,18 +332,18 @@ merge m:1 month using `kt', nogenerate assert(match)
 * 확인: 월별 소분류 대화량 합 = 세분류 대화량 합
 preserve
 use "`outd'/kor_ksco8_conv_ai_indicators.dta", clear
-collapse (sum) s_conv = conv_k3 s_share = share_work, by(month)
+collapse (sum) s_conv = conv_k3 s_share = share_work s_saved = saved_hr_k3, by(month)
 tempfile s8
 save `s8'
 restore
 preserve
-collapse (sum) k_conv = conv_k3 k_share = share_work, by(month)
+collapse (sum) k_conv = conv_k3 k_share = share_work k_saved = saved_hr_k3, by(month)
 merge 1:1 month using `s8', nogenerate assert(match)
 list, noobs clean
-assert abs(k_conv - s_conv) < 1 & abs(k_share - s_share) < 1e-9
+assert abs(k_conv - s_conv) < 1 & abs(k_share - s_share) < 1e-9 & abs(k_saved / s_saved - 1) < 1e-9
 restore
 
-foreach v of varlist conv_cover `amt' `rate' cov_* {
+foreach v of varlist conv_cover `amtx' `rate' cov_* {
     label variable `v' `"`lab_`v''"'
 }
 label variable month        "월(YYYY-MM)"
@@ -329,7 +353,7 @@ label variable n_ksco8      "소분류에 속한 세분류 수(연계표 기준;
 label variable n_ksco8_conv "그중 이 달 대화량이 있는 세분류 수(< n_ksco8이면 대화량은 하한값)"
 label variable n_soc_link   "연계표상 연결된 SOC 2018 수(서로 다른 SOC)"
 label variable n_soc_conv   "그중 이 달 대화량이 공개된 SOC 수(0이면 대화량 결측)"
-order month ksco3 ksco3_title n_ksco8 n_ksco8_conv n_soc_link n_soc_conv conv_cover `amt' ///
+order month ksco3 ksco3_title n_ksco8 n_ksco8_conv n_soc_link n_soc_conv conv_cover `amtx' ///
     `rate' cov_aei cov_obs cov_elo cov_felten
 sort month ksco3
 compress
