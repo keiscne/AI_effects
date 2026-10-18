@@ -6,7 +6,7 @@
 *   C = 소분류 월평균 업무용 대화 수(K = 3), S = 월평균 절감 시간(시간, SOC 단계 곱 후 배분),
 *   emp = 2022년 상반기 취업자 수, H = 2022년 상반기 월 총 주업 근로시간, use1·use2 = 활용도 1·2
 * 출력: $results/table/
-*   27_kor_ai_share_index.xlsx   시트 ksco3(지표가 있는 소분류 전부), ksco1(대분류 합)
+*   27_kor_ai_share_index.xlsx   시트 ksco3(지표가 있는 소분류 전부), ksco2(중분류 합), ksco1(대분류 합)
 *   27_summary.tex, 27_top_fs.tex, 27_ksco1.tex   (paper 27 표)
 *
 * 지표(소분류 j, 합은 지표가 있는 소분류 전체):
@@ -18,7 +18,7 @@
 *   FS × X = 전국에서 X명분의 일이 AI로 대체될 때 j에 배분되는 인원(시나리오, 기본 표기 X = 10,000).
 *   상한 점검: Xcap_j = emp_j / FS_j = j의 배분 인원이 j의 취업자 수와 같아지는 전국 X.
 * 결정(작업자 판단): hbar는 paper 25와 같이 2022년 상반기 지역별고용조사, 주업 시간 기준.
-* 매칭 키: ksco3(str3), ksco1 = 소분류의 대분류(kor_ai_usage_ksco3 변수).
+* 매칭 키: ksco3(str3), ksco2·ksco1 = 소분류의 중분류·대분류(kor_ai_usage_ksco3 변수).
 * =============================================================================
 
 version 17
@@ -47,7 +47,7 @@ end
 * 1. 지표 계산
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco3 ksco3_title emp H C S use1 use2 small conv_lb
+keep ksco1 ksco1_title ksco2 ksco2_title ksco3 ksco3_title emp H C S use1 use2 small conv_lb
 count
 keep if !missing(C)
 assert !missing(S, emp, H) & emp > 0 & H > 0
@@ -84,6 +84,8 @@ label variable ksco3      "KSCO 8차 소분류"
 label variable ksco3_title "소분류 명칭"
 label variable ksco1      "대분류"
 label variable ksco1_title "대분류 명칭"
+label variable ksco2      "중분류"
+label variable ksco2_title "중분류 명칭"
 label variable emp        "취업자 수(2022 상반기)"
 label variable H          "월 총 주업 근로시간(2022 상반기)"
 label variable hbar       "1인당 월 주업 근로시간"
@@ -105,7 +107,7 @@ label variable r_use1     "활용도 1 순위"
 label variable r_use2     "활용도 2 순위"
 label variable small      "1 = 2022 표본 수 < 30"
 label variable conv_lb    "1 = 대화량 하한(일부 세분류만 공개)"
-order ksco3 ksco3_title ksco1 ksco1_title CS SS FS ES r_CS r_SS r_FS r_use1 r_use2 fs_per10k xcap ///
+order ksco3 ksco3_title ksco2 ksco2_title ksco1 ksco1_title CS SS FS ES r_CS r_SS r_FS r_use1 r_use2 fs_per10k xcap ///
     emp hbar use1 use2 C S fte H small conv_lb
 gsort -FS ksco3
 export excel using "`xl'", sheet("ksco3") firstrow(varlabels) replace
@@ -191,7 +193,35 @@ file close `fh'
 list ksco3 ksco3_title FS CS SS r_CS r_SS r_use2 in 1/20, noobs abbreviate(12)
 
 * -----------------------------------------------------------------------------
-* 4. 대분류 합
+* 4. 중분류 합(엑셀 시트만)
+* -----------------------------------------------------------------------------
+preserve
+collapse (sum) CS SS FS ES (count) n_ksco3 = CS, by(ksco2 ksco2_title ksco1 ksco1_title)
+isid ksco2
+foreach v in CS SS FS {
+    egen int r_`v' = rank(-`v'), unique
+}
+label variable ksco2       "중분류"
+label variable ksco2_title "중분류 명칭"
+label variable ksco1       "대분류"
+label variable ksco1_title "대분류 명칭"
+label variable CS          "A 대화 점유율(%)"
+label variable SS          "B 절감 시간 점유율(%)"
+label variable FS          "C 취업자 환산 절감 점유율(%)"
+label variable ES          "취업자 비중(%, 지표가 있는 소분류 안)"
+label variable n_ksco3     "지표가 있는 소분류 수"
+label variable r_CS        "A 순위"
+label variable r_SS        "B 순위"
+label variable r_FS        "C 순위"
+order ksco2 ksco2_title ksco1 ksco1_title CS SS FS ES r_CS r_SS r_FS n_ksco3
+gsort -FS
+export excel using "`xl'", sheet("ksco2") firstrow(varlabels) sheetreplace
+count
+list ksco2 ksco2_title CS SS FS ES in 1/10, noobs abbreviate(12)
+restore
+
+* -----------------------------------------------------------------------------
+* 5. 대분류 합
 * -----------------------------------------------------------------------------
 collapse (sum) CS SS FS ES (count) n_ksco3 = CS, by(ksco1 ksco1_title)
 label variable n_ksco3 "지표가 있는 소분류 수"
