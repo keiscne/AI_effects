@@ -1,0 +1,114 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 직업 규모 분모와 K 가정이 없는 AI 점유율 지표 A~C.
+% 표 본문: results/table/27_summary.tex, 27_top_fs.tex, 27_ksco1.tex
+%          (code/04_analysis_kor_ai_share_index.do가 생성)
+% 전체 자료: results/table/27_kor_ai_share_index.xlsx (시트 ksco3, ksco1)
+% 관련: paper 25(활용도 1·2), paper 26(상위 30 소분류)
+% 컴파일: xelatex (kotex 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{한국 직업별 AI 점유율 지표\\[2mm]
+\large --- 직업 규모 분모와 대화당 메시지 수 가정이 없는 지표 A$\sim$C ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{왜 필요한가}
+
+paper 25의 활용도 1$\cdot$2는 직업 규모(취업자 수, 근로시간)로 나눈 강도 지표다. 그래서 취업자가 적은 직업일수록 값이 크게 나올 수 있다(213 생명 및 자연과학 관련 시험원은 취업자 1만 1천 명으로 1위). 또 수준값은 대화당 메시지 수 $K$의 가정에 따라 달라진다. 취업자 수가 \emph{절대적으로} 얼마나 줄어들 수 있는지를 보려면, 규모로 나누지 않고 한국 전체 중 각 직업의 몫을 재는 지표가 필요하다. paper 26의 상위 30개 선정이 이 방식이었다.
+
+\section{정의}
+
+소분류 $j$의 월평균 업무용 대화 수를 $C_j$, 월평균 절감 시간(대화 수 $\times$ 대화당 절감 시간, SOC 단계에서 곱한 뒤 배분)을 $S_j$라 하자. 합은 지표가 있는 소분류 129개 전체에 대한 것이다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{A 대화 점유율}: $\mathrm{CS}_j = C_j / \sum_k C_k$
+  \item \textbf{B 절감 시간 점유율}: $\mathrm{SS}_j = S_j / \sum_k S_k$
+  \item \textbf{C 취업자 환산 절감 점유율}: $\mathrm{FS}_j = (S_j/\bar h_j) / \sum_k (S_k/\bar h_k)$. 여기서 $\bar h_j$는 1인당 월 주업 근로시간(2022년 상반기 지역별고용조사)이다.
+\end{itemize}
+$C_j$와 $S_j$는 모두 $K$에 반비례하므로 세 지표에서 $K$가 지워진다. 결국 AEI 한국 대화 비중, 대분류 업무용 비중, 연계표, 대화당 절감 시간만 쓰인다. C의 분모 $\bar h_j$는 직업 규모가 아니라 1인당 시간이다. 그래서 같은 절감 시간을 ``몇 명분의 일인가''로 바꿀 뿐 작은 직업을 키우지 않는다.
+
+C는 인원으로 바로 읽을 수 있다. 전국에서 $X$명분의 일이 AI로 대체된다면 소분류 $j$에 배분되는 인원은 $\mathrm{FS}_j \times X$다. 직업 간 배분은 $X$와 무관하다. 다만 이 값이 $j$의 취업자 수를 넘으면 안 되므로, 배분 인원이 취업자 수와 같아지는 $X$를 상한으로 점검했다.
+
+\section{결과}
+
+\begin{longtable}{L{5.5cm}R{2.3cm}R{2.3cm}R{2.6cm}R{2.6cm}}
+\caption{지표 A$\sim$C의 집중도와 활용도 1$\cdot$2와의 순위상관(소분류 129개)}\label{tab:summary}\\
+\toprule
+지표 & 상위 10개 합(\%) & 상위 30개 합(\%) & 활용도 1과 순위상관 & 활용도 2와 순위상관 \\
+\midrule
+\endfirsthead
+\input{../table/27_summary.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{R{0.6cm}L{4.4cm}R{1.3cm}R{1.4cm}R{1.6cm}R{1.6cm}R{1.4cm}R{1.4cm}}
+\caption{지표 C 상위 20개 소분류}\label{tab:top}\\
+\toprule
+순위 & 소분류 & C 점유율(\%) & 1만 명당 배분(명) & A 점유율(순위) & B 점유율(순위) & 취업자(천 명) & 활용도 2 순위 \\
+\midrule
+\endfirsthead
+\toprule
+순위 & 소분류 & C 점유율(\%) & 1만 명당 배분(명) & A 점유율(순위) & B 점유율(순위) & 취업자(천 명) & 활용도 2 순위 \\
+\midrule
+\endhead
+\input{../table/27_top_fs.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{5.6cm}R{1.8cm}R{2.0cm}R{2.0cm}R{2.0cm}R{2.0cm}}
+\caption{대분류별 점유율(\%, 소분류 합)}\label{tab:ksco1}\\
+\toprule
+대분류 & 소분류 수 & A 대화 & B 절감 시간 & C 취업자 환산 & 취업자 비중 \\
+\midrule
+\endfirsthead
+\input{../table/27_ksco1.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{B와 C는 거의 같다}(순위상관 0.999). 1인당 근로시간 차이가 작아 보정 효과가 작기 때문이다. A와 C의 순위상관은 0.96이다. 대화당 절감 시간이 긴 직업(332 통계$\cdot$데이터 사무원, 264 문리$\cdot$기술 및 예능 강사 등)은 C에서 순위가 오르고, 짧은 직업(225 정보 시스템 및 웹 운영자, 292 학예사$\cdot$사서)은 내려간다.
+  \item \textbf{강도 지표와는 다른 직업을 가리킨다.} C 상위 30개 중 활용도 2 상위 30개와 겹치는 것은 19개다. 264 문리$\cdot$기술 및 예능 강사는 C 11위지만 활용도 2는 50위다(취업자 58만 5천 명). 반대로 213 생명 및 자연과학 관련 시험원은 활용도 2 1위지만 C로는 7위다.
+  \item \textbf{집중도가 높다.} 상위 10개 소분류가 C의 55.5\%, 상위 30개가 84.4\%를 차지한다. 취업자가 가장 많은 소분류 10개$\cdot$30개의 취업자 비중 합(38.3\%, 68.2\%)보다 높다.
+  \item \textbf{전문가 대분류에 몰린다.} 전문가 및 관련 종사자는 취업자의 23.6\%지만 C의 71.9\%를 차지한다. 사무 종사자는 15.0\%(취업자 19.8\%)다. 서비스$\cdot$판매$\cdot$단순노무는 합쳐 2.3\%다.
+  \item \textbf{상한}: 전국 약 32만 7천 명분까지는 어느 소분류도 배분 인원이 자기 취업자 수를 넘지 않는다. 가장 먼저 상한에 닿는 것은 213 생명 및 자연과학 관련 시험원이다.
+\end{itemize}
+
+\section{해석상 주의}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{총량은 정하지 않는다}: 점유율은 합이 1이라 배분만 알려 준다. 전국 감소 규모 $X$와 시점 간 증가는 따로 정해야 한다.
+  \item \textbf{상한형 배분}: C는 절감 시간이 모두 인원 감소로 이어진다고 볼 때의 배분이다. 절감 시간은 산출 증가로 흡수될 수도 있다. 자동화(automation) 대화로 좁히면 더 보수적인 지표가 된다(AEI GLOBAL task의 협업 유형).
+  \item \textbf{기존 가정}: AEI 직업은 대화 과업의 직업이다. 한국 전체 제품의 직업 구성이 Claude와 같다고 보고, 연계표 배분(paper 21)을 따른다. 15-1299나 Data Scientists의 배분이 점유율 순위에 직접 영향을 준다.
+  \item \textbf{$\bar h_j$의 시점}: paper 25와 같이 2022년 상반기 값이다. C는 B와 거의 같아 시점 선택의 영향은 작다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{code/04\_analysis\_kor\_ai\_share\_index.do}: 지표 A$\sim$C와 이 노트의 표를 만든다.
+  \item \texttt{results/table/27\_kor\_ai\_share\_index.xlsx}: 시트 \texttt{ksco3}(소분류 129개의 A$\sim$C, 순위, 1만 명당 배분, 상한, 활용도 1$\cdot$2), \texttt{ksco1}(대분류 합).
+  \item \texttt{results/table/27\_summary.tex}, \texttt{27\_top\_fs.tex}, \texttt{27\_ksco1.tex}: 표~\ref{tab:summary}--\ref{tab:ksco1}.
+\end{itemize}
+
+\end{document}
