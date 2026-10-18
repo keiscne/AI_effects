@@ -25,7 +25,7 @@
 *             n_onet_eloundou = 평균에 쓴 8자리 코드 수
 *   Felten: soc6 그대로(이미 SOC 2018로 변환)
 *
-* 직업 명칭(soc6_title): observed exposure title → Felten(BLS 2018 명칭) → Eloundou(.00 코드 명칭 우선) → AEI 순.
+* 직업 명칭(soc6_title): BLS SOC 2018 공식 명칭(01_import_soc2018_titles.do, 결합 직업 전부에 있음 assert).
 *
 * 주의:
 *   - AEI 시간 지표는 Claude 대화 과업 기준 추정치(전 세계), observed exposure도 Claude 자료에서 온다.
@@ -133,16 +133,16 @@ foreach s in aei obs eloundou felten {
 }
 generate byte n_sources = in_aei + in_obs + in_eloundou + in_felten
 
-generate str244 soc6_title = title_obs
-replace soc6_title = title_felten if soc6_title == ""
-replace soc6_title = title_elo    if soc6_title == ""
-replace soc6_title = title_aei    if soc6_title == ""
+merge 1:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
+assert _merge == 3                                       // 결합 soc6 전부 BLS 목록에 있음
+drop _merge
+* soc6_title = BLS 명칭(merge로 들어옴)
 assert soc6_title != ""
 drop title_*
 generate str2 soc_major = substr(soc6, 1, 2)
 
 label variable soc6              "SOC 2018 세부 직업 6자리(XX-XXXX)"
-label variable soc6_title        "직업 명칭(observed exposure → Felten → Eloundou → AEI 순)"
+label variable soc6_title        "SOC 2018 직업 명칭(BLS 공식)"
 label variable soc_major         "SOC 대분류(앞 2자리)"
 label variable in_aei            "1 = AEI 시간 절감 있음"
 label variable in_obs            "1 = observed exposure 있음"

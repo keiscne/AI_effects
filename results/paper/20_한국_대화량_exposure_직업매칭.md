@@ -234,7 +234,7 @@ Massenkoff and McCrory(2026)의 observed exposure는 다음 세 자료를 결합
 | 53-1042 | First-Line Supervisors of Helpers, Laborers, and Material Movers, Hand | 1 | 0.04 | 0.05 |
 | 13-1022 | Wholesale and Retail Buyers, Except Farm Products | 1 | 0.03 | 0.08 |
 | 25-2056 | Special Education Teachers, Elementary School | 1 | 0.03 | 0.05 |
-| 53-1044 | First-Line Supervisors of Passenger Attendants | 1 | 0.03 | 0.02 |
+| 53-1044 | First-line Supervisors of Passenger Attendants | 1 | 0.03 | 0.02 |
 | 39-7011 | Tour Guides and Escorts | 1 | 0.02 | 0.03 |
 | 25-2055 | Special Education Teachers, Kindergarten | 1 | 0.01 | 0.02 |
 | 25-9043 | Teaching Assistants, Special Education | 1 | 0.01 | 0.01 |

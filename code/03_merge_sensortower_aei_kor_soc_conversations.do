@@ -236,12 +236,18 @@ export delimited using "`out'/sensortower_aei_kor_soc_detailed_conversations.csv
 use "`out'/sensortower_aei_kor_soc_detailed_conversations.dta", clear
 generate byte is00 = substr(soc_code, 9, 2) == "00"
 generate byte one = 1
-* 6자리 직업 명칭: .00 코드 명칭 우선, 없으면 코드 순 첫 번째 8자리 코드 명칭
+* 6자리 직업 명칭: BLS SOC 2018 공식 명칭(01_import_soc2018_titles.do).
+*   미공개 자리표시 행("NN-XXXX")만 8자리 행의 명칭을 그대로 둔다.
 generate byte neg00 = -is00
 bysort month soc6 (neg00 soc_code): generate str244 soc6_title = soc_title[1]
 collapse (sum) pct share_in_major share_work conv_* n_onet = one has00 = is00 ///
     (first) soc6_title soc_major soc_major_title_m share_work_major detail_missing pct_major_sum ///
     kor_work_messages kor_conv_*, by(month soc6)
+rename soc6_title soc6_title_aei
+merge m:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
+assert _merge == 3 | detail_missing                    // 공개 soc6 전부 BLS 목록에 있음
+replace soc6_title = soc6_title_aei if _merge == 1
+drop _merge soc6_title_aei
 replace has00 = has00 > 0
 replace pct = . if detail_missing
 isid month soc6
@@ -257,7 +263,7 @@ foreach k of local klist {
 
 label variable month             "월(YYYY-MM)"
 label variable soc6              "SOC 2018 세부 직업 코드(6자리, job_exposure.csv occ_code와 같은 형식)"
-label variable soc6_title        "세부 직업 명칭(AEI node_name, .00 코드 우선)"
+label variable soc6_title        "SOC 2018 직업 명칭(BLS 공식; 자리표시 행은 AEI 명칭)"
 label variable n_onet            "합친 O*NET-SOC 8자리 코드 수"
 label variable has00             "1 = .00 코드(SOC 세부 직업과 같은 단위)가 공개됨"
 label variable soc_major         "SOC 대분류 코드(soc6 앞 2자리)"

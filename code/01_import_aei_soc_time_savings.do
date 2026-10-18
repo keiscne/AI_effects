@@ -80,12 +80,10 @@ generate byte is00 = substr(soc_code, 9, 2) == "00"
 tabstat pct, by(month) statistics(count sum) format(%9.2f)
 summarize human_only_min human_with_ai_min time_saved_min, detail
 
-* 6자리 명칭: .00 코드 명칭 우선, 없으면 그 soc6에서 pct가 가장 큰 코드의 명칭(두 달 통틀어)
+* 6자리 명칭: BLS SOC 2018 공식 명칭(01_import_soc2018_titles.do).
+*   AEI 8자리 명칭을 쓰면 .00 코드가 없는 SOC(예: 15-1299)가 8자리 직업 하나의 이름으로 보인다.
 preserve
-gsort soc6 -is00 -pct soc_code
-by soc6: keep if _n == 1
-keep soc6 soc_title
-rename soc_title soc6_title
+use "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", clear
 tempfile titles
 save `titles'
 restore
@@ -112,13 +110,15 @@ assert abs(time_saved_min_uw - (human_only_min_uw - human_with_ai_min_uw)) < 1e-
 generate double time_saved_hr = time_saved_min / 60
 drop w_only w_ai w_saved
 rename w weight
-merge m:1 soc6 using `titles', keep(match) nogenerate
+merge m:1 soc6 using `titles', keep(master match)
+assert _merge == 3                                       // AEI soc6 전부 BLS 목록에 있음
+drop _merge
 isid month soc6
 tabulate month
 
 label variable month              "월(YYYY-MM)"
 label variable soc6               "SOC 2018 세부 직업 6자리(XX-XXXX)"
-label variable soc6_title         "직업 명칭(.00 코드 우선, AEI node_name)"
+label variable soc6_title         "SOC 2018 직업 명칭(BLS 공식)"
 label variable pct                "AEI 전 세계 대화 중 비중(%, 합친 8자리 코드 합계)"
 label variable weight             "가중치 합계(pct, 0.00은 0.0025)"
 label variable n_onet             "합친 O*NET-SOC 8자리 코드 수"
@@ -160,12 +160,14 @@ assert abs(time_saved_min - (human_only_min - human_with_ai_min)) < 1e-9
 generate double time_saved_hr = time_saved_min / 60
 drop w_only w_ai w_saved
 rename w weight
-merge 1:1 soc6 using `titles', keep(match) nogenerate
+merge 1:1 soc6 using `titles', keep(master match)
+assert _merge == 3
+drop _merge
 isid soc6
 tabulate n_months
 
 label variable soc6               "SOC 2018 세부 직업 6자리(XX-XXXX)"
-label variable soc6_title         "직업 명칭(.00 코드 우선, AEI node_name)"
+label variable soc6_title         "SOC 2018 직업 명칭(BLS 공식)"
 label variable weight             "가중치 합계(두 달 pct, 0.00은 0.0025)"
 label variable n_months           "값이 있는 달 수(2026-04·05 중)"
 label variable has00              "1 = .00 코드가 공개됨(어느 달이든)"

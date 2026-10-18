@@ -15,7 +15,7 @@
 - **미공개 대화량**: KSCO의 대화량은 연결된 SOC 중 공개된 것만 더한 값이다. 2026년 5월 KSCO 157개는 공개된 SOC가 하나도 없어 결측이다. KSCO 228개(업무용 대화의 44.3%)는 일부 SOC만 공개되어 대화량이 하한값이다.
 - **값이 같은 KSCO**: KSCO 201개(74개 묶음)는 연결된 SOC와 가중치가 같아 대화량과 지표가 모두 같다. 작가와 출판물 전문가, 대학교수·대학 강사·대학 교육 조교가 그 예다.
 - **곱한 양은 SOC에서 계산**: 대화 수 × 절감 시간 같은 곱은 SOC에서 계산한 뒤 배분해야 한다. 총량은 두 방법이 거의 같지만(100.1%), KSCO별로는 337개 중 201개에서 10% 넘게 다르다.
-- **"All Other" 직업의 해석**: 대화량이 큰 SOC 일부는 실제로는 O\*NET 세분 직업의 대화다. 예를 들어 15-1299(Web Administrators, 한국 업무용 대화의 9.7%)가 그렇다. 연계표는 이를 "All Other" 범주 전체로 옮긴다.
+- **"All Other" 직업의 해석**: 대화량이 큰 SOC 일부는 실제로는 O\*NET 세분 직업의 대화다. 예를 들어 15-1299(Computer Occupations, All Other, 한국 업무용 대화의 9.7%)는 2026년 5월 대화의 69%가 Document Management Specialists(15-1299.03)다. 연계표는 이를 "All Other" 범주 전체로 옮긴다.
 - **기타**: 4월의 농림어업 자리표시 행(0.04%)은 배분되지 않는다. 지표 결측은 적다. 대화량이 있는데 observed exposure가 없는 KSCO는 3개(업무용 대화 0.23%)다.
 
 ---
@@ -52,7 +52,7 @@
 - **대화량 직업은 모두 AI 지표 파일에 있다.** 예외는 4월의 `45-XXXX` 하나다. 이 행은 농림어업 대분류에 공개된 세부 직업이 없어, 대분류 몫을 한 행에 둔 자리표시다(paper 19). 업무용 대화의 0.04%에 해당한다.
 - **지표 보유**: 시간 절감과 Eloundou 노출도는 대화량 직업 전부에 있다. observed exposure는 5월 365개 중 342개에만 있다(paper 20의 23개 미매칭과 같음). 대화 비중으로는 98.2%를 덮는다.
 - **미공개는 0이 아니다.** AI 지표 808개 중 5월 443개는 한국 대화량이 공개되지 않았다. 이 직업의 대화량은 0으로 두지 않고 결측으로 두었다(paper 20의 유의점).
-- **명칭 차이**: 두 파일의 직업 명칭이 다른 SOC가 5월에 21개 있다. 그중 20개는 AEI가 .00 코드를 공개하지 않아, O\*NET 세분 직업의 이름이 AEI 명칭(`soc6_title_aei`)으로 들어온 경우다. 예를 들어 15-1299는 SOC 명칭이 Computer Occupations, All Other이고, AEI 명칭은 Web Administrators다. 이 문제는 4.5절에서 다시 다룬다.
+- **명칭 차이**: 이 결합을 처음 만들 때는 두 파일의 직업 명칭이 다른 SOC가 5월에 21개 있었다. 그중 20개는 AEI가 .00 코드를 공개하지 않아, O\*NET 세분 직업 하나의 이름이 AEI 명칭(`soc6_title_aei`)으로 들어온 경우였다(예: 15-1299 Computer Occupations, All Other가 Web Administrators로 표시됨). 2026년 10월 18일에 모든 SOC 6자리 파일의 명칭을 BLS SOC 2018 공식 명칭으로 통일해 지금은 두 명칭이 같다. 대화 구성 문제는 4.5절에서 다시 다룬다.
 
 ## 3. KSCO 변환 규칙
 
@@ -145,7 +145,7 @@ AI 지표는 월과 무관하다. 시간 절감은 2026년 4·5월을 합친 값
 
 ### 4.5 "All Other" 직업과 O\*NET 세분 직업
 
-AEI의 직업 단위는 O\*NET-SOC 8자리다. .00 코드가 공개되지 않고 세분 직업(.01 이상)만 공개된 SOC는, 그 세분 직업의 대화가 SOC 전체의 대화로 합산된다(paper 20). 한국 대화량에서 이런 SOC가 20개다. 이 가운데 대화량이 큰 것은 대부분 "All Other" 범주다. 대표적인 예는 15-1299(Computer Occupations, All Other, 실제 대화는 Web Administrators, 업무용 대화의 9.7%)다. 이 밖에 17-2199(Energy Engineers 등), 19-1029(Bioinformatics Scientists), 13-1199(Business Continuity Planners), 19-4099(Quality Control Analysts), 15-2099(Bioinformatics Technicians)가 있다. 연계표는 이 대화를 "All Other" 범주 전체의 ISCO로 보낸다. 그래서 실제 과업과 KSCO 배분이 어긋날 수 있다. 15-1299의 대화 절반이 정보 시스템 운영자(2251)로 가서 이 KSCO가 한국 업무용 대화 1위(7.25%)가 되는 것이 그 예다(표 6).
+AEI의 직업 단위는 O\*NET-SOC 8자리다. .00 코드가 공개되지 않고 세분 직업(.01 이상)만 공개된 SOC는, 그 세분 직업의 대화가 SOC 전체의 대화로 합산된다(paper 20). 한국 대화량에서 이런 SOC가 20개다. 이 가운데 대화량이 큰 것은 대부분 "All Other" 범주다. 대표적인 예는 15-1299(Computer Occupations, All Other, 업무용 대화의 9.7%, 그중 69%가 Document Management Specialists)다. 이 밖에 17-2199(Energy Engineers 등), 19-1029(Bioinformatics Scientists), 13-1199(Business Continuity Planners), 19-4099(Quality Control Analysts), 15-2099(Bioinformatics Technicians)가 있다. 연계표는 이 대화를 "All Other" 범주 전체의 ISCO로 보낸다. 그래서 실제 과업과 KSCO 배분이 어긋날 수 있다. 15-1299의 대화 절반이 정보 시스템 운영자(2251)로 가서 이 KSCO가 한국 업무용 대화 1위(7.25%)가 되는 것이 그 예다(표 6).
 
 **표 6. 2026-05 업무용 대화 상위 15개 KSCO**
 

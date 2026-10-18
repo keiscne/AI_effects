@@ -116,6 +116,12 @@ generate byte neg00 = -is00
 bysort geo month soc6 (neg00 soc8): generate str244 title_any = title8[1]   // .00 명칭 우선
 collapse (sum) pct (count) n8 = pct (max) has00 = is00 (firstnm) title_any, by(geo month soc6)
 rename title_any aei_title
+* 6자리 명칭은 BLS SOC 2018 공식 명칭으로(01_import_soc2018_titles.do). .00 코드가 없는 SOC는
+* AEI 8자리 명칭 하나가 6자리 직업 이름처럼 보이기 때문(예: 15-1299 → Web Administrators).
+merge m:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
+assert _merge == 3
+replace aei_title = soc6_title
+drop _merge soc6_title
 tempfile aei6
 save `aei6'
 
