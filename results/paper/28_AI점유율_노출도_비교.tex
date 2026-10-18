@@ -1,0 +1,138 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- AI 점유율 지표 A~C(paper 27)와 노출도 지표 3개의 상관과 상위 순위 비교.
+% 표 본문: results/table/28_corr.tex, 28_overlap.tex, 28_top_fs.tex, 28_top_expo.tex
+%          (code/04_analysis_kor_share_vs_exposure.do가 생성)
+% 전체 자료: results/table/28_kor_share_vs_exposure.xlsx
+% 관련: paper 25(활용도와 노출도), paper 27(점유율 지표)
+% 컴파일: xelatex (kotex 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{AI 점유율 지표와 노출도 지표의 비교\\[2mm]
+\large --- 지표 A$\sim$C와 Felten AIOE, Eloundou GPT-4 $\beta$, Observed exposure ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent paper 27의 AI 점유율 지표 A$\sim$C를 기존 노출도 지표 3개와 KSCO 8차 소분류 129개에서 비교했다. 노출도는 직업의 강도 지표이고 점유율은 강도에 규모가 곱해진 지표라서, 규모를 맞춘 ``노출도 기반 점유율''(취업자 $\times$ 노출도의 점유율)도 함께 보았다. 주요 결과는 다음과 같다.
+\begin{itemize}[leftmargin=*]
+  \item 점유율 지표와 노출도 지표의 순위상관은 0.60$\sim$0.70이다. Observed exposure와 Eloundou $\beta$가 0.68$\sim$0.70으로 가장 높고, Felten이 0.60$\sim$0.63으로 가장 낮다.
+  \item 규모를 맞춘 노출도 기반 점유율과 지표 C의 순위상관은 0.50(Observed exposure), 0.22(Eloundou $\beta$)로 오히려 낮다. 노출도로 보면 취업자가 많은 사무$\cdot$판매직(회계 및 경리 사무원, 기획 및 마케팅 사무원, 매장 판매 종사자)이 상위지만, 실제 사용 점유율은 이들 직업에서 0.1\% 안팎이다.
+  \item 상위 30개 겹침도 같은 그림이다. 지표 C 상위 30개 중 노출도 상위 30개와 겹치는 것은 15$\sim$17개, 노출도 기반 점유율 상위 30개와는 8$\sim$11개다.
+\end{itemize}
+\end{abstract}
+
+\section{비교 방법}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{대상}: 지표 A$\sim$C와 노출도 3개가 모두 있는 소분류 129개(paper 25와 같은 표본).
+  \item \textbf{점유율 지표}(paper 27): A 대화 점유율, B 절감 시간 점유율, C 취업자 환산 절감 점유율. $K$와 무관하고 직업 규모로 나누지 않는다.
+  \item \textbf{노출도 지표}: Observed exposure(Anthropic), Felten 언어모델 AIOE, Eloundou GPT-4 $\beta$. SOC 값을 연계표 $w^{\text{mean}}$으로 평균한 소분류 값이다(paper 23). 모두 직업 규모와 무관한 강도 지표다.
+  \item \textbf{노출도 기반 점유율}(작업자 판단): $\mathrm{XS}^x_j = E_j x_j / \sum_k E_k x_k$. 여기서 $E_j$는 취업자 수(2022년 상반기), $x$는 Observed exposure 또는 Eloundou $\beta$다. ``노출도만으로 본다면 영향받는 일자리가 어느 직업에 몰리는가''를 나타내며, 지표 C와 같은 단위(점유율)다. Felten AIOE는 표준화 점수(음수 포함)라 만들지 않았다.
+  \item \textbf{통계}: Spearman 순위상관(주), Pearson 상관(엑셀), 상위 30개 겹침 수, 지표 C 상위 20개의 각 지표 순위, 노출도별 상위 10개의 지표 C 순위.
+\end{itemize}
+
+\section{상관관계}
+
+\begin{longtable}{L{4.6cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}}
+\caption{Spearman 순위상관(소분류 129개)}\label{tab:corr}\\
+\toprule
+ & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8) \\
+\midrule
+\endfirsthead
+\input{../table/28_corr.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item 점유율 지표와 노출도의 순위상관은 0.60$\sim$0.70이다. paper 25의 강도 지표(활용도 1$\cdot$2)와 노출도의 순위상관(0.58$\sim$0.66)과 비슷하거나 조금 높다. 노출도 지표끼리의 상관(0.81$\sim$0.85)보다는 낮다. 실제 사용은 노출도와 같은 방향이지만 다른 정보를 담는다.
+  \item 세 노출도 가운데 Felten AIOE가 점유율과 가장 덜 맞는다(0.60$\sim$0.63). Felten 상위에는 통신 관련 판매, 종교 관련 종사자, 영양사처럼 실제 사용이 적은 직업이 있다(표~\ref{tab:topexpo}).
+  \item \textbf{규모를 맞추면 상관이 더 낮아진다.} 노출도 기반 점유율과 지표 C의 순위상관은 Observed exposure로 0.50, Eloundou $\beta$로 0.22다. 노출도 기반 점유율 상위는 회계 및 경리 사무원(331, Eloundou 기준 7.8\%), 기획 및 마케팅 사무원(311, 6.9\%), 매장 판매 종사자(521), 자재 및 생산관리 사무원(321)이다. 이들의 지표 C 점유율은 0.06$\sim$0.24\%다. 노출도는 취업자가 많은 중간 숙련 사무$\cdot$판매직에 일자리 영향이 몰린다고 보지만, 실제 AI 사용으로 본 영향은 전문가 직업에 몰린다(paper 27의 대분류 표).
+\end{itemize}
+
+\section{상위 순위 비교}
+
+\begin{longtable}{L{4.6cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.4cm}}
+\caption{상위 30개 겹침 수}\label{tab:overlap}\\
+\toprule
+ & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8) \\
+\midrule
+\endfirsthead
+\input{../table/28_overlap.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{R{0.6cm}L{4.4cm}R{1.2cm}R{1.0cm}R{1.0cm}R{1.2cm}R{1.2cm}R{1.2cm}R{1.4cm}R{1.4cm}}
+\caption{지표 C 상위 20개 소분류의 각 지표 순위(129개 중)}\label{tab:topfs}\\
+\toprule
+C 순위 & 소분류 & C(\%) & A & B & OE & Felten & $\beta$ & 노출 점유율(OE) & 노출 점유율($\beta$) \\
+\midrule
+\endfirsthead
+\toprule
+C 순위 & 소분류 & C(\%) & A & B & OE & Felten & $\beta$ & 노출 점유율(OE) & 노출 점유율($\beta$) \\
+\midrule
+\endhead
+\input{../table/28_top_fs.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{2.6cm}R{0.8cm}L{5.4cm}R{1.4cm}R{1.6cm}R{1.6cm}R{1.4cm}}
+\caption{노출도 지표별 상위 10개 소분류와 지표 C}\label{tab:topexpo}\\
+\toprule
+노출도 지표 & 순위 & 소분류 & 노출도 값 & 취업자(천 명) & C 점유율(\%) & C 순위 \\
+\midrule
+\endfirsthead
+\toprule
+노출도 지표 & 순위 & 소분류 & 노출도 값 & 취업자(천 명) & C 점유율(\%) & C 순위 \\
+\midrule
+\endhead
+\input{../table/28_top_expo.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{두 지표가 모두 높은 직업}: 222 컴퓨터 시스템 및 소프트웨어 전문가, 225 정보 시스템 및 웹 운영자, 223 네트워크 및 정보 보안 전문가, 332 통계$\cdot$데이터 관련 사무원, 291 작가 및 언론 관련 전문가는 노출도(Observed exposure, Eloundou $\beta$) 상위 10과 지표 C 상위 10에 함께 든다. 노출된 과업이 실제로도 많이 쓰이는 정보통신$\cdot$글쓰기 직업이다.
+  \item \textbf{사용이 노출도보다 큰 직업}: 213 생명 및 자연과학 관련 시험원(C 7위, 노출도 40$\sim$83위), 293 연극$\cdot$영화 및 영상 전문가(C 9위, 56$\sim$66위), 211 생명 및 자연과학 관련 전문가(C 10위, 31$\sim$48위). 연계표 배분의 영향(Data Scientists 등이 들어옴, paper 26)과 노출도 지표가 포착하지 못한 사용이 섞여 있다.
+  \item \textbf{노출도가 사용보다 큰 직업}: 362 고객 상담 및 모니터 요원(Observed exposure 4위, C 53위), 311 기획 및 마케팅 사무원($\beta$ 2위, C 84위), 331 회계 및 경리 사무원($\beta$ 4위, C 57위), 531 통신 관련 판매 종사자(Felten 1위, C 72위). 취업자가 많은 사무$\cdot$판매직이 많다.
+  \item 노출도 상위 10개의 지표 C 순위 중앙값은 Observed exposure 7위, Eloundou $\beta$ 12위, Felten 35위다. 지표 C 상위 30에 드는 것은 각각 7개, 6개, 5개다.
+\end{itemize}
+
+\section{해석상 주의}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{지표의 성격 차이}: 노출도는 ``AI가 할 수 있는 과업의 비중''(강도), 점유율은 ``한국 전체 사용 중 그 직업의 몫''(규모)이다. 노출도 기반 점유율은 둘을 맞추려는 보조 지표일 뿐 표준 지표가 아니다.
+  \item \textbf{사무직의 낮은 사용 점유율}: AEI는 대화를 과업이 속한 SOC 직업으로 분류한다. 회계$\cdot$마케팅 관련 대화가 Accountants, Market Research Analysts 같은 전문가 SOC로 분류되면, 연계표를 거쳐 사무원이 아닌 전문가 소분류(예: 283 상품 기획$\cdot$홍보 및 조사 전문가)로 간다. 사무직의 낮은 점유율 일부는 실제 사용이 적어서가 아니라 이 분류 경로 때문일 수 있다.
+  \item \textbf{같은 연계 경로}: 노출도와 점유율 모두 SOC 값을 같은 연계표로 옮겼다. 다만 노출도는 $w^{\text{mean}}$ 평균, 점유율은 $w^{\text{alloc}}$ 배분이라 연계 경로의 영향이 다르게 나타난다.
+  \item \textbf{Observed exposure}: Massenkoff and McCrory(2026)가 Eloundou의 이론적 노출등급과 AEI 실제 사용 자료를 결합해 만든 지표다. 점유율과 출처(AEI)가 일부 겹치므로 상관이 높게 나오는 것을 독립적인 확인으로 보기 어렵다. Eloundou $\beta$와의 상관(0.84)이 높은 것도 같은 이유다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{code/04\_analysis\_kor\_share\_vs\_exposure.do}: 비교 지표, 상관, 순위 표를 만든다.
+  \item \texttt{results/table/28\_kor\_share\_vs\_exposure.xlsx}: 시트 \texttt{ksco3}(129개 소분류의 8개 지표와 순위), \texttt{spearman}, \texttt{pearson}, \texttt{overlap30}(8$\times$8 행렬), \texttt{top\_fs}, \texttt{top\_expo}.
+  \item \texttt{results/table/28\_corr.tex}, \texttt{28\_overlap.tex}, \texttt{28\_top\_fs.tex}, \texttt{28\_top\_expo.tex}: 표~\ref{tab:corr}--\ref{tab:topexpo}.
+\end{itemize}
+
+\end{document}
