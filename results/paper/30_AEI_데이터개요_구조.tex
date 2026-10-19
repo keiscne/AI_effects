@@ -1,0 +1,313 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- Anthropic Economic Index(AEI) 데이터 해설: 개요, 릴리스별 특징, 데이터 구조, 지표 A~C로 이어지는 경로.
+% 표 본문: results/table/30_v6_cells.tex, 30_v6_kor.tex (code/04_analysis_aei_v6_structure.do가 생성)
+% 전체 자료: results/table/30_aei_v6_structure.xlsx
+% 원자료: data/raw/usage/anthropic_economic_index/ (HF Anthropic/EconomicIndex, 커밋 2ea58ff, 2026-09-26 다운로드)
+% 관련: report 08(AEI 스키마 초기 정리), paper 19(한국 직업별 대화량), paper 21·23(연계표), paper 25·27(활용도, 지표 A~C)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{Anthropic Economic Index 데이터 해설\\[2mm]
+\large --- 목적과 릴리스별 특징, 데이터 구조, 그리고 지표 A$\sim$C로 이어지는 경로 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Anthropic Economic Index(AEI)는 Claude 대화를 미국 O*NET 과업과 SOC 직업에 대응시켜, AI가 경제의 어떤 일에 실제로 쓰이는지를 집계해 공개하는 자료다. 이 보고서는 HuggingFace \texttt{Anthropic/EconomicIndex}의 릴리스 6개와 \texttt{labor\_market\_impacts} 폴더를 원자료 파일 수준에서 확인해 정리했다(2026년 9월 26일 다운로드본). 앞부분은 AEI의 목적과 특징, 릴리스별 차이를 다룬다. 뒷부분은 이 프로젝트의 지표 A$\sim$C가 쓰는 release 2026-06-26(V6)의 스키마, 범주, 지표 공개 범위, 지표의 구조를 설명하고, 어떤 셀이 어떤 계산을 거쳐 지표 A$\sim$C가 되는지를 단계별로 보인다.
+\begin{itemize}[leftmargin=*]
+  \item 릴리스마다 표본 기간, 플랫폼, 지리 단위, 분류 범주, 파일 형식이 달라 릴리스 간 값을 그대로 이어 붙일 수 없다. V1$\cdot$V2는 과업별 비중 CSV, V3$\sim$V5는 1주 표본의 긴 형식(long format) 패널, V6은 달력 월 단위의 새 스키마다.
+  \item V6은 국가 단위에서 세부 범주(세부 직업, O*NET 과업 등)는 대화 비중 \texttt{pct}만, 대분류 수준(SOC 대분류 등)은 모든 지표를 공개한다. 세부 직업의 시간 지표는 전 세계(GLOBAL) 값만 있다.
+  \item 지표 A$\sim$C는 점유율이라 한국 대화 총량(Sensor Tower)과 대화당 메시지 수 $K$가 지워진다. 그래서 사실상 AEI의 네 가지 값으로 정해진다. 한국 SOC 대분류의 \texttt{pct}와 \texttt{use\_case\_work\_pct}, 한국 세부 직업 \texttt{pct}, 전 세계 세부 직업의 소요 시간 두 가지다. 여기에 SOC--KSCO 연계표가 더해지고, 지표 C에는 1인당 근로시간이 더해진다.
+\end{itemize}
+\end{abstract}
+
+\tableofcontents
+
+\section{데이터 개요}
+
+\subsection{목적}
+
+AEI는 Anthropic이 2025년 2월부터 공개하는 자료다. 목적은 AI가 노동시장과 경제에 주는 영향을 ``AI가 할 수 있는 일''의 예측이 아니라 ``AI가 실제로 하고 있는 일''의 관측으로 추적하는 것이다\parencite{handa-2025-which-economic-tasks-are}. 기존의 AI 노출도 지표(Felten AIOE, Webb, Eloundou GPT 노출도 등)는 직업$\cdot$과업이 AI로 처리될 수 있는지를 사람이나 모델이 사전에 판정한 값이다. 반면 AEI는 이미 일어난 대화를 집계한 값이다. 그래서 이론상 노출도가 높아도 실제로는 거의 쓰이지 않는 과업, 반대로 노출도는 낮아도 실제로 많이 쓰이는 과업을 드러낼 수 있다.
+
+보고서가 거듭되면서 질문이 넓어졌다. 처음에는 ``어떤 과업에 쓰이는가''(V1)와 ``자동화인가 증강인가''(V1$\cdot$V2)를 다뤘다. 이후 ``어느 나라$\cdot$지역에서 얼마나 쓰이는가''와 ``기업 API 사용은 어떻게 다른가''(V3)\parencite{appel-2025-uneven-geographic-and-enterprise-ai}가 더해졌다. 다음으로 ``과업이 얼마나 복잡하고, AI가 시간을 얼마나 줄이는가''(V4, 경제 원시지표)\parencite{appel-2026-economic-primitives}, ``사용이 시간에 따라 어떻게 달라지는가''(V5)\parencite{massenkoff-2026-learning-curves}, ``월$\cdot$시간 단위의 리듬과 산출물''(V6)\parencite{massenkoff-2026-cadences}로 이어졌다. 별도의 \texttt{labor\_market\_impacts} 자료는 이론 노출도와 사용 자료를 결합한 직업별 관측 노출도(observed exposure)를 제공한다\parencite{massenkoff-2026-labor-market-impacts-of-ai}.
+
+\subsection{특징}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{관측된 사용.} 설문의 자기 보고나 전문가 판정이 아니라 실제 대화의 표본을 집계한다. 대화 내용은 프라이버시 보존 분석 도구(Clio)로 처리하고, 개별 대화가 아니라 집계값만 공개한다.
+  \item \textbf{과업 중심 분류.} 각 대화를 O*NET 과업(task statement)에 대응시키고, 과업이 속한 직업으로 SOC 직업을 정한다. 따라서 \textbf{AEI의 SOC는 사용자의 직업이 아니라 대화 과업이 속한 직업}이다. 이와 별도로 직업 분류와 무관하게 대화 요청 내용을 묶은 요청 범주(request)도 있다.
+  \item \textbf{모델이 분류$\cdot$추정한 값.} 과업 대응, 협업 유형, 업무$\cdot$개인$\cdot$학업 용도, 사람 단독 소요 시간, AI를 쓴 소요 시간 등은 모두 Claude 기반 분류기가 대화마다 판정$\cdot$추정한 값이다. 분류기 프롬프트는 V4 부록(\texttt{aei\_v4\_appendix.pdf})에 있다. 측정 오차와 분류기 특성이 값에 들어 있다.
+  \item \textbf{비중 중심 공개.} 대화 건수 자체보다 비중(\%)과 평균을 주로 공개한다. V3$\sim$V5의 raw 파일에는 \texttt{*\_count}가 있지만 V6에는 건수가 없다. 그래서 다른 규모 자료와 결합하려면 외부에서 총량을 가져와야 한다(이 프로젝트에서는 Sensor Tower 이용자 수, paper 17).
+  \item \textbf{공개 임계치.} 대화 수와 고유 계정 수가 기준에 못 미치는 셀은 공개하지 않는다. 행이 없다는 것은 값이 0이라는 뜻이 아니다. 공개된 비중의 합은 100\%보다 작다.
+  \item \textbf{플랫폼 범위.} Claude.ai(소비자용 채팅; V6은 Cowork 포함)와 1P API(기업 직접 API; V6은 Claude Code 제외) 두 소스다. Claude 사용자만의 자료라 다른 AI 제품 사용자의 직업 구성과 같다는 보장이 없다.
+\end{enumerate}
+
+\subsection{릴리스별 특징}
+
+{\small
+\begin{longtable}{L{2.0cm}L{3.0cm}L{3.2cm}L{8.6cm}}
+\caption{AEI 릴리스별 특징(원자료 파일과 각 폴더의 \texttt{README.md}$\cdot$\texttt{data\_documentation.md}로 확인)}\label{tab:releases}\\
+\toprule
+폴더(약칭) & 보고서 & 자료 기간$\cdot$플랫폼 & 공개 자료와 특징 \\
+\midrule
+\endfirsthead
+\toprule
+폴더(약칭) & 보고서 & 자료 기간$\cdot$플랫폼 & 공개 자료와 특징 \\
+\midrule
+\endhead
+\texttt{release\_2025\_02\_10} (V1) & Handa et al.(2025), Which Economic Tasks are Performed with AI? & 2024년 12월$\sim$2025년 1월 Claude.ai(Free$\cdot$Pro) 대화 표본 & 과업별 대화 비중(\texttt{onet\_task\_mappings.csv}, 과업 문장 3,514개), 협업 유형 비중(\texttt{automation\_vs\_augmentation.csv}). 전 세계 값만. 보조 표: O*NET 과업 문장, SOC 구조, BLS 고용(2023년 5월), 임금. 열은 \texttt{task\_name}, \texttt{pct} 두 개뿐이다. \\
+\texttt{release\_2025\_03\_27} (V2) & Insights from Claude 3.7 Sonnet & Claude 3.7 Sonnet 출시(2025년 2월) 이후 Claude.ai 대화 & 과업 비중 v2(3,365개), 과업별 협업 유형 비율, 과업별 확장 사고(extended thinking) 비율, 대화 군집 630개의 군집 수준 자료(\texttt{cluster\_level\_dataset.tsv}: 3단계 군집명, 대화$\cdot$이용자 비중, 대응 O*NET 과업, 협업 비율). 전 세계 값만. \\
+\texttt{release\_2025\_09\_15} (V3) & Appel et al.(2025), Uneven Geographic and Enterprise AI Adoption & 2025-08-04$\sim$08-11(1주). Claude.ai, 1P API & \textbf{긴 형식 패널 첫 도입}: 열 \texttt{geo\_id}, \texttt{geography}, \texttt{facet}, \texttt{level}, \texttt{variable}, \texttt{cluster\_name}, \texttt{value}. 지리: 전 세계, 국가, 미국 주. facet: \texttt{onet\_task}, \texttt{request}(3단계), \texttt{collaboration}. 가공본(\texttt{data/output})에 SOC 대분류(\texttt{soc\_occupation}), 과업$\times$협업 교차가 추가된다. 1P API는 전 세계만. 분석 코드와 외부 입력 자료(인구, GDP 등)도 공개. AUI(1인당 사용 지수)를 처음 정의. \\
+\texttt{release\_2026\_01\_15} (V4) & Appel et al.(2026), Economic Primitives & 2025-11-13$\sim$11-20(1주). Claude.ai(Free$\cdot$Pro), 1P API & 같은 긴 형식. \textbf{경제 원시지표 facet 추가}: \texttt{human\_only\_time}, \texttt{human\_with\_ai\_time}, \texttt{multitasking}, \texttt{human\_only\_ability}, \texttt{use\_case}, \texttt{task\_success}, \texttt{ai\_autonomy}, \texttt{human\_education\_years}, \texttt{ai\_education\_years}. 과업$\cdot$요청과의 교차(\texttt{onet\_task::use\_case} 등), 수치 facet의 평균$\cdot$중앙값$\cdot$표준편차$\cdot$신뢰구간$\cdot$히스토그램. 지리에 전 세계 하위 지역(\texttt{country-state}) 추가. raw 파일만 공개, 분류기 프롬프트 부록. \\
+\texttt{release\_2026\_03\_24} (V5) & Massenkoff et al.(2026), Learning Curves & 2026-02-05$\sim$02-12(1주). Claude.ai(Free$\cdot$Pro$\cdot$Max), 1P API & V4와 같은 스키마와 facet. raw 파일만 공개. \\
+\texttt{release\_2026\_06\_26} (V6) & Massenkoff et al.(2026), Cadences & \textbf{달력 월}: 2026년 4월, 5월. Claude.ai(채팅$\cdot$Cowork, Free$\cdot$Pro$\cdot$Max), 1P API(Claude Code 제외) & \textbf{새 스키마}(2절). 범주 4개(\texttt{overall}, \texttt{onet} 4단계, \texttt{request} 3단계, \texttt{soc\_occupation} 2단계). \textbf{SOC 세부 직업을 처음 공개}. 지표를 \texttt{metric\_id} 하나로 표현(예: \texttt{use\_case\_work\_pct}), 산출물(artifact) 32종 추가, 값은 소수 둘째 자리 반올림, 건수와 \texttt{task\_success} 없음. 국가 121개, 하위 지역 609$\sim$652개. \\
+\texttt{labor\_market\_impacts} & Massenkoff and McCrory(2026), Labor Market Impacts of AI & (릴리스와 별도) & \texttt{job\_exposure.csv}(SOC 2018 직업 756개의 observed exposure), \texttt{task\_penetration.csv}(과업 17,998개의 사용 침투도). 이론 노출도(Eloundou $\beta$)와 AEI 사용을 결합한 파생 지표. \\
+\bottomrule
+\end{longtable}
+}
+
+릴리스를 이을 때 주의할 점은 다음과 같다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{표본 기간이 다르다.} V3$\sim$V5는 각각 1주 표본이고, V6은 달력 월이다. 같은 지표도 표본 설계가 달라 시계열로 바로 잇기 어렵다.
+  \item \textbf{플랫폼 범위가 바뀌었다.} V4는 Free$\cdot$Pro, V5부터 Max가 포함되고, V6은 Cowork를 포함하며 1P API에서 Claude Code를 뺐다.
+  \item \textbf{분류 체계가 바뀌었다.} V1의 과업 3,514개와 V2의 3,365개는 과업 문장(소문자 정규화) 기준이다. V6은 O*NET Task ID와 O*NET 위계(Task$\to$DWA$\to$IWA$\to$GWA), SOC 세부 직업을 공식 범주로 둔다. 요청 범주는 대화를 묶은 군집이라, 릴리스 간에 같은 범주인지는 확인되지 않았다.
+  \item \textbf{열 이름이 바뀌었다.} V6에서 \texttt{facet}$\to$\texttt{category\_name}, \texttt{level}$\to$\texttt{hierarchy\_level}, \texttt{variable}$\to$\texttt{metric\_id}, \texttt{cluster\_name}$\to$\texttt{node\_name}, \texttt{geography}$\to$\texttt{geo\_level}로 바뀌었다(표~\ref{tab:schemaold}). 파싱 코드는 릴리스별로 나눠야 한다.
+\end{itemize}
+
+\section{데이터 구조}
+
+이 절은 지표 A$\sim$C가 쓰는 V6(\texttt{release\_2026\_06\_26})을 기준으로 한다. 파일은 \texttt{aei\_claude\_ai\_2026-06-26.csv}(\texttt{source\_id} = \texttt{claude\_ai})와 \texttt{aei\_1p\_api\_2026-06-26.csv}(\texttt{1p\_api}) 두 개다.
+
+\subsection{데이터 스키마}
+
+한 행은 ``월 $\times$ 지역 $\times$ 범주 $\times$ 계층 $\times$ 노드 $\times$ 지표'' 하나의 값이다(긴 형식).
+
+\begin{longtable}{L{3.6cm}L{1.6cm}L{11.4cm}}
+\caption{V6 데이터 스키마}\label{tab:schema}\\
+\toprule
+열 & 형식 & 내용 \\
+\midrule
+\endfirsthead
+\texttt{date\_start} & date & 집계 기간 시작(포함). 2026-04-01, 2026-05-01 \\
+\texttt{date\_end} & date & 집계 기간 끝(제외). 다음 달 1일 \\
+\texttt{geo\_id} & string & \texttt{GLOBAL}, ISO 3166-1 알파-3 국가 코드(예: \texttt{KOR}), ISO 3166-2 하위 지역 코드 \\
+\texttt{geo\_level} & string & \texttt{global}, \texttt{country}, \texttt{subregion} \\
+\texttt{category\_name} & string & 분석 범주: \texttt{overall}, \texttt{onet}, \texttt{request}, \texttt{soc\_occupation} \\
+\texttt{hierarchy\_level} & int & 범주 안 계층. 0이 가장 세분된 수준 \\
+\texttt{metric\_id} & string & 지표 이름(2.4절) \\
+\texttt{value} & float & 공개값. 소수 둘째 자리 반올림 \\
+\texttt{node\_name} & string & 범주 안 개별 항목의 이름(과업 문장, 직업명, 요청 범주명 등) \\
+\texttt{node\_external\_id} & string & 항목 식별자: O*NET 요소 ID, SOC 코드, 요청 범주 UUID. \texttt{overall}은 \texttt{-} \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm}L{4.2cm}L{8.2cm}}
+\caption{V3$\sim$V5와 V6의 열 대응}\label{tab:schemaold}\\
+\toprule
+V3$\sim$V5 & V6 & 비고 \\
+\midrule
+\endfirsthead
+\texttt{geo\_id}, \texttt{geography} & \texttt{geo\_id}, \texttt{geo\_level} & raw 파일의 국가 코드는 2자리(\texttt{KR}), V6은 3자리(\texttt{KOR}). 하위 지역은 V3 미국 주(\texttt{state\_us}), V4$\cdot$V5 \texttt{country-state} \\
+\texttt{date\_start}, \texttt{date\_end} & 같음 & V3$\sim$V5는 1주, V6은 달력 월 \\
+\texttt{platform\_and\_product} & (파일로 구분, \texttt{source\_id}) & \\
+\texttt{facet} & \texttt{category\_name} & V3$\sim$V5는 지표 차원(\texttt{use\_case}, \texttt{collaboration} 등)도 facet이었다. V6에서는 이것이 지표(\texttt{metric\_id})로 옮겨졌다 \\
+\texttt{level} & \texttt{hierarchy\_level} & \\
+\texttt{variable} & \texttt{metric\_id} & 예: \texttt{onet\_task\_pct} $\to$ \texttt{pct}; \texttt{onet\_task::use\_case} 교차 비중 $\to$ \texttt{use\_case\_work\_pct} 등 \\
+\texttt{cluster\_name} & \texttt{node\_name}, \texttt{node\_external\_id} & V3$\sim$V5의 교차는 \texttt{base::category} 형식의 이름. V6은 이름과 ID를 나눴다 \\
+\texttt{value} & \texttt{value} & V3$\sim$V5에는 건수(\texttt{*\_count})와 분포 통계(중앙값, 신뢰구간, 히스토그램)가 있다. V6은 비중과 평균만 \\
+\bottomrule
+\end{longtable}
+
+\subsection{범주(categories)}
+
+\begin{longtable}{L{2.6cm}L{5.0cm}L{2.2cm}L{2.2cm}L{2.2cm}L{2.2cm}}
+\caption{V6 범주와 계층}\label{tab:cat}\\
+\toprule
+\texttt{category\_name} & 내용 & 계층 0(가장 세분) & 계층 1 & 계층 2 & 계층 3 \\
+\midrule
+\endfirsthead
+\texttt{overall} & 모든 대화(주제$\cdot$과업 구분 없음) & 전체 & -- & -- & -- \\
+\texttt{onet} & O*NET 업무 활동 위계 & Task(과업) & DWA(세부 업무 활동) & IWA(중간 업무 활동) & GWA(일반 업무 활동) \\
+\texttt{request} & 사용자 요청을 주제별로 묶은 위계(직업 분류와 무관) & Detailed & Minor & Major & -- \\
+\texttt{soc\_occupation} & 미국 BLS 표준직업분류(SOC) & 세부 직업 & 대분류 & -- & -- \\
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{식별자}: \texttt{onet} 계층 0은 O*NET Task ID(숫자, 예: \texttt{9789}), 계층 1$\sim$3은 O*NET 요소 ID(예: GWA \texttt{4.A.4.c.1}). \texttt{soc\_occupation} 계층 0은 O*NET-SOC 8자리 코드(예: \texttt{15-1252.00}), 계층 1은 SOC 대분류 2자리(예: \texttt{15}). \texttt{request}는 UUID다.
+  \item \textbf{SOC 세부 직업은 8자리 O*NET-SOC 코드다.} SOC 2018 세부 직업(6자리)과 결합하려면 앞 7자리로 묶어야 한다. 예를 들어 15-1299(Computer Occupations, All Other)는 O*NET에 .00 코드가 없고 .01$\sim$.09만 있다(paper 23).
+  \item \textbf{과업은 직업 하나에만 속한다.} 한국 2026년 5월 과업 647개는 모두 O*NET-SOC 하나에만 대응한다. 같은 과업 문장이 여러 직업에 다른 Task ID로 있는 경우가 있어, 과업--직업 연결은 문장이 아니라 Task ID로 해야 한다(2026-10-18 작업 로그).
+\end{itemize}
+
+\subsection{지표 공개 범위(metric availability)}
+
+데이터 문서의 Metric Availability를 요약하면 다음과 같다. 전 세계 수준에서는 모든 범주$\cdot$계층에 모든 지표가 공개된다. 국가 수준에서는 \texttt{overall}과 각 범주의 가장 상위 계층(O*NET GWA, 요청 Major, SOC 대분류)에만 모든 지표가 공개되고, 그보다 세분된 계층은 \texttt{pct}만 공개된다. 하위 지역은 \texttt{overall}을 빼면 \texttt{pct}만 공개된다. 1P API는 전 세계 값만 있다. 공개되려면 셀의 집계 임계치와 지역 표본 하한을 모두 넘어야 한다. 표~\ref{tab:cells}는 원자료 파일에서 이 규칙을 직접 확인한 것이다.
+
+{\small
+\begin{longtable}{L{3.0cm}L{2.4cm}L{2.2cm}R{1.2cm}R{1.4cm}R{1.4cm}R{1.6cm}L{3.0cm}}
+\caption{V6 공개 범위(2026년 5월): 소스$\cdot$지리 $\times$ 범주 $\times$ 계층별 지역 수, 노드 수, 지표 수}\label{tab:cells}\\
+\toprule
+소스 / 지리 & 범주 & 계층 & 지역 수 & 노드 수 & 지표 수 & artifact 지표 수 & 공개 지표 \\
+\midrule
+\endfirsthead
+\toprule
+소스 / 지리 & 범주 & 계층 & 지역 수 & 노드 수 & 지표 수 & artifact 지표 수 & 공개 지표 \\
+\midrule
+\endhead
+\input{../table/30_v6_cells.tex}
+\bottomrule
+\end{longtable}
+}
+\noindent 주: 노드 수는 지역 전체의 합집합(서로 다른 \texttt{node\_external\_id} 수). 지표 수는 artifact를 뺀 \texttt{metric\_id} 수이고, \texttt{overall}의 20개에는 \texttt{usage\_pct}, \texttt{usage\_per\_capita\_index}가 들어 있으며 \texttt{pct}는 없다.
+
+\begin{longtable}{L{2.8cm}L{2.6cm}R{1.6cm}R{1.6cm}R{1.8cm}R{1.8cm}L{3.6cm}}
+\caption{한국(\texttt{KOR}, Claude.ai) 공개 범위: 노드 수와 공개된 \texttt{pct}의 합}\label{tab:kor}\\
+\toprule
+범주 & 계층 & 노드 수 4월 & 노드 수 5월 & pct 합(\%) 4월 & pct 합(\%) 5월 & 공개 지표 \\
+\midrule
+\endfirsthead
+\input{../table/30_v6_kor.tex}
+\bottomrule
+\end{longtable}
+
+\begin{itemize}[leftmargin=*]
+  \item 한국은 SOC 대분류 22개가 모두 공개되고(모든 지표), 세부 직업은 4월 389개, 5월 424개가 공개된다(\texttt{pct}만). 공개된 비중의 합은 세부 직업 96$\sim$98\%, 대분류 97$\sim$99\%다. 나머지는 공개 임계치에 걸린 몫이다.
+  \item 과업(\texttt{onet} 계층 0)은 공개 비중의 합이 78$\sim$81\%로 낮다. 과업 단위는 셀이 작아 미공개 몫이 크다.
+  \item 국가 단위에서 세부 직업의 업무용 비중이나 소요 시간은 공개되지 않는다. 그래서 세부 직업의 업무용 비중은 소속 대분류 값으로, 소요 시간은 전 세계 값으로 대신한다(2.5절의 가정 B3, B4).
+\end{itemize}
+
+\subsection{지표(metric)의 구조}
+
+V6의 지표 21개(산출물 32종 제외)는 성격에 따라 네 묶음으로 나뉜다.
+
+\begin{longtable}{L{2.6cm}L{5.0cm}L{2.2cm}L{6.8cm}}
+\caption{V6 지표의 구조}\label{tab:metrics}\\
+\toprule
+묶음 & \texttt{metric\_id} & 단위 & 의미(분모) \\
+\midrule
+\endfirsthead
+\toprule
+묶음 & \texttt{metric\_id} & 단위 & 의미(분모) \\
+\midrule
+\endhead
+(1) 지역 규모 & \texttt{usage\_pct} & \% & 상위 지역 전체 사용 중 이 지역의 몫(국가는 전 세계 대비, 하위 지역은 소속 국가 대비). \texttt{overall}에만 \\
+ & \texttt{usage\_per\_capita\_index} & 지수 & 사용 비중 $\div$ 근로연령(15$\sim$64세) 인구 비중. 1이면 인구 비례. 국가와 미국 주만 \\
+\midrule
+(2) 분포 & \texttt{pct} & \% & 이 지역의 대화 중 이 노드(범주$\cdot$계층 안)의 몫. 같은 범주$\cdot$계층 안에서 합이 100 이하(미공개 몫) \\
+\midrule
+(3) 노드 안 구성 & \texttt{use\_case\_\{work, personal, coursework\}\_pct} & \% & 이 노드 대화 중 용도별 몫(합 100) \\
+ & \texttt{collaboration\_\{directive, feedback\_loop, task\_iteration, learning, validation, none\}\_pct} & \% & 협업 유형별 몫(합 100) \\
+ & \texttt{collaboration\_bucket\_\{automation, augmentation\}\_pct} & \% & 자동화(directive, feedback loop)와 증강(task iteration, learning, validation)의 몫(none을 빼고 합 100) \\
+ & \texttt{multitasking\_pct}, \texttt{human\_only\_ability\_pct} & \% & 여러 과업이 섞인 대화의 몫, 사람이 AI 없이 할 수 있는 과업의 몫 \\
+ & \texttt{artifact\_\{label\}\_pct} (32종) & \% & 대화의 대표 산출물 유형별 몫 \\
+\midrule
+(4) 노드 안 평균 & \texttt{human\_only\_time\_mean} & \textbf{시간} & 사람이 AI 없이 할 때의 소요 시간 평균 \\
+ & \texttt{human\_with\_ai\_time\_mean} & \textbf{분} & 사람이 AI와 함께 할 때의 소요 시간 평균 \\
+ & \texttt{ai\_autonomy\_mean} & 1$\sim$5 & AI 자율성 평균 \\
+ & \texttt{human\_education\_years\_mean}, \texttt{ai\_education\_years\_mean} & 년 & 과업에 필요한 사람의 교육 연수, AI 응답이 보여 주는 교육 연수 \\
+\bottomrule
+\end{longtable}
+
+지표를 조합할 때 쓰는 관계는 다음과 같다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{분포 $\times$ 구성 = 결합 비중.} 노드 $g$의 \texttt{pct}와 \texttt{use\_case\_work\_pct}를 곱해 100으로 나누면, 그 지역 전체 대화 중 ``노드 $g$이면서 업무용''인 대화의 비중이 된다. 이를 노드에 대해 더하고 \texttt{pct}의 합으로 나누면 지역 전체의 업무용 비중이 된다. 한국 2026년 5월은 SOC 대분류로 다시 계산한 값이 47.36\%, \texttt{overall}의 공개값이 47.24\%로 0.12\%p 차이다(paper 19).
+  \item \textbf{대화당 절감 시간.} 두 시간 지표는 단위가 다르다. 그래서 $\text{절감 시간(분)} = 60 \times \texttt{human\_only\_time\_mean} - \texttt{human\_with\_ai\_time\_mean}$으로 맞춘다. 같은 대화 집합의 평균이므로 평균의 차이가 차이의 평균과 같다. 예를 들어 한국 전체(2026년 5월)는 사람 단독 4.76시간, AI 사용 41.79분이다.
+  \item \textbf{8자리에서 6자리로.} SOC 세부 직업의 평균 지표를 6자리로 묶을 때는 \texttt{pct}로 가중평균한다(대화 평균이므로). \texttt{pct} = 0.00으로 반올림된 코드는 실제 값이 0$\sim$0.005\%이므로 가중치를 0.0025로 둔다(\texttt{01\_import\_aei\_soc\_time\_savings.do}).
+  \item \textbf{반올림.} 모든 값이 소수 둘째 자리로 반올림되어 있어, 아주 작은 비중은 상대 오차가 크다.
+\end{itemize}
+
+\subsection{지표 A$\sim$C로 이어지는 경로}
+
+지표 A$\sim$C(paper 27)는 KSCO 8차 소분류 $j$의 한국 업무용 AI 사용 점유율이다. 정의는 다음과 같다.
+\[
+  \text{A: } \mathrm{CS}_j = \frac{C_j}{\sum_k C_k}, \qquad
+  \text{B: } \mathrm{SS}_j = \frac{S_j}{\sum_k S_k}, \qquad
+  \text{C: } \mathrm{FS}_j = \frac{S_j/\bar h_j}{\sum_k S_k/\bar h_k}.
+\]
+여기서 $C_j$는 월평균 업무용 대화 수, $S_j$는 월평균 절감 시간, $\bar h_j$는 1인당 월 주업 근로시간(2022년 상반기 지역별고용조사)이다. AEI 셀에서 $C_j$, $S_j$까지 가는 과정은 다음과 같다(월 $t \in$ \{2026-04, 2026-05\}).
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{한국 SOC 대분류의 업무용 기준 비중}(\texttt{KOR}, \texttt{soc\_occupation}, 계층 1). 대분류 $g$의 \texttt{pct} $p_{gt}$와 \texttt{use\_case\_work\_pct} $w_{gt}$로
+  \[ s^{\text{work}}_{gt} = \frac{p_{gt}\,w_{gt}}{\sum_{g'} p_{g't}\,w_{g't}}. \]
+  AEI의 \texttt{pct}는 업무$\cdot$개인$\cdot$학업 대화를 모두 포함하고 대분류마다 업무용 비중이 8$\sim$85\%로 다르다. 그래서 업무용 대화 안의 구성으로 바꾼다(paper 19).
+  \item \textbf{세부 직업 배분}(\texttt{KOR}, \texttt{soc\_occupation}, 계층 0). 대분류 $g$ 안 세부 직업 $d$(8자리)의 \texttt{pct}로 대분류 안 몫을 구해 곱한다: $s^{\text{work}}_{dt} = s^{\text{work}}_{gt} \cdot p_{dt} / \sum_{d' \in g} p_{d't}$. 8자리를 앞 7자리로 더해 SOC 2018 세부 직업 $s$(6자리)를 만든다.
+  \item \textbf{대화 수}. 한국 월 업무용 대화 총량 $V_t(K)$(Sensor Tower 이용자 수 $\times$ 1인당 메시지 $\times$ Signals 업무 비중 $\div$ 대화당 메시지 수 $K$, paper 17)를 곱한다: $\mathrm{conv}_{st} = V_t(K)\, s^{\text{work}}_{st}$.
+  \item \textbf{대화당 절감 시간}(\texttt{GLOBAL}, \texttt{soc\_occupation}, 계층 0). $\tau_s = 60 \times \texttt{human\_only\_time\_mean} - \texttt{human\_with\_ai\_time\_mean}$(분)을 8자리에서 계산해 \texttt{pct} 가중으로 6자리에 묶고, 두 달을 합친다. 절감 시간은 SOC 단계에서 대화 수와 곱한다: $\mathrm{saved}_{st} = \mathrm{conv}_{st}\,\tau_s/60$(시간).
+  \item \textbf{KSCO 변환}. SOC 2018--KSCO 8차 연계표의 배분 가중치 $w^{\text{alloc}}(s, j)$(SOC마다 합 1, paper 21)로 소분류에 더한다: $C_{jt} = \sum_s w^{\text{alloc}}(s,j)\,\mathrm{conv}_{st}$, $S_{jt} = \sum_s w^{\text{alloc}}(s,j)\,\mathrm{saved}_{st}$. $C_j$, $S_j$는 값이 있는 달의 평균이다.
+  \item \textbf{점유율}. 지표가 있는 소분류 129개에서 A$\sim$C를 계산한다. C는 절감 시간을 1인당 근로시간 $\bar h_j$로 나눠 ``몇 명분의 일인가''로 바꾼 뒤 점유율을 구한다.
+\end{enumerate}
+
+\paragraph{무엇이 지워지고 무엇이 남는가.} $V_t(K)$는 모든 직업에 같은 배수로 곱해지므로 점유율에서 지워진다. 대화당 메시지 수 $K$는 정확히 지워지고, Sensor Tower$\cdot$Signals의 월별 총량은 두 달을 평균할 때의 가중치로만 남는다(두 달 총량이 거의 같아 영향이 작다). 따라서 지표 A$\sim$C를 정하는 AEI 값은 표~\ref{tab:bridge}의 네 가지다.
+
+\begin{longtable}{L{4.4cm}L{3.4cm}R{1.6cm}L{1.0cm}L{1.0cm}L{1.0cm}L{3.6cm}}
+\caption{지표 A$\sim$C에 들어가는 AEI 셀}\label{tab:bridge}\\
+\toprule
+AEI 셀(\texttt{geo\_id}, 범주, 계층) & \texttt{metric\_id} & 노드 수(4월/5월) & A & B & C & 역할 \\
+\midrule
+\endfirsthead
+\texttt{KOR}, \texttt{soc\_occupation}, 1 & \texttt{pct} & 22/22 & $\checkmark$ & $\checkmark$ & $\checkmark$ & 대분류 대화 비중 \\
+\texttt{KOR}, \texttt{soc\_occupation}, 1 & \texttt{use\_case\_work\_pct} & 22/22 & $\checkmark$ & $\checkmark$ & $\checkmark$ & 업무용 기준으로 바꾸는 가중치 \\
+\texttt{KOR}, \texttt{soc\_occupation}, 0 & \texttt{pct} & 389/424 & $\checkmark$ & $\checkmark$ & $\checkmark$ & 대분류 안 세부 직업 구성 \\
+\texttt{GLOBAL}, \texttt{soc\_occupation}, 0 & \texttt{human\_only\_time\_mean}, \texttt{human\_with\_ai\_time\_mean}, \texttt{pct} & 696/718 & & $\checkmark$ & $\checkmark$ & 대화당 절감 시간(\texttt{pct}는 8$\to$6자리 가중치) \\
+\bottomrule
+\end{longtable}
+
+AEI 밖에서 들어가는 것은 SOC 2018--KSCO 8차 연계표(A$\sim$C)와 1인당 근로시간 $\bar h_j$(C)뿐이다. A는 대화 구성만, B는 여기에 대화당 절감 시간을, C는 다시 1인당 근로시간을 더한다. paper 29에서 A와 C의 노출도 격차가 0.92$\sim$0.96의 순위상관으로 비슷했던 것은, 대화당 절감 시간의 직업 차이가 대화 구성의 차이보다 작기 때문이다.
+
+\paragraph{가정.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{B1 대표성}: 한국 AI 업무용 대화의 직업 구성 = AEI Claude.ai 한국 업무용 대화의 직업 구성. 총량이 지워지므로 지표 A$\sim$C는 사실상 ``Claude.ai 한국 업무용 대화의 직업 구성''을 KSCO로 옮긴 것이다.
+  \item \textbf{B2 미공개 셀}: 공개되지 않은 몫(대분류 1$\sim$3\%, 세부 직업 2$\sim$4\%)은 공개된 셀과 같은 비율로 나뉜다(합이 1이 되게 다시 정규화).
+  \item \textbf{B3 세부 직업의 업무용 비중}: 세부 직업은 \texttt{pct}만 공개되므로 업무용 비중이 소속 대분류와 같다고 둔다.
+  \item \textbf{B4 절감 시간}: 한국의 직업별 대화당 절감 시간 = 전 세계 값(세부 직업의 시간 지표는 \texttt{GLOBAL}에만 있음).
+  \item \textbf{B5 직업의 의미}: AEI의 SOC는 대화 과업이 속한 직업이고 사용자의 직업이 아니다. 예를 들어 기자$\cdot$언론 과업(27-3023)의 사용은 연계표를 거쳐 293 연극$\cdot$영화 및 영상 전문가로도 간다(paper 29).
+\end{itemize}
+
+\paragraph{이 경로에 쓰지 않은 AEI 자료.} 한국의 \texttt{onet} 과업 비중은 과업 상위 30 표(paper 26)에만 썼다. 요청 범주(\texttt{request})와 협업$\cdot$산출물 지표는 아직 쓰지 않았다. V3의 국가별 \texttt{usage\_pct}(18개국 비중)는 Sensor Tower 1인당 메시지 환산(paper 17)에 쓰였지만, 지표 A$\sim$C에서는 총량과 함께 지워진다. \texttt{labor\_market\_impacts}의 observed exposure는 비교 대상 노출도로 썼다(paper 28$\cdot$29).
+
+\section{이용 시 유의사항}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{결측 $\ne$ 0}: 공개 임계치에 못 미친 셀은 행이 없다. 합계를 낼 때는 미공개 몫을 어떻게 처리했는지 밝혀야 한다.
+  \item \textbf{시간 단위}: \texttt{human\_only\_time\_mean}은 시간, \texttt{human\_with\_ai\_time\_mean}은 분이다(V6 문서 Metrics 표). V4$\cdot$V5 문서에는 단위가 적혀 있지 않았다(report 08).
+  \item \textbf{분류기 값}: 과업 대응, 용도, 시간 등은 모델의 추정치다. 수준보다 직업 간 상대 비교에 쓰는 것이 안전하다.
+  \item \textbf{릴리스 간 비교}: 표본 기간, 플랫폼, 범주 정의가 달라 같은 이름의 지표라도 그대로 잇지 않는다.
+  \item \textbf{과업의 직업 = 사용자의 직업이 아님}: 직업별 고용$\cdot$임금 자료와 결합하면 ``그 직업 종사자의 사용''이 아니라 ``그 직업 과업에 대한 사용''을 결합하는 것이다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{code/04\_analysis\_aei\_v6\_structure.do}: V6 공개 범위표를 만든다.
+  \item \texttt{results/table/30\_aei\_v6\_structure.xlsx}: 시트 \texttt{cells}(소스 $\times$ 월 $\times$ 지리 $\times$ 범주 $\times$ 계층), \texttt{kor}, \texttt{metrics}(지표 목록).
+  \item \texttt{results/table/30\_v6\_cells.tex}, \texttt{30\_v6\_kor.tex}: 표~\ref{tab:cells}, \ref{tab:kor}.
+  \item 지표 A$\sim$C의 계산 파일: \texttt{01\_import\_aei\_soc\_time\_savings.do}, \texttt{03\_merge\_sensortower\_aei\_kor\_soc\_conversations.do}, \texttt{03\_merge\_kor\_conv\_ai\_ksco8.do}, \texttt{03\_merge\_kor\_ksco3\_ai\_usage.do}, \texttt{04\_analysis\_kor\_ai\_share\_index.do}.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

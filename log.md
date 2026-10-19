@@ -610,3 +610,11 @@
   - 목록 8개(RG 3, DS 2, RE 3) 중 상위 10에 5번 이상: 293 연극·영화 및 영상(8), 213 생명·자연과학 시험원(7), 852 냉난방 관련 설비 조작원(6), 211, 799(각 5). 하위 10에 5번 이상: 311 기획 및 마케팅 사무원, 531 통신 관련 판매(각 6), 252 시민사회 활동가, 243 약사(각 5). DS 대분류 합: 전문가 +36·+42%p, 사무 −25·−21%p.
   - 연계 경로 확인(paper 26 표): 293 절감 시간의 46.9%는 27-3023 News Analysts, Reporters, and Journalists, 213의 38.0%는 15-2051 Data Scientists. 852·799에 어떤 SOC가 배분됐는지는 확인하지 않음(다음 확인 사항).
   - 새 `results/paper/29_AI점유율_노출도_격차.{tex,md,docx,pdf}`(11쪽). `.tex`는 표 `\input`(컴파일하지 않음), `.md`는 표 파일에서 변환(구분 행 `\multicolumn` 처리 추가), `.docx`/`.pdf`는 paper 26~28과 같은 방식(구분 행은 Word에서 셀 병합), 전 쪽 렌더링 확인.
+
+## 2026-10-20
+
+- AEI 데이터 해설 보고서 paper 30(사용자 요청: AEI의 목적·특징·릴리스별 특징, data schema·categories·metric availability·metric 구조와 지표 A~C로 이어지는 경로, paper 폴더 + pdf/docx, GitHub). 원자료 6개 릴리스와 `labor_market_impacts`의 README·data_documentation·파일 헤더를 직접 확인(V3~V6 긴 형식 파일은 node 스트리밍 집계로 facet·지리·계층 조합 확인, 세션 임시 스크립트).
+  - 확인 사항: soc_occupation 범주는 V3 가공본(대분류만)에 처음 나오고 세부 직업은 V6이 처음. V4·V5 raw에 경제 원시지표 facet과 `onet_task::*`, `request::*` 교차가 있고 V3 raw에는 없음. V6에는 건수·task_success가 없고 지표 21개 + artifact 32종. V6 한국 overall(2026-05): use_case_work_pct 47.24, usage_pct 3.24, usage_per_capita_index 3.78, human_only_time 4.76시간, human_with_ai_time 41.79분. collaboration_bucket은 none을 뺀 비중(29.63 + 13.16 = 42.79 → 42.79 / 97.8 = 43.75 ≈ 43.76).
+  - 새 `code/04_analysis_aei_v6_structure.do`(Stata 17 배치 실행, 오류 없음) → `results/table/30_aei_v6_structure.xlsx`(시트 cells, kor, metrics), `30_v6_cells.tex`(2026-05, 소스·지리 × 범주 × 계층의 지역 수·노드 수·지표 수), `30_v6_kor.tex`(한국 노드 수·pct 합). 한국 SOC 세부 직업 389·424개, pct 합 96.16·98.08%, 대분류 97.37·98.94%로 paper 19와 일치. data/proc에는 쓰지 않음.
+  - 새 `results/paper/30_AEI_데이터개요_구조.{tex,md,docx,pdf}`(12쪽). 구성: 1 데이터 개요(목적, 특징 6가지, 릴리스별 특징 표와 잇기 주의), 2 데이터 구조(V6 스키마, V3~V5 열 대응, 범주·식별자, 공개 범위 표 2개, 지표 4묶음과 조합 관계, 지표 A~C 경로 6단계·AEI 셀 표·가정 B1~B5·쓰지 않은 자료), 3 유의사항, 4 산출 파일. 인용은 biblatex(\parencite, references.bib 키 6개 확인). `.tex`는 컴파일하지 않음. `.md`는 표 2개를 표 파일에서 변환, `.docx`/`.pdf`는 paper 29와 같은 방식, 전 쪽 렌더링 확인.
+  - report 08과의 차이: report 08은 시간 단위가 문서에 없다고 적었으나 V6 문서는 human_only_time = 시간, human_with_ai_time = 분으로 명시(report 08은 고치지 않음).
