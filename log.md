@@ -618,3 +618,13 @@
   - 새 `code/04_analysis_aei_v6_structure.do`(Stata 17 배치 실행, 오류 없음) → `results/table/30_aei_v6_structure.xlsx`(시트 cells, kor, metrics), `30_v6_cells.tex`(2026-05, 소스·지리 × 범주 × 계층의 지역 수·노드 수·지표 수), `30_v6_kor.tex`(한국 노드 수·pct 합). 한국 SOC 세부 직업 389·424개, pct 합 96.16·98.08%, 대분류 97.37·98.94%로 paper 19와 일치. data/proc에는 쓰지 않음.
   - 새 `results/paper/30_AEI_데이터개요_구조.{tex,md,docx,pdf}`(12쪽). 구성: 1 데이터 개요(목적, 특징 6가지, 릴리스별 특징 표와 잇기 주의), 2 데이터 구조(V6 스키마, V3~V5 열 대응, 범주·식별자, 공개 범위 표 2개, 지표 4묶음과 조합 관계, 지표 A~C 경로 6단계·AEI 셀 표·가정 B1~B5·쓰지 않은 자료), 3 유의사항, 4 산출 파일. 인용은 biblatex(\parencite, references.bib 키 6개 확인). `.tex`는 컴파일하지 않음. `.md`는 표 2개를 표 파일에서 변환, `.docx`/`.pdf`는 paper 29와 같은 방식, 전 쪽 렌더링 확인.
   - report 08과의 차이: report 08은 시간 단위가 문서에 없다고 적었으나 V6 문서는 human_only_time = 시간, human_with_ai_time = 분으로 명시(report 08은 고치지 않음).
+
+## 2026-10-21
+
+- 대화량 지표 A와 절감 시간 지표 B의 순위 격차가 큰 직업 paper 31(사용자 요청: A·B 차이(순위 차이)가 큰 직업을 식별하는 do 파일, 노트 + pdf/docx, GitHub). 새 `code/04_analysis_kor_conv_saved_gap.do`(Stata 17 배치 실행, 오류 없음) → `results/table/31_kor_conv_saved_gap.xlsx`(시트 ksco3, stats, top, top30A, soc, ksco1), `31_summary.tex`, `31_top_pos.tex`, `31_top_neg.tex`, `31_top30A.tex`, `31_ksco1.tex`.
+  - 표본·정의: paper 27과 같은 소분류 129개(assert), A = C / ΣC, B = S / ΣS. 순위 격차 RG = r(A) − r(B)(unique 순위, 양수 = B 순위가 높음; 작업자 판단). 보조로 DS = B − A(%p), LR = ln(B / A).
+  - 핵심 관계: ts_cover = 1이라 B / A = τ / τ̄(τ = 60 S / C = tau_eff, τ̄ = 259.4분, assert). SOC별 τ_s는 AEI GLOBAL 값이므로 소분류 간 τ 차이는 한국 대화의 SOC 구성에서만 생김. SOC 기여 d = 절감 시간 몫 − 대화 몫(%p)으로 τ를 올리고 내린 SOC 식별(04_analysis_kor_ksco3_top30_soc.do와 같은 기여 계산, 기여 합 = C, S assert).
+  - 결과: Spearman A–B 0.96, A 상위 30 중 B 상위 30 26개, |RG| 평균 7.5, 20 이상 9개(8개 음수). τ 21~473분(p90/p10 6.9), τ–노출도 0.36~0.47, τ–취업자 −0.36. |RG| 평균은 A 순위 44~86위 구간 11.7로 위·아래(5.3, 5.6)의 두 배, RG–LR 0.77.
+  - RG 상위: 226 통신 및 방송 송출 장비 기사(+21), 159(+18), 132·139·951(+16); 상위 15 중 관리자 7, 돌봄·교육 4. RG 하위: 411 경찰·소방·교도(−32, 대화 86%가 33-3012 Correctional Officers 33분), 992·999(−30), 522 상품 대여(−26), 521 매장 판매(−25). 대분류: 관리자 DS +2.03%p(τ 336분), 판매 −1.91%p(τ 103분).
+  - 확인하지 않은 것(노트에 적음): 241 의사 대화의 74%가 29-1212 Cardiologists로 가는 이유, 322 운송 및 무역 사무원이 41-3031(증권·금융 판매원)로 99% 연결되는 연계의 적절성.
+  - 새 `results/paper/31_대화량_절감시간_순위격차.{tex,md,docx,pdf}`(11쪽). `.tex`는 표 `\input`, biblatex(tamkin-2025, appel-2026 키 확인; 컴파일하지 않음). `.md`는 표 파일에서 변환(τ̄는 Word 글꼴에서 깨져 `.md`에서 τ_avg로 표기), `.docx`/`.pdf`는 paper 26~30과 같은 방식(세션 임시 스크립트), 전 쪽 렌더링 확인.
