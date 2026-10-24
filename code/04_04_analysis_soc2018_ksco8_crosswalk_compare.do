@@ -1,6 +1,6 @@
 * =============================================================================
-* 04_analysis_soc2018_ksco8_crosswalk_compare.do
-* 이 저장소의 SOC 2018–KSCO 8차 연계표(01_import_soc2018_ksco8_crosswalk.do)와
+* 04_04_analysis_soc2018_ksco8_crosswalk_compare.do
+* 이 저장소의 SOC 2018–KSCO 8차 연계표(01_06_import_soc2018_ksco8_crosswalk.do)와
 * 별도 과정으로 만든 연계표(SOC2018_ISCO08_KSCO8_crosswalk.xlsx)의 비교
 * (report 22: results/report/22_SOC2018_KSCO8_연계표_비교.tex)
 *
@@ -31,7 +31,7 @@ if `"$results"' == "" global results "$root/results"
 local ext "$raw/exposure/bls_soc_crosswalk/isco08_ksco08/SOC2018_ISCO08_KSCO8_crosswalk.xlsx"
 local cwd "$proc/exposure/bls_soc_crosswalk"
 local out "$results/table"
-local hdr "% 04_analysis_soc2018_ksco8_crosswalk_compare.do가 생성. 직접 고치지 말 것."
+local hdr "% 04_04_analysis_soc2018_ksco8_crosswalk_compare.do가 생성. 직접 고치지 말 것."
 tempname fh
 
 capture program drop texesc

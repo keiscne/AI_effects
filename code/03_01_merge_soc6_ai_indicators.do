@@ -1,9 +1,9 @@
 * =============================================================================
-* 03_merge_soc6_ai_indicators.do
+* 03_01_merge_soc6_ai_indicators.do
 * SOC 2018 세부 직업(6자리, soc6)별 AI 지표 4종 결합
 *
 * 입력:
-*   1. $proc/usage/anthropic_economic_index/aei_soc6_time_savings.dta   (01_import_aei_soc_time_savings.do)
+*   1. $proc/usage/anthropic_economic_index/aei_soc6_time_savings.dta   (01_03_import_aei_soc_time_savings.do)
 *        AEI Claude.ai 전 세계 2026-04·05, 과업 소요 시간과 AI로 줄어든 시간(분). 613개
 *   2. $raw/usage/anthropic_economic_index/labor_market_impacts/job_exposure.csv
 *        observed exposure(Massenkoff & McCrory 2026). occ_code = SOC 2018 세부 직업. 756개
@@ -11,7 +11,7 @@
 *        data/occ_level.csv: Eloundou et al. GPT 노출도. O*NET-SOC 8자리 923개(SOC 2018 기반)
 *        dv_rating_* = GPT-4 평가, human_rating_* = 사람 평가.
 *        alpha = E1, beta = E1 + 0.5 × E2, gamma = E1 + E2
-*   4. $proc/exposure/felten_aioe/felten_lm_aioe_soc2018.dta            (01_import_felten_aioe.do)
+*   4. $proc/exposure/felten_aioe/felten_lm_aioe_soc2018.dta            (01_04_import_felten_aioe.do)
 *        Felten et al.(2023) 언어모델 AIOE, SOC 2010 → 2018 변환. 800개
 *
 * 출력: $proc/merged/soc6_ai_indicators.{csv,dta}
@@ -19,13 +19,13 @@
 *   in_aei, in_obs, in_eloundou, in_felten = 각 자료에 있는지(0/1), n_sources = 합계
 *
 * 매칭 키: soc6(str7, XX-XXXX, SOC 2018 세부 직업)
-*   AEI: soc6(O*NET-SOC 앞 7자리, 01_import_aei_soc_time_savings.do에서 집계)
+*   AEI: soc6(O*NET-SOC 앞 7자리, 01_03_import_aei_soc_time_savings.do에서 집계)
 *   observed exposure: occ_code 그대로
 *   Eloundou: O*NET-SOC Code 앞 7자리. 한 soc6에 8자리 코드가 여럿이면 단순평균(작업자 판단, 가중치 없음).
 *             n_onet_eloundou = 평균에 쓴 8자리 코드 수
 *   Felten: soc6 그대로(이미 SOC 2018로 변환)
 *
-* 직업 명칭(soc6_title): BLS SOC 2018 공식 명칭(01_import_soc2018_titles.do, 결합 직업 전부에 있음 assert).
+* 직업 명칭(soc6_title): BLS SOC 2018 공식 명칭(01_01_import_soc2018_titles.do, 결합 직업 전부에 있음 assert).
 *
 * 주의:
 *   - AEI 시간 지표는 Claude 대화 과업 기준 추정치(전 세계), observed exposure도 Claude 자료에서 온다.

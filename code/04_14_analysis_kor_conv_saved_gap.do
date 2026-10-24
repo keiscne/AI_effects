@@ -1,12 +1,15 @@
 * =============================================================================
-* 04_analysis_kor_conv_saved_gap.do
+* 04_14_analysis_kor_conv_saved_gap.do
 * AI 점유율 지표 A(대화 점유율)와 B(절감 시간 점유율)의 순위 격차가 큰 직업   (paper 31)
 *
+* 2026-10-24 재설계: A·B는 03_05가 AEI 업무용 대화 비중에서 만든 점유율(shA, shB)을 쓴다(대화 총량·K 없음).
+*   SOC 기여는 업무용 대화 비중(share_work)과 비중 × 절감 시간(saved_w)을 월별 표본 합으로 나눠 두 달 평균한 값이다.
+*
 * 입력:
-*   $proc/merged/kor_ai_usage_ksco3.dta              소분류 C, S, tau_eff, emp, 노출도 3개
-*                                                     (03_merge_kor_ksco3_ai_usage.do, paper 25)
-*   $proc/merged/kor_soc6_conv_ai_indicators.dta     월 × soc6 conv_k3, saved_hr_k3, time_saved_min
-*                                                     (03_merge_kor_conv_ai_ksco8.do)
+*   $proc/merged/kor_ai_usage_ksco3.dta              소분류 shA, shB, tau_eff, tbar, tot_sw04·05, tot_sv04·05, emp, 노출도 3개
+*                                                     (03_05_merge_kor_ksco3_ai_usage.do)
+*   $proc/merged/kor_soc6_conv_ai_indicators.dta     월 × soc6 share_work, saved_w, time_saved_min
+*                                                     (03_03_merge_kor_conv_ai_ksco8.do)
 *   $proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta   soc2018 → ksco8, w_alloc
 *   $proc/exposure/bls_soc_crosswalk/soc2018_titles.dta            SOC 2018 명칭(BLS)
 * 출력: $results/table/
@@ -15,14 +18,14 @@
 *   31_summary.tex, 31_top_pos.tex, 31_top_neg.tex, 31_top30A.tex, 31_ksco1.tex   (paper 31 표)
 *
 * 정의(paper 27과 같음, 소분류 129개):
-*   A = CS = 100 × C / ΣC,  B = SS = 100 × S / ΣS   (C, S는 K = 3; 순위·점유율은 K와 무관)
+*   A = shA, B = shB(%, 03_05 정의)
 *   순위 r(·): 129개 안, 1 = 최상위, 동순위 없음(unique; 같은 값은 ksco3 순)
 *   순위 격차 RG = r(A) − r(B)   (양수 = 절감 시간 순위가 대화 순위보다 높음)
 *   점유율 차이 DS = B − A(%p, 합 0), 로그 비율 LR = ln(B / A)
-*   tau = 대화당 실효 절감 시간(분) = 60 × S / C (= tau_eff, ts_cover = 1이라 C_ts = C)
-*   → LR = ln(tau / tau_bar), tau_bar = 60 × ΣS / ΣC(전체 대화당 절감 시간). B/A의 차이는 모두 tau에서 온다.
-* SOC 분해: tau_K = Σ_s (c_sK / C_K) × tau_s(SOC 대화 비중 가중 평균), c_sK = SOC s가 소분류 K에 주는
-*   대화 수(04_analysis_kor_ksco3_top30_soc.do와 같은 계산, 기여 합 = C, S assert).
+*   tau = 대화당 실효 절감 시간(분) = tau_eff = tau_bar × B / A, tau_bar = tbar(표본 전체 대화당 평균 절감 시간)
+*   → LR = ln(tau / tau_bar). B/A의 차이는 모두 tau에서 온다.
+* SOC 분해: c_sK, v_sK = SOC s가 소분류 K의 A, B에 주는 몫(%p; 04_09_analysis_kor_ksco3_top30_soc.do와 같은 계산,
+*   기여 합 = shA, shB assert).
 *   기여 dev_s = (v_sK / S_K − c_sK / C_K) × 100(%p): SOC s의 절감 시간 몫 − 대화 몫. 양수 SOC가 tau_K를 올린다.
 * 매칭 키: ksco3(str3), soc6 = soc2018(str7), ksco3 = substr(ksco8, 1, 3).
 * =============================================================================
@@ -63,7 +66,7 @@ program define texesc, rclass
 end
 
 * -----------------------------------------------------------------------------
-* 1. SOC × 소분류 기여(04_analysis_kor_ksco3_top30_soc.do와 같은 계산)
+* 1. SOC × 소분류 기여(04_09_analysis_kor_ksco3_top30_soc.do와 같은 계산)
 * -----------------------------------------------------------------------------
 use "$proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta", clear
 keep soc2018 ksco8 w_alloc
@@ -79,34 +82,29 @@ save `cw3'
 use "$proc/merged/kor_soc6_conv_ai_indicators.dta", clear
 keep if conv_pub
 drop if strpos(soc6, "X")                               // 45-XXXX: 연계표에 없음
-keep month soc6 conv_k3 saved_hr_k3 time_saved_min
+keep month soc6 share_work saved_w time_saved_min
 tempfile socm
 save `socm'
 collapse (first) tau_s = time_saved_min, by(soc6)
 tempfile soctau
 save `soctau'
 
+* 월별 정규화 분모(03_05와 같은 값)
+use tot_sw04 tot_sw05 tot_sv04 tot_sv05 in 1 using "$proc/merged/kor_ai_usage_ksco3.dta", clear
+foreach v in sw04 sw05 sv04 sv05 {
+    local T_`v' = tot_`v'[1]
+}
 use `socm', clear
 joinby soc6 using `cw3'
-generate double c = conv_k3 * w3
-generate double v = saved_hr_k3 * w3
-preserve
-collapse (count) nc = c, by(month ksco3)
-generate byte one = 1
-collapse (sum) n_c = one, by(ksco3)
-tempfile kn
-save `kn'
-restore
+generate double c = 100 * share_work * w3 / cond(month == "2026-04", `T_sw04', `T_sw05') / 2
+generate double v = 100 * saved_w * w3 / cond(month == "2026-04", `T_sv04', `T_sv05') / 2
 collapse (sum) c v, by(soc6 ksco3)
-merge m:1 ksco3 using `kn', assert(match) nogenerate
-replace c = c / n_c
-replace v = v / n_c
-drop n_c
 merge m:1 soc6 using `soctau', assert(match) nogenerate
 merge m:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
 assert _merge == 3
 drop _merge
-merge m:1 ksco3 using "$proc/merged/kor_ai_usage_ksco3.dta", keepusing(ksco3_title C S) keep(match) nogenerate
+merge m:1 ksco3 using "$proc/merged/kor_ai_usage_ksco3.dta", keepusing(ksco3_title shA shB) keep(match) nogenerate
+rename (shA shB) (C S)
 keep if !missing(C, S)
 bysort ksco3: egen double sc = total(c)
 bysort ksco3: egen double sv = total(v)
@@ -147,21 +145,17 @@ foreach sd in up dn {
 * 2. 소분류 지표와 격차
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco3 ksco3_title emp C S tau_eff ts_cover observed_exposure lm_aioe elo_gpt4_beta
-keep if !missing(C, S)
+keep ksco1 ksco1_title ksco3 ksco3_title emp shA shB tau_eff tbar ts_cover observed_exposure lm_aioe elo_gpt4_beta
+keep if !missing(shA, shB)
 count
 assert r(N) == 129
 assert abs(ts_cover - 1) < 1e-9
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
-quietly summarize C
-local t_C = r(sum)
-quietly summarize S
-local t_S = r(sum)
-local tau_bar = 60 * `t_S' / `t_C'
-generate double A   = 100 * C / `t_C'
-generate double B   = 100 * S / `t_S'
-generate double tau = 60 * S / C
-assert reldif(tau, tau_eff) < 1e-9
+local tau_bar = tbar[1]
+generate double A   = shA
+generate double B   = shB
+generate double tau = tau_eff
+drop shA shB tbar
 sort ksco3
 egen int r_A = rank(-A), unique
 egen int r_B = rank(-B), unique
@@ -240,7 +234,7 @@ list, noobs clean
 export excel using "`xl'", sheet("stats") firstrow(variables) sheetreplace
 * TeX: 항목 & 값
 file open `fh' using "`out'/31_summary.tex", write replace
-file write `fh' "% 04_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_14_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
 local tl1  "A와 B의 Spearman 순위상관"
 local tl2  "\(\ln\) A와 \(\ln\) B의 Pearson 상관"
 local tl3  "전체 대화당 절감 시간 \(\bar\tau\)(분)"
@@ -284,7 +278,7 @@ foreach sd in pos neg {
     tempfile t_`sd'
     save `t_`sd''
     file open `fh' using "`out'/31_top_`sd'.tex", write replace
-    file write `fh' "% 04_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_14_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
     forvalues k = 1/15 {
         fmt A[`k'] %5.2f
         local a "`r(s)'"
@@ -319,7 +313,7 @@ keep if r_A <= 30
 sort r_A
 export excel ksco3 ksco3_title ksco1 A r_A B r_B RG DS tau top_* using "`xl'", sheet("top30A") firstrow(variables) sheetreplace
 file open `fh' using "`out'/31_top30A.tex", write replace
-file write `fh' "% 04_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_14_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
 forvalues k = 1/`=_N' {
     fmt A[`k'] %5.2f
     local a "`r(s)'"
@@ -358,12 +352,12 @@ export excel using "`xl'", sheet("soc") firstrow(variables) sheetreplace
 use `d', clear
 generate byte n = 1
 generate int pos = RG > 0
-collapse (sum) n pos A B C S DS (mean) RG, by(ksco1 ksco1_title)
-generate double tau = 60 * S / C
+collapse (sum) n pos A B DS (mean) RG, by(ksco1 ksco1_title)
+generate double tau = `tau_bar' * B / A
 sort ksco1
 export excel ksco1 ksco1_title n A B DS tau RG pos using "`xl'", sheet("ksco1") firstrow(variables) sheetreplace
 file open `fh' using "`out'/31_ksco1.tex", write replace
-file write `fh' "% 04_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_14_analysis_kor_conv_saved_gap.do가 생성. 직접 고치지 말 것." _n
 forvalues k = 1/`=_N' {
     fmt A[`k'] %5.1f
     local a "`r(s)'"

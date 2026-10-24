@@ -1,6 +1,9 @@
 * =============================================================================
-* 03_merge_kor_task_conv_time_saved.do
-* 한국 O*NET task(직업-task)별 월간 업무용 대화량과 AI 절감 시간
+* 03_04_merge_kor_task_conv_time_saved.do
+* 한국 O*NET task(직업-task)별 업무용 대화 비중과 AI 절감 시간 가중치
+*
+* 2026-10-24 재설계: Sensor Tower 기반 대분류 대화 건수 대신 AEI 대분류 업무용 대화 비중을 task로 나눈다.
+*   task 순위·점유율은 예전 건수 기준과 같다(건수 = 한국 총량 × 비중).
 *
 * 입력:
 *   $raw/usage/anthropic_economic_index/release_2026_06_26/data/aei_claude_ai_2026-06-26.csv
@@ -8,21 +11,21 @@
 *     (b) geo_id == "GLOBAL", category_name == "onet", hierarchy_level == 0:
 *         pct, human_only_time_mean(시간), human_with_ai_time_mean(분)
 *         task 단위 시간 지표는 GLOBAL에만 공개된다(국가는 GWA 단위만, data_documentation.md).
-*   $proc/exposure/onet_task_statements/onet_task_soc.dta   (01_import_onet_task_soc.do)
+*   $proc/exposure/onet_task_statements/onet_task_soc.dta   (01_05_import_onet_task_soc.do)
 *     Task ID → O*NET-SOC 8자리(task 하나 = 직업 하나), soc6
-*   $proc/macro/scaling/sensortower_state_of_ai_2026/sensortower_aei_kor_soc_major_conversations.dta
-*     (03_merge_sensortower_aei_kor_soc_conversations.do) 월 × SOC 대분류 업무용 대화량 conv_kK
+*   $proc/usage/anthropic_economic_index/aei_soc_work_share_major.dta
+*     (03_02_merge_aei_kor_soc_work_share.do) 지역 × 월 × SOC 대분류 업무용 대화 비중 share_work(KOR만 사용)
 * 출력: $proc/merged/
 *   kor_task_conv_time_saved.{csv,dta}   월 × task(task_id)
 *
-* 정의(03_merge_sensortower_aei_kor_soc_conversations.do의 세부 직업 계산과 같은 구조):
+* 정의(03_02_merge_aei_kor_soc_work_share.do의 세부 직업 계산과 같은 구조):
 *   task d는 Task ID로 대분류 g(O*NET-SOC 앞 2자리)에 속한다.
-*   w(d,t)             = 한국 task pct, 0.00은 0.0025(구간 중점, 01_import_aei_soc_time_savings.do와 같음)
+*   w(d,t)             = 한국 task pct, 0.00은 0.0025(구간 중점, 01_03_import_aei_soc_time_savings.do와 같음)
 *   share_in_major(d,t) = w(d,t) / Σ_{d'∈g} w(d',t)
-*   conv_kK(d,t)        = conv_kK_major(g,t) × share_in_major(d,t)
+*   share_work(d,t)     = share_work_major(g,t) × share_in_major(d,t)   한국 업무용 대화 중 task d의 비중
 *   time_saved_min(d)   = GLOBAL task의 (human_only_time_mean × 60 − human_with_ai_time_mean),
 *                         두 달을 GLOBAL pct(0.00은 0.0025)로 가중평균(두 달 전체 대화 수가 같다고 가정)
-*   saved_hr_kK(d,t)    = conv_kK(d,t) × time_saved_min(d) / 60   (월간 절감 시간, 시간)
+*   saved_w(d,t)        = share_work(d,t) × time_saved_min(d)   (분; 업무용 대화 1건 평균 기준 절감 시간 가중치)
 *
 * 가정:
 *   (T1) 대분류 안에서 업무용 대화의 task 구성 = 모든 use case 대화의 task 구성
@@ -38,7 +41,7 @@
 * 주의:
 *   - AEI의 직업은 사용자 직업이 아니라 대화 과업이 속한 직업이다.
 *   - 절감 시간은 Claude가 대화별로 추정한 값의 평균이다(실측 아님).
-*   - conv_kK는 K에 반비례할 뿐이라 task 순위는 K와 무관하다.
+*   - 공개 task가 없는 대분류(45 농림어업)의 비중은 task로 나뉘지 않아 월 비중 합이 1보다 조금 작다.
 * =============================================================================
 
 version 17
@@ -50,10 +53,9 @@ if `"$raw"'  == "" global raw  "$root/data/raw"
 if `"$proc"' == "" global proc "$root/data/proc"
 
 local aei  "$raw/usage/anthropic_economic_index/release_2026_06_26/data"
-local stp  "$proc/macro/scaling/sensortower_state_of_ai_2026"
+local shr  "$proc/usage/anthropic_economic_index/aei_soc_work_share_major.dta"
 local cw   "$proc/exposure/onet_task_statements/onet_task_soc.dta"
 local out  "$proc/merged"
-local klist "k1p5 k3 k5 k7 k10"
 capture mkdir "`out'"
 
 import delimited using "`aei'/aei_claude_ai_2026-06-26.csv", ///
@@ -115,51 +117,37 @@ assert abs(chk - 1) < 1e-9
 drop chk
 
 * -----------------------------------------------------------------------------
-* 3. 대분류 업무용 대화량 배분, 절감 시간
+* 3. 대분류 업무용 대화 비중 배분, 절감 시간
 * -----------------------------------------------------------------------------
 preserve
-use "`stp'/sensortower_aei_kor_soc_major_conversations.dta", clear
-capture confirm string variable soc_major
-if _rc {
-    tostring soc_major, replace format(%02.0f)
-}
-keep month soc_major soc_major_title work_pct conv_k*
+use "`shr'" if geo_id == "KOR", clear
+keep month soc_major soc_major_title work_pct share_work
 tempfile major
 save `major'
 restore
 merge m:1 month soc_major using `major'
 tabulate _merge
-* _merge == 2: 공개된 task가 하나도 없는 대분류-월(그 대화량은 task로 나뉘지 않음)
-list month soc_major soc_major_title conv_k3 if _merge == 2, noobs abbreviate(20)
+* _merge == 2: 공개된 task가 하나도 없는 대분류-월(그 비중은 task로 나뉘지 않음)
+list month soc_major soc_major_title share_work if _merge == 2, noobs abbreviate(20)
 assert _merge != 1
 drop if _merge == 2
 drop _merge
 
-foreach k of local klist {
-    replace conv_`k' = conv_`k' * share_in_major
-}
+rename share_work share_work_major
+generate double share_work = share_work_major * share_in_major
 
 merge m:1 task_id using `gtime', keep(master match)
 tabulate month _merge
 generate byte has_time = _merge == 3
 drop _merge
-foreach k of local klist {
-    generate double saved_hr_`k' = conv_`k' * time_saved_min / 60
-}
+generate double saved_w = share_work * time_saved_min
 
-* 월별 합계 확인: 배분된 대화량 = 공개 task가 있는 대분류의 대화량 합
+* 대분류별 합계 확인: 배분된 task 비중 합 = 대분류 비중
 preserve
-use `major', clear
-generate double conv_major_k3 = conv_k3
-keep month soc_major conv_major_k3
-tempfile mk3
-save `mk3'
+collapse (sum) share_work (first) share_work_major, by(month soc_major)
+assert reldif(share_work, share_work_major) < 1e-9
 restore
-preserve
-collapse (sum) conv_k3, by(month soc_major)
-merge 1:1 month soc_major using `mk3', keep(match) nogenerate
-assert reldif(conv_k3, conv_major_k3) < 1e-9
-restore
+tabstat share_work, by(month) statistics(sum) format(%9.6f)
 
 label variable month           "월(YYYY-MM)"
 label variable task_id         "O*NET Task ID"
@@ -180,14 +168,12 @@ label variable n_months_time   "절감 시간 평균에 쓴 GLOBAL 월 수"
 label variable human_only_min    "AI 없이 걸리는 시간(분, GLOBAL, 두 달 pct 가중평균)"
 label variable human_with_ai_min "AI와 함께 걸리는 시간(분, GLOBAL, 두 달 pct 가중평균)"
 label variable time_saved_min    "대화당 절감 시간(분, GLOBAL)"
-foreach k of local klist {
-    local kk = subinstr(subinstr("`k'", "k", "", 1), "p", ".", 1)
-    label variable conv_`k'     "월간 업무용 대화 수(K = `kk')"
-    label variable saved_hr_`k' "월간 절감 시간(시간, K = `kk') = 대화 수 × 절감 시간"
-}
+label variable share_work_major "대분류 업무용 대화 비중(AEI 한국)"
+label variable share_work      "한국 업무용 대화 중 task 비중 = share_work_major × share_in_major"
+label variable saved_w         "task 비중 × 대화당 절감 시간(분)"
 order month task_id task_title onetsoc onetsoc_title soc6 soc_major soc_major_title src ///
-    pct w w_major share_in_major work_pct conv_k* has_time n_months_time ///
-    human_only_min human_with_ai_min time_saved_min saved_hr_*
+    pct w w_major share_in_major work_pct share_work_major share_work has_time n_months_time ///
+    human_only_min human_with_ai_min time_saved_min saved_w
 sort month task_id
 compress
 tabulate month has_time

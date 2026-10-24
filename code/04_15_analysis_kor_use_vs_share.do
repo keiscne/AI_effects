@@ -1,19 +1,23 @@
 * =============================================================================
-* 04_analysis_kor_use_vs_share.do
-* 분모가 있는 활용도 1·2(paper 25)와 분모가 없는 AI 점유율 지표 A·B(paper 27)의 순위 비교   (paper 32)
+* 04_15_analysis_kor_use_vs_share.do
+* 분모가 있는 상대 활용도 RU1·RU2(paper 25)와 분모가 없는 AI 점유율 지표 A·B(paper 27)의 순위 비교   (paper 32)
 *
-* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_merge_kor_ksco3_ai_usage.do, paper 25)
-*   C, S, emp(E), H, hrs_wk, use1, use2, n_obs, small
+* 2026-10-24 재설계: 활용도 1·2(대화 총량 필요) 대신 상대 활용도 RU1 = A / 취업자 비중, RU2 = B / 근로시간 비중을 쓴다.
+*   항등식이 상수 없이 ln A = ln RU1 + ln es, ln B = ln RU2 + ln hs로 바뀔 뿐 순위 비교의 구조는 같다.
+*   코드 안 변수 이름 use1·use2는 RU1·RU2를 뜻한다(출력 파일 이름 유지).
+*
+* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_05_merge_kor_ksco3_ai_usage.do)
+*   shA, shB, es, hs, emp(E), H, hrs_wk, ru1, ru2, n_obs, small
 * 출력: $results/table/
 *   32_kor_use_vs_share.xlsx   시트 ksco3(지표·순위·격차), stats, top(격차 상위·하위 15), topuse(활용도 상위 20), ksco1
 *   32_summary.tex, 32_g1_pos.tex, 32_g1_neg.tex, 32_g2_pos.tex, 32_g2_neg.tex,
 *   32_top_use1.tex, 32_top_use2.tex, 32_ksco1.tex   (paper 32 표)
 *
-* 정의(소분류 129개, 2026-04·05 월평균, K = 3; 순위·점유율은 K와 무관):
-*   활용도 1  use1 = C / E          취업자 1인당 월 업무용 대화 수
-*   활용도 2  use2 = 100 × S / H     월 주업 근로시간 중 AI 절감 시간 비중(%)
-*   지표 A    A = 100 × C / ΣC,  지표 B  B = 100 × S / ΣS
-*   → ln A = ln use1 + ln E − ln ΣC,  ln B = ln use2 + ln H − ln(ΣS / 100)   (assert)
+* 정의(소분류 129개, 2026-04·05 월별 비중 단순평균):
+*   상대 활용도 1  use1 = ru1 = A / es      es = 취업자 비중(%, 163개 전체)
+*   상대 활용도 2  use2 = ru2 = B / hs      hs = 총 주업 근로시간 비중(%)
+*   지표 A    A = shA,  지표 B  B = shB  (%)
+*   → ln A = ln use1 + ln es,  ln B = ln use2 + ln hs   (assert)
 *     두 쌍의 순위 차이는 모두 직업 규모(E, H)에서 온다.
 *   순위 r(·): 129개 안, 1 = 최상위, 동순위 없음(unique; 같은 값은 ksco3 순)
 *   격차 G1 = r(use1) − r(A),  G2 = r(use2) − r(B)   (양수 = 점유율 순위가 활용도 순위보다 높음 = 큰 직업)
@@ -51,20 +55,17 @@ end
 * 1. 지표, 순위, 격차
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco3 ksco3_title n_obs small emp H hrs_wk C S use1 use2
-keep if !missing(C, S, use1, use2)
+keep ksco1 ksco1_title ksco3 ksco3_title n_obs small emp H hrs_wk shA shB es hs ru1 ru2 in_share
+keep if in_share
+drop in_share
 count
 assert r(N) == 129
-quietly summarize C
-local t_C = r(sum)
-quietly summarize S
-local t_S = r(sum)
-generate double A = 100 * C / `t_C'
-generate double B = 100 * S / `t_S'
-assert reldif(use1, C / emp) < 1e-9
-assert reldif(use2, 100 * S / H) < 1e-9
-assert abs(ln(A) - (ln(use1) + ln(emp) - ln(`t_C') + ln(100))) < 1e-9
-assert abs(ln(B) - (ln(use2) + ln(H) - ln(`t_S'))) < 1e-9
+generate double A = shA
+generate double B = shB
+rename (ru1 ru2) (use1 use2)                           // 아래 코드의 use1·use2 = RU1·RU2
+assert abs(ln(A) - (ln(use1) + ln(es))) < 1e-9
+assert abs(ln(B) - (ln(use2) + ln(hs))) < 1e-9
+drop shA shB es hs
 quietly summarize emp
 local t_E = r(sum)
 quietly summarize H
@@ -171,49 +172,49 @@ export excel using "`xl'", sheet("stats") firstrow(variables) sheetreplace
 * TeX
 local i = 0
 foreach t in ///
-    "활용도 1과 지표 A의 Spearman 순위상관" ///
-    "활용도 2와 지표 B의 Spearman 순위상관" ///
-    "(참고) 활용도 1과 활용도 2" ///
+    "RU1과 지표 A의 Spearman 순위상관" ///
+    "RU2와 지표 B의 Spearman 순위상관" ///
+    "(참고) RU1과 RU2" ///
     "(참고) 지표 A와 지표 B" ///
-    "상위 10 겹침: 활용도 1 -- A" ///
-    "상위 30 겹침: 활용도 1 -- A" ///
-    "상위 10 겹침: 활용도 2 -- B" ///
-    "상위 30 겹침: 활용도 2 -- B" ///
+    "상위 10 겹침: RU1 -- A" ///
+    "상위 30 겹침: RU1 -- A" ///
+    "상위 10 겹침: RU2 -- B" ///
+    "상위 30 겹침: RU2 -- B" ///
     "\(|G_1|\) 평균" "\(|G_1|\) 최댓값" "\(|G_1| \ge 20\)인 소분류 수" ///
     "\(|G_2|\) 평균" "\(|G_2|\) 최댓값" "\(|G_2| \ge 20\)인 소분류 수" ///
     "\(G_1\)과 취업자 수의 Spearman 순위상관" ///
     "\(G_2\)와 총 주업 근로시간의 Spearman 순위상관" ///
     "\(G_1\)과 \(G_2\)의 Spearman 순위상관" ///
     "\(\mathrm{var}(\ln \mathrm{A})\)" ///
-    "\quad 활용도 1 분산의 몫" ///
+    "\quad RU1 분산의 몫" ///
     "\quad 취업자 수 분산의 몫" ///
     "\quad 공분산(\(2\,\mathrm{cov}\))의 몫" ///
-    "\(\ln\) 활용도 1과 \(\ln E\)의 Pearson 상관" ///
+    "\(\ln\) RU1과 \(\ln E\)의 Pearson 상관" ///
     "\(\ln \mathrm{A}\)를 \(\ln E\)에 회귀한 기울기(규모 탄력성)" ///
     "\quad 같은 회귀의 \(R^2\)" ///
     "\(\mathrm{var}(\ln \mathrm{B})\)" ///
-    "\quad 활용도 2 분산의 몫" ///
+    "\quad RU2 분산의 몫" ///
     "\quad 총 주업 근로시간 분산의 몫" ///
     "\quad 공분산(\(2\,\mathrm{cov}\))의 몫" ///
-    "\(\ln\) 활용도 2와 \(\ln H\)의 Pearson 상관" ///
+    "\(\ln\) RU2와 \(\ln H\)의 Pearson 상관" ///
     "\(\ln \mathrm{B}\)를 \(\ln H\)에 회귀한 기울기(규모 탄력성)" ///
     "\quad 같은 회귀의 \(R^2\)" ///
-    "표본 30 미만 소분류 수: 활용도 1 상위 10 중" ///
+    "표본 30 미만 소분류 수: RU1 상위 10 중" ///
     "표본 30 미만 소분류 수: 지표 A 상위 10 중" ///
-    "표본 30 미만 소분류 수: 활용도 2 상위 10 중" ///
+    "표본 30 미만 소분류 수: RU2 상위 10 중" ///
     "표본 30 미만 소분류 수: 지표 B 상위 10 중" ///
     "표본 30 미만 소분류 수(129개 중)" ///
     "취업자 수 최댓값 / 최솟값(배)" ///
-    "활용도 1과 취업자 수의 Spearman 순위상관" ///
+    "RU1과 취업자 수의 Spearman 순위상관" ///
     "지표 A와 취업자 수의 Spearman 순위상관" ///
-    "활용도 2와 취업자 수의 Spearman 순위상관" ///
+    "RU2와 취업자 수의 Spearman 순위상관" ///
     "지표 B와 취업자 수의 Spearman 순위상관" {
     local ++i
     local tl`i' "`t'"
 }
 assert `i' == _N
 file open `fh' using "`out'/32_summary.tex", write replace
-file write `fh' "% 04_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_15_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
 forvalues k = 1/`=_N' {
     local f "%6.2f"
     if inlist(`k', 5, 6, 7, 8, 10, 11, 13, 14) | inrange(`k', 32, 37) local f "%6.0fc"
@@ -238,7 +239,7 @@ foreach g in G1 G2 {
     else {
         local u use2
         local s B
-        local uf %6.1f
+        local uf %6.2f
     }
     foreach sd in pos neg {
         use `d', clear
@@ -249,7 +250,7 @@ foreach g in G1 G2 {
         generate str2 격차 = "`g'"
         generate str3 방향 = "`sd'"
         file open `fh' using "`out'/32_`=lower("`g'")'_`sd'.tex", write replace
-        file write `fh' "% 04_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
+        file write `fh' "% 04_15_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
         forvalues k = 1/15 {
             fmt `u'[`k'] `uf'
             local a "`r(s)'"
@@ -283,13 +284,13 @@ local first = 1
 foreach u in use1 use2 {
     local s = cond("`u'" == "use1", "A", "B")
     local g = cond("`u'" == "use1", "G1", "G2")
-    local uf = cond("`u'" == "use1", "%6.2f", "%6.1f")
+    local uf "%6.2f"
     use `d', clear
     keep if r_`u' <= 20
     sort r_`u'
     generate str4 기준 = "`u'"
     file open `fh' using "`out'/32_top_`u'.tex", write replace
-    file write `fh' "% 04_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_15_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
     forvalues k = 1/`=_N' {
         fmt `u'[`k'] `uf'
         local a "`r(s)'"
@@ -326,7 +327,7 @@ collapse (sum) n emp_sh H_sh A B t30_* (mean) G1 G2, by(ksco1 ksco1_title)
 sort ksco1
 export excel using "`xl'", sheet("ksco1") firstrow(variables) sheetreplace
 file open `fh' using "`out'/32_ksco1.tex", write replace
-file write `fh' "% 04_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_15_analysis_kor_use_vs_share.do가 생성. 직접 고치지 말 것." _n
 forvalues k = 1/`=_N' {
     fmt emp_sh[`k'] %5.1f
     local e "`r(s)'"

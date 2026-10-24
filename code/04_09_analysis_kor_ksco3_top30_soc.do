@@ -1,13 +1,15 @@
 * =============================================================================
-* 04_analysis_kor_ksco3_top30_soc.do
+* 04_09_analysis_kor_ksco3_top30_soc.do
 * 한국 KSCO 8차 소분류 상위 30개와 그 소분류에 연계된 모든 SOC(기여분)
-*   (1) 업무용 대화량 상위 30, (2) 대화량 × 절감 시간 상위 30   (paper 26)
+*   (1) 지표 A(업무용 대화 점유율) 상위 30, (2) 지표 B(절감 시간 점유율) 상위 30   (paper 26)
+*
+* 2026-10-24 재설계: 대화 건수(K = 3) 대신 지표 A·B(점유율, %)와 SOC 업무용 대화 비중을 쓴다.
 *
 * 입력:
-*   $proc/merged/kor_ai_usage_ksco3.dta              소분류 C(월평균 대화 수, K = 3), S(월평균 절감 시간), 명칭
-*                                                     (03_merge_kor_ksco3_ai_usage.do, paper 25)
-*   $proc/merged/kor_soc6_conv_ai_indicators.dta     월 × soc6 conv_k3, saved_hr_k3(SOC 단계 곱), time_saved_min
-*                                                     (03_merge_kor_conv_ai_ksco8.do)
+*   $proc/merged/kor_ai_usage_ksco3.dta              소분류 shA, shB(%), 월별 정규화 분모 tot_sw04·05, tot_sv04·05, 명칭
+*                                                     (03_05_merge_kor_ksco3_ai_usage.do)
+*   $proc/merged/kor_soc6_conv_ai_indicators.dta     월 × soc6 share_work, saved_w(SOC 단계 곱), time_saved_min
+*                                                     (03_03_merge_kor_conv_ai_ksco8.do)
 *   $proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta   soc2018 → ksco8, w_alloc
 *   $proc/exposure/bls_soc_crosswalk/soc2018_titles.dta            SOC 2018 명칭(BLS)
 * 출력: $results/table/
@@ -15,12 +17,12 @@
 *   26_kor_ksco3_top30_saved_soc.xlsx   시트 ksco, soc
 *   26_ksco3_top30_conv.tex, 26_ksco3_top30_saved.tex, 26_summary.tex   (paper 26 표)
 *
-* 계산(03_merge_kor_conv_ai_ksco8.do, 03_merge_kor_ksco3_ai_usage.do와 같은 규칙):
+* 계산(03_03_merge_kor_conv_ai_ksco8.do, 03_05_merge_kor_ksco3_ai_usage.do와 같은 규칙):
 *   w3(s, K)     = Σ_{k∈K} w_alloc(s, k)       SOC s의 대화 중 소분류 K로 가는 몫
-*   c(s, K, t)   = conv_k3(s, t) × w3(s, K)     s가 K에 주는 대화 수(공개 SOC만)
-*   v(s, K, t)   = saved_hr_k3(s, t) × w3(s, K) s가 K에 주는 절감 시간(절감 시간 있는 SOC만)
-*   월평균: 소분류 값과 같게 K에 값이 있는 달 수로 나눈다 → Σ_s 기여 = 소분류 C, S (assert).
-*   SOC 자체의 월 대화 수(soc_conv_k3)는 그 SOC가 공개된 달의 평균.
+*   c(s, K)      = 100 × ½ Σ_t share_work(s, t) × w3(s, K) / tot_sw_t   s가 K의 지표 A에 주는 몫(%p, 공개 SOC만)
+*   v(s, K)      = 100 × ½ Σ_t saved_w(s, t) × w3(s, K) / tot_sv_t      s가 K의 지표 B에 주는 몫(%p)
+*   tot_*_t는 03_05에서 쓴 월 t 표본 합계(정규화 분모) → Σ_s 기여 = 소분류 shA, shB (assert).
+*   SOC 자체의 업무용 대화 비중(soc_sw, %)은 두 달 단순평균(미공개 달은 0).
 * 소분류에 연계된 SOC: 연계표에서 그 소분류의 세분류 하나 이상과 이어진 SOC 전부.
 *   한국 대화량이 공개되지 않은 SOC는 기여가 빈칸(soc_pub = 0).
 * 매칭 키: soc6 = soc2018(str7), ksco3 = substr(ksco8, 1, 3)(str3).
@@ -85,47 +87,42 @@ save `cw3'
 use "$proc/merged/kor_soc6_conv_ai_indicators.dta", clear
 keep if conv_pub
 drop if strpos(soc6, "X")                               // 45-XXXX: 연계표에 없어 KSCO로 가지 않음
-keep month soc6 conv_k3 saved_hr_k3 time_saved_min
+keep month soc6 share_work saved_w time_saved_min
 tempfile socm
 save `socm'
 
-* SOC 자체 월평균(공개된 달)
-collapse (mean) soc_conv_k3 = conv_k3 soc_saved_hr = saved_hr_k3 (first) soc_time_saved_min = time_saved_min ///
-    (count) soc_n_months = conv_k3, by(soc6)
+* SOC 자체 두 달 단순평균(미공개 달은 0)
+generate double sw_pct = 100 * share_work
+collapse (sum) soc_sw = sw_pct soc_sv = saved_w (first) soc_time_saved_min = time_saved_min ///
+    (count) soc_n_months = sw_pct, by(soc6)
+replace soc_sw = soc_sw / 2
+replace soc_sv = soc_sv / 2
 tempfile socavg
 save `socavg'
 
+* 월별 정규화 분모(03_05와 같은 값)
+use tot_sw04 tot_sw05 tot_sv04 tot_sv05 in 1 using "$proc/merged/kor_ai_usage_ksco3.dta", clear
+foreach v in sw04 sw05 sv04 sv05 {
+    local T_`v' = tot_`v'[1]
+}
 use `socm', clear
 joinby soc6 using `cw3'
-generate double c = conv_k3 * w3
-generate double v = saved_hr_k3 * w3
-* 소분류 월 합계와 값이 있는 달 수
-preserve
-collapse (sum) kc = c kv = v (count) nc = c nv = v, by(month ksco3)
-replace kv = . if nv == 0
-generate byte has_c = 1
-generate byte has_v = !missing(kv)
-collapse (sum) n_c = has_c n_v = has_v (sum) kc kv, by(ksco3)
-tempfile kn
-save `kn'
-restore
+generate double c = 100 * share_work * w3 / cond(month == "2026-04", `T_sw04', `T_sw05') / 2
+generate double v = 100 * saved_w * w3 / cond(month == "2026-04", `T_sv04', `T_sv05') / 2
 collapse (sum) c v (count) nv = v, by(soc6 ksco3)
 replace v = . if nv == 0
 drop nv
-merge m:1 ksco3 using `kn', keepusing(n_c n_v) assert(match) nogenerate
-replace c = c / n_c
-replace v = v / n_v
-drop n_c n_v
 rename (c v) (contrib_conv contrib_saved)
 tempfile contrib
 save `contrib'
 
-* 소분류 값 확인: 기여 합 = kor_ai_usage_ksco3의 C, S
+* 소분류 값 확인: 기여 합 = kor_ai_usage_ksco3의 shA, shB
 collapse (sum) sc = contrib_conv sv = contrib_saved (count) nsv = contrib_saved, by(ksco3)
 replace sv = . if nsv == 0
-merge 1:1 ksco3 using "$proc/merged/kor_ai_usage_ksco3.dta", keepusing(ksco3_title C S)
+merge 1:1 ksco3 using "$proc/merged/kor_ai_usage_ksco3.dta", keepusing(ksco3_title shA shB)
+rename (shA shB) (C S)
 tabulate _merge
-assert _merge != 1                                      // 기여가 있는 소분류는 모두 활용도 파일에 있음(군인 제외)
+assert _merge != 1                                      // 기여가 있는 소분류는 모두 지표 파일에 있음(군인 제외)
 assert missing(C) if _merge == 2
 keep if _merge == 3
 assert reldif(sc, C) < 1e-9
@@ -159,7 +156,7 @@ merge m:1 soc6 using `socavg', keep(master match) nogenerate
 merge m:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
 assert _merge == 3
 drop _merge
-assert soc_pub == !missing(soc_conv_k3)
+assert soc_pub == !missing(soc_sw)
 generate double contrib_conv_share  = 100 * contrib_conv / C
 generate double contrib_saved_share = 100 * contrib_saved / S
 bysort ksco3: generate int n_soc_link = _N
@@ -168,7 +165,7 @@ tempfile pairs
 save `pairs'
 
 * -----------------------------------------------------------------------------
-* 4. 출력: (1) 대화량, (2) 대화량 × 절감 시간
+* 4. 출력: (1) 지표 A, (2) 지표 B
 * -----------------------------------------------------------------------------
 foreach m in conv saved {
     if "`m'" == "conv" {
@@ -205,12 +202,12 @@ foreach m in conv saved {
     label variable ksco_rank           "소분류 순위"
     label variable ksco3               "KSCO 8차 소분류"
     label variable ksco3_title         "소분류 명칭"
-    label variable C                   "소분류 월평균 업무용 대화 수(K = 3)"
-    label variable C_share             "소분류 대화량 비중(%)"
-    label variable S                   "소분류 월평균 절감 시간(시간, K = 3)"
-    label variable S_share             "소분류 절감 시간 비중(%)"
+    label variable C                   "지표 A: 대화 점유율(%)"
+    label variable C_share             "지표 A: 대화 점유율(%, 같은 값)"
+    label variable S                   "지표 B: 절감 시간 점유율(%)"
+    label variable S_share             "지표 B: 절감 시간 점유율(%, 같은 값)"
     label variable n_soc_link          "연계 SOC 수(연계표)"
-    label variable n_soc_pub           "그중 한국 대화량 공개 SOC 수"
+    label variable n_soc_pub           "그중 한국 대화 비중 공개 SOC 수"
     label variable n_soc_val           "그중 기여 값이 있는 SOC 수"
     label variable top_soc             "기여 1위 SOC"
     label variable top_soc_share       "기여 1위 SOC 비중(%)"
@@ -220,25 +217,25 @@ foreach m in conv saved {
     label variable ksco8_list          "이 소분류에서 연결된 세분류"
     label variable n_ksco8_link        "연결된 세분류 수"
     label variable w3                  "SOC 대화 중 이 소분류로 가는 몫(w_alloc 합)"
-    label variable soc_pub             "1 = 한국 대화량 공개 SOC"
+    label variable soc_pub             "1 = 한국 대화 비중 공개 SOC"
     label variable soc_n_months        "SOC 공개 달 수"
-    label variable soc_conv_k3         "SOC 월평균 업무용 대화 수(전체, K = 3)"
+    label variable soc_sw              "SOC 업무용 대화 비중(%, 한국 전체 중, 두 달 단순평균)"
     label variable soc_time_saved_min  "SOC 대화당 절감 시간(분, GLOBAL)"
-    label variable soc_saved_hr        "SOC 월평균 절감 시간(전체, 시간)"
-    label variable contrib_conv        "이 소분류로 온 대화 수(월평균)"
-    label variable contrib_conv_share  "소분류 대화량 중 비중(%)"
-    label variable contrib_saved       "이 소분류로 온 절감 시간(시간, 월평균)"
-    label variable contrib_saved_share "소분류 절감 시간 중 비중(%)"
+    label variable soc_sv              "SOC 비중 × 대화당 절감 시간(분)"
+    label variable contrib_conv        "이 SOC가 소분류 지표 A에 준 몫(%p)"
+    label variable contrib_conv_share  "소분류 지표 A 중 비중(%)"
+    label variable contrib_saved       "이 SOC가 소분류 지표 B에 준 몫(%p)"
+    label variable contrib_saved_share "소분류 지표 B 중 비중(%)"
 
     if "`m'" == "conv" {
         local kv  ksco_rank ksco3 ksco3_title C C_share S n_soc_link n_soc_pub top_soc top_soc_share
-        local sv  soc_rank_in_ksco soc6 soc6_title ksco8_list w3 soc_pub soc_n_months soc_conv_k3 ///
+        local sv  soc_rank_in_ksco soc6 soc6_title ksco8_list w3 soc_pub soc_n_months soc_sw ///
                   contrib_conv contrib_conv_share soc_time_saved_min contrib_saved
     }
     else {
         local kv  ksco_rank ksco3 ksco3_title S S_share C n_soc_link n_soc_pub n_soc_val top_soc top_soc_share
         local sv  soc_rank_in_ksco soc6 soc6_title ksco8_list w3 soc_pub soc_n_months soc_time_saved_min ///
-                  soc_saved_hr contrib_saved contrib_saved_share soc_conv_k3 contrib_conv
+                  soc_sv contrib_saved contrib_saved_share soc_sw contrib_conv
     }
     keep `kv' `sv'
     order `kv' `sv'
@@ -261,18 +258,19 @@ foreach m in conv saved {
 
     tempname fh
     file open `fh' using "`out'/26_ksco3_top30_`m'.tex", write replace
-    file write `fh' "% 04_analysis_kor_ksco3_top30_soc.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_09_analysis_kor_ksco3_top30_soc.do가 생성. 직접 고치지 말 것." _n
     forvalues i = 1/30 {
+        * 열 a = 기준 지표 점유율, b = 다른 지표 점유율
         if "`m'" == "conv" {
-            fmt C[`i']/10000 %7.0fc
+            fmt C[`i'] %5.2f
             local a "`r(s)'"
-            fmt C_share[`i'] %5.2f
+            fmt S[`i'] %5.2f
             local b "`r(s)'"
         }
         else {
-            fmt S[`i']/10000 %7.0fc
+            fmt S[`i'] %5.2f
             local a "`r(s)'"
-            fmt S_share[`i'] %5.2f
+            fmt C[`i'] %5.2f
             local b "`r(s)'"
         }
         fmt top_soc_share[`i'] %5.1f
@@ -289,13 +287,8 @@ foreach m in conv saved {
 * 요약표
 tempname fh
 file open `fh' using "`out'/26_summary.tex", write replace
-file write `fh' "% 04_analysis_kor_ksco3_top30_soc.do가 생성. 직접 고치지 말 것." _n
-fmt `C_tot'/10000 %9.0fc
-local a "`r(s)'"
-fmt `S_tot'/10000 %9.0fc
-local b "`r(s)'"
+file write `fh' "% 04_09_analysis_kor_ksco3_top30_soc.do가 생성. 직접 고치지 말 것." _n
 file write `fh' "값이 있는 소분류 수 & `n_ksco' & `n_ksco' \\" _n
-file write `fh' "소분류 합계(만 건, 만 시간) & `a' & `b' \\" _n
 fmt `top30_conv' %5.1f
 local a "`r(s)'"
 fmt `top30_saved' %5.1f

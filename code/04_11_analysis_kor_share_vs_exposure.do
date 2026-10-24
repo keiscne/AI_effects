@@ -1,17 +1,19 @@
 * =============================================================================
-* 04_analysis_kor_share_vs_exposure.do
+* 04_11_analysis_kor_share_vs_exposure.do
 * AI 점유율 지표 A~C(paper 27)와 노출도 지표 3개의 상관관계, 상위 순위 비교   (paper 28)
 *
-* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_merge_kor_ksco3_ai_usage.do, paper 25)
-*   C, S, emp, H(점유율 계산), observed_exposure, lm_aioe(Felten 언어모델 AIOE), elo_gpt4_beta
+* 2026-10-24 재설계: A·B는 03_05가 AEI 업무용 대화 비중에서 만든 점유율(shA, shB)을 그대로 쓴다(대화 총량·K 없음).
+*
+* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_05_merge_kor_ksco3_ai_usage.do)
+*   shA, shB(지표 A·B, %), emp, hbar(지표 C 계산), observed_exposure, lm_aioe(Felten 언어모델 AIOE), elo_gpt4_beta
 *   (노출도는 SOC 값을 연계표 w_mean으로 평균한 소분류 값, paper 23)
 * 출력: $results/table/
 *   28_kor_share_vs_exposure.xlsx   시트 ksco3(지표·순위), spearman, pearson, overlap30, top_fs, top_expo
 *   28_corr.tex, 28_overlap.tex, 28_top_fs.tex, 28_top_expo.tex   (paper 28 표)
 *
 * 지표(소분류 j, 합은 비교 대상 소분류 전체):
-*   A CS = C / ΣC, B SS = S / ΣS, C FS = (S / hbar) / Σ(S / hbar), hbar = H / emp
-*     (04_analysis_kor_ai_share_index.do와 같은 정의, 여기서 다시 계산)
+*   A CS = shA, B SS = shB(129개 안 다시 정규화, 값은 같음), C FS = (shB / hbar) / Σ(shB / hbar), hbar = H / emp
+*     (04_10_analysis_kor_ai_share_index.do와 같은 정의, 여기서 다시 계산)
 *   노출도(강도): OE = observed exposure, FEL = Felten LM AIOE, ELO = Eloundou GPT-4 β
 *   노출도 기반 점유율(작업자 판단, 규모를 맞춘 비교용): XS_x = emp × x / Σ(emp × x), x ∈ {OE, ELO}
 *     Felten은 표준화 점수(음수 포함)라 점유율로 만들지 않는다.
@@ -46,25 +48,25 @@ end
 * 1. 지표
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco3 ksco3_title emp H C S observed_exposure lm_aioe elo_gpt4_beta
-keep if !missing(C, S, observed_exposure, lm_aioe, elo_gpt4_beta)
+keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
+keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
 assert r(N) == 129
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
 
-generate double fte = S / (H / emp)
+generate double fte = shB / hbar
 generate double eoe = emp * OE
 generate double eel = emp * ELO
-foreach p in C S fte eoe eel {
+foreach p in shA shB fte eoe eel {
     quietly summarize `p'
     local t_`p' = r(sum)
 }
-generate double CS     = 100 * C   / `t_C'
-generate double SS     = 100 * S   / `t_S'
+generate double CS     = 100 * shA / `t_shA'
+generate double SS     = 100 * shB / `t_shB'
 generate double FS     = 100 * fte / `t_fte'
 generate double XS_OE  = 100 * eoe / `t_eoe'
 generate double XS_ELO = 100 * eel / `t_eel'
-drop fte eoe eel
+drop fte eoe eel shA shB hbar
 
 local all "CS SS FS OE FEL ELO XS_OE XS_ELO"
 foreach v of local all {
@@ -88,7 +90,6 @@ foreach v of local all {
     label variable r_`v' "`v' 순위"
 }
 order ksco3 ksco3_title ksco1 ksco1_title CS SS FS OE FEL ELO XS_OE XS_ELO r_* emp
-drop C S H
 gsort -FS ksco3
 export excel using "`xl'", sheet("ksco3") firstrow(varlabels) replace
 tempfile d
@@ -144,7 +145,7 @@ foreach m in spearman overlap30 {
     local f = cond("`m'" == "spearman", "28_corr.tex", "28_overlap.tex")
     tempname fh
     file open `fh' using "`out'/`f'", write replace
-    file write `fh' "% 04_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_11_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
     forvalues i = 1/`nv' {
         local a : word `i' of `all'
         local row "(`i') `lab_`a''"
@@ -174,7 +175,7 @@ export excel ksco3 ksco3_title FS r_FS r_CS r_SS r_OE r_FEL r_ELO r_XS_OE r_XS_E
     sheet("top_fs") firstrow(varlabels) sheetreplace
 tempname fh
 file open `fh' using "`out'/28_top_fs.tex", write replace
-file write `fh' "% 04_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_11_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
 forvalues i = 1/20 {
     fmt FS[`i'] %5.2f
     local a "`r(s)'"
@@ -186,7 +187,7 @@ file close `fh'
 * 4. 노출도 지표별 상위 10과 지표 C 순위
 * -----------------------------------------------------------------------------
 file open `fh' using "`out'/28_top_expo.tex", write replace
-file write `fh' "% 04_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_11_analysis_kor_share_vs_exposure.do가 생성. 직접 고치지 말 것." _n
 local first = 1
 foreach x in OE FEL ELO {
     use `d', clear

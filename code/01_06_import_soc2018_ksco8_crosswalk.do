@@ -1,5 +1,5 @@
 * =============================================================================
-* 01_import_soc2018_ksco8_crosswalk.do
+* 01_06_import_soc2018_ksco8_crosswalk.do
 * SOC 2018 세부 직업(6자리) ↔ 한국표준직업분류 8차(KSCO 8차) 세분류(4자리)
 *   ↔ 한국고용직업분류 2025(KECO 2025) 세분류(4자리) 연계표
 *
@@ -40,7 +40,7 @@
 *   w_flat  : 연결된 SOC 2018 코드의 단순평균(1 / ksco8당 SOC 2018 수). ksco8 안에서 합 1. 민감도용.
 *   w_alloc : SOC 양(대화 건수 등) → KSCO 배분. soc2018 안에서 합 1.
 *             SOC 2018 → 대응 SOC 2010에 균등, SOC 2010 → 대응 ISCO에 균등, ISCO → 대응 KSCO에 균등.
-* 매칭 키: soc2018(str7, XX-XXXX) = soc6_ai_indicators·sensortower_aei_kor_soc6_conversations의 soc6
+* 매칭 키: soc2018(str7, XX-XXXX) = soc6_ai_indicators·aei_soc6_work_share의 soc6
 *          ksco8(str4) = KSCO 8차 세분류 코드(군인은 A011 등 문자 포함)
 *          keco2025(str4) = KECO 2025 세분류 코드(앞자리 0 포함, 예: 0111)
 * =============================================================================
@@ -466,7 +466,7 @@ restore
 
 * 이 프로젝트의 SOC 2018 지표 파일과의 매칭(있을 때만)
 local f1 "$proc/merged/soc6_ai_indicators.dta"
-local f2 "$proc/macro/scaling/sensortower_state_of_ai_2026/sensortower_aei_kor_soc6_conversations.dta"
+local f2 "$proc/usage/anthropic_economic_index/aei_soc6_work_share.dta"
 foreach f in f1 f2 {
     capture confirm file "``f''"
     if _rc == 0 {

@@ -1,5 +1,5 @@
 * =============================================================================
-* 01_import_aei_soc_time_savings.do
+* 01_03_import_aei_soc_time_savings.do
 * Anthropic Economic Index(Claude.ai): SOC 세부 직업(6자리)별 과업 소요 시간과 AI로 줄어든 시간
 *
 * 입력: $raw/usage/anthropic_economic_index/release_2026_06_26/data/aei_claude_ai_2026-06-26.csv
@@ -28,7 +28,7 @@
 * 매칭 키(결합 시, 이 파일에서는 결합하지 않음):
 *   soc6(str7, XX-XXXX) = labor_market_impacts/job_exposure.csv의 occ_code(SOC 2018, observed exposure)
 *                       = Eloundou occ_level.csv O*NET-SOC 코드 앞 7자리(SOC 2018 기반)
-*   Felten AIOE는 SOC 2010이므로 01_import_felten_aioe.do에서 SOC 2018로 변환한 파일을 쓴다.
+*   Felten AIOE는 SOC 2010이므로 01_04_import_felten_aioe.do에서 SOC 2018로 변환한 파일을 쓴다.
 *
 * 주의:
 *   - AEI의 SOC는 사용자의 직업이 아니라 대화 과업이 속한 직업이다.
@@ -80,7 +80,7 @@ generate byte is00 = substr(soc_code, 9, 2) == "00"
 tabstat pct, by(month) statistics(count sum) format(%9.2f)
 summarize human_only_min human_with_ai_min time_saved_min, detail
 
-* 6자리 명칭: BLS SOC 2018 공식 명칭(01_import_soc2018_titles.do).
+* 6자리 명칭: BLS SOC 2018 공식 명칭(01_01_import_soc2018_titles.do).
 *   AEI 8자리 명칭을 쓰면 .00 코드가 없는 SOC(예: 15-1299)가 8자리 직업 하나의 이름으로 보인다.
 preserve
 use "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", clear

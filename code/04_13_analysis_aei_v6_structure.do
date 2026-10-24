@@ -1,5 +1,5 @@
 * =============================================================================
-* 04_analysis_aei_v6_structure.do
+* 04_13_analysis_aei_v6_structure.do
 * Anthropic Economic Index release_2026_06_26(V6)의 공개 범위: 지리 × 범주 × 계층별 지역 수, 노드 수, 지표   (paper 30)
 *
 * 입력: $raw/usage/anthropic_economic_index/release_2026_06_26/data/
@@ -94,7 +94,7 @@ local gl_subregion "하위 지역"
 
 tempname fh
 file open `fh' using "`out'/30_v6_cells.tex", write replace
-file write `fh' "% 04_analysis_aei_v6_structure.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_13_analysis_aei_v6_structure.do가 생성. 직접 고치지 말 것." _n
 keep if month == "2026-05"
 local prev ""
 forvalues i = 1/`=_N' {
@@ -133,7 +133,7 @@ sort c hierarchy_level
 export excel using "`xl'", sheet("kor") firstrow(variables) sheetreplace
 list, noobs abbreviate(12)
 file open `fh' using "`out'/30_v6_kor.tex", write replace
-file write `fh' "% 04_analysis_aei_v6_structure.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_13_analysis_aei_v6_structure.do가 생성. 직접 고치지 말 것." _n
 forvalues i = 1/`=_N' {
     local ct = category_name[`i']
     local lv = hierarchy_level[`i']

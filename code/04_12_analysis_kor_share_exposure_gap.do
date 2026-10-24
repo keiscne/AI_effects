@@ -1,15 +1,17 @@
 * =============================================================================
-* 04_analysis_kor_share_exposure_gap.do
+* 04_12_analysis_kor_share_exposure_gap.do
 * AI 점유율 지표 A~C(paper 27)와 노출도 지표 3개의 직업별 격차, 격차가 큰 직업   (paper 29)
 *
-* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_merge_kor_ksco3_ai_usage.do, paper 25)
-*   C, S, emp, H(점유율 계산), observed_exposure, lm_aioe(Felten 언어모델 AIOE), elo_gpt4_beta
+* 2026-10-24 재설계: A·B는 03_05가 AEI 업무용 대화 비중에서 만든 점유율(shA, shB)을 그대로 쓴다(대화 총량·K 없음).
+*
+* 입력: $proc/merged/kor_ai_usage_ksco3.dta   (03_05_merge_kor_ksco3_ai_usage.do)
+*   shA, shB(지표 A·B, %), emp, hbar(지표 C 계산), observed_exposure, lm_aioe(Felten 언어모델 AIOE), elo_gpt4_beta
 * 출력: $results/table/
 *   29_kor_share_exposure_gap.xlsx   시트 ksco3(지표·격차), reg, agree, abc, top10, robust, ksco1
 *   29_reg.tex, 29_agree.tex, 29_abc.tex, 29_top_OE.tex, 29_top_FEL.tex, 29_top_ELO.tex,
 *   29_size.tex, 29_robust_pos.tex, 29_robust_neg.tex, 29_ksco1.tex   (paper 29 표)
 *
-* 지표(04_analysis_kor_share_vs_exposure.do와 같은 정의, 소분류 129개에서 다시 계산):
+* 지표(04_11_analysis_kor_share_vs_exposure.do와 같은 정의, 소분류 129개에서 다시 계산):
 *   점유율 m ∈ {CS(A), SS(B), FS(C)}(%), 노출도 x ∈ {OE, FEL, ELO},
 *   노출도 기반 점유율 XS_x = 100 × emp × x / Σ(emp × x), x ∈ {OE, ELO}
 * 격차(모두 양수 = 실제 사용이 노출도보다 큼, 작업자 판단):
@@ -49,25 +51,25 @@ end
 * 1. 지표와 격차
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco3 ksco3_title emp H C S observed_exposure lm_aioe elo_gpt4_beta
-keep if !missing(C, S, observed_exposure, lm_aioe, elo_gpt4_beta)
+keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
+keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
 assert r(N) == 129
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
 
-generate double fte = S / (H / emp)
+generate double fte = shB / hbar
 generate double eoe = emp * OE
 generate double eel = emp * ELO
-foreach p in C S fte eoe eel {
+foreach p in shA shB fte eoe eel {
     quietly summarize `p'
     local t_`p' = r(sum)
 }
-generate double CS     = 100 * C   / `t_C'
-generate double SS     = 100 * S   / `t_S'
+generate double CS     = 100 * shA / `t_shA'
+generate double SS     = 100 * shB / `t_shB'
 generate double FS     = 100 * fte / `t_fte'
 generate double XS_OE  = 100 * eoe / `t_eoe'
 generate double XS_ELO = 100 * eel / `t_eel'
-drop fte eoe eel C S H
+drop fte eoe eel shA shB hbar
 foreach v in CS SS FS OE FEL ELO XS_OE XS_ELO {
     egen int r_`v' = rank(-`v'), unique
 }
@@ -127,7 +129,7 @@ save `d'
 * -----------------------------------------------------------------------------
 tempname fh
 file open `fh' using "`out'/29_reg.tex", write replace
-file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
 preserve
 clear
 svmat REG, names(col)
@@ -186,7 +188,7 @@ use `ag', clear
 export excel using "`xl'", sheet("agree") firstrow(variables) sheetreplace
 * TeX: 지표 C, 행 = 방법 쌍, 열 = 노출도
 file open `fh' using "`out'/29_agree.tex", write replace
-file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
 local nm_RG "순위 격차(1)"
 local nm_DS "점유율 차이(3)"
 local nm_LR "로그 비율(3)"
@@ -224,7 +226,7 @@ preserve
 use `ag', clear
 export excel using "`xl'", sheet("abc") firstrow(variables) sheetreplace
 file open `fh' using "`out'/29_abc.tex", write replace
-file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
 foreach g in RG DS LR RE {
     local row "`nm_`g''"
     foreach x of local X {
@@ -244,7 +246,7 @@ restore
 
 * 격차와 직업 규모(취업자 수)의 Spearman 상관(지표 C): 방법이 규모를 얼마나 남기는지
 file open `fh' using "`out'/29_size.tex", write replace
-file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
 foreach g in RG DS LR RE {
     local row "`nm_`g''"
     foreach x of local X {
@@ -320,7 +322,7 @@ foreach x of local X {
         local c_`sd'_`g'_`r' "`=ksco3[`k']' `=ksco3_title[`k']' (`r(s)')"
     }
     file open `fh' using "`out'/29_top_`x'.tex", write replace
-    file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
     foreach sd in pos neg {
         local hd = cond("`sd'" == "pos", "\multicolumn{4}{l}{\textit{사용 > 노출도(격차 상위 10)}} \\", "\multicolumn{4}{l}{\textit{노출도 > 사용(격차 하위 10)}} \\")
         if "`sd'" == "neg" file write `fh' "\midrule" _n
@@ -362,7 +364,7 @@ foreach sd in pos neg {
     if "`sd'" == "neg" gsort -n`sd' -r_FS ksco3
     display "robust `sd' (>= 5 of 8): " _N
     file open `fh' using "`out'/29_robust_`sd'.tex", write replace
-    file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+    file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
     forvalues k = 1/`=_N' {
         fmt FS[`k'] %5.2f
         local a "`r(s)'"
@@ -386,7 +388,7 @@ collapse (sum) n FS DS_FS_OE DS_FS_ELO (mean) RG_FS_OE RG_FS_FEL RG_FS_ELO RE_FS
 sort ksco1
 export excel using "`xl'", sheet("ksco1") firstrow(variables) sheetreplace
 file open `fh' using "`out'/29_ksco1.tex", write replace
-file write `fh' "% 04_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
+file write `fh' "% 04_12_analysis_kor_share_exposure_gap.do가 생성. 직접 고치지 말 것." _n
 forvalues k = 1/`=_N' {
     local row "`=ksco1[`k']' `=ksco1_title[`k']' & `=n[`k']'"
     fmt FS[`k'] %5.1f

@@ -1,5 +1,5 @@
 * =============================================================================
-* 01_import_onet_task_soc.do
+* 01_05_import_onet_task_soc.do
 * O*NET task(Task ID) → O*NET-SOC 8자리 → SOC 2018 세부 직업(6자리) 연계표
 *
 * 입력:

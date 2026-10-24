@@ -1,5 +1,5 @@
 * =============================================================================
-* 01_import_aei_country_usage.do
+* 01_02_import_aei_country_usage.do
 * Anthropic Economic Index(Claude.ai): 국가별 대화 비중(usage_pct)과 업무용 대화 비중
 *
 * 입력: $raw/usage/anthropic_economic_index/

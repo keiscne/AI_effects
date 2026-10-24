@@ -1,5 +1,5 @@
 * =============================================================================
-* 04_analysis_kor_soc_exposure_coverage.do
+* 04_02_analysis_kor_soc_exposure_coverage.do
 * AEI 한국 직업(SOC)별 대화 비중과 observed exposure(Massenkoff & McCrory 2026)의 직업 매칭 범위
 *   (results/paper/20 보고서용)
 *
@@ -38,7 +38,7 @@ local aei "$raw/usage/anthropic_economic_index/release_2026_06_26/data"
 local lmi "$raw/usage/anthropic_economic_index/labor_market_impacts"
 local out "$results/table"
 local xl  "`out'/20_kor_soc_exposure_coverage.xlsx"
-local hdr "% 04_analysis_kor_soc_exposure_coverage.do가 생성. 직접 고치지 말 것."
+local hdr "% 04_02_analysis_kor_soc_exposure_coverage.do가 생성. 직접 고치지 말 것."
 
 capture program drop wrow
 program define wrow
@@ -116,7 +116,7 @@ generate byte neg00 = -is00
 bysort geo month soc6 (neg00 soc8): generate str244 title_any = title8[1]   // .00 명칭 우선
 collapse (sum) pct (count) n8 = pct (max) has00 = is00 (firstnm) title_any, by(geo month soc6)
 rename title_any aei_title
-* 6자리 명칭은 BLS SOC 2018 공식 명칭으로(01_import_soc2018_titles.do). .00 코드가 없는 SOC는
+* 6자리 명칭은 BLS SOC 2018 공식 명칭으로(01_01_import_soc2018_titles.do). .00 코드가 없는 SOC는
 * AEI 8자리 명칭 하나가 6자리 직업 이름처럼 보이기 때문(예: 15-1299 → Web Administrators).
 merge m:1 soc6 using "$proc/exposure/bls_soc_crosswalk/soc2018_titles.dta", keep(master match)
 assert _merge == 3

@@ -1,20 +1,21 @@
 * =============================================================================
-* 04_analysis_kor_ksco8_merge_summary.do
-* 한국 대화량 + AI 지표의 SOC 결합과 KSCO 8차 변환 결과 요약(특이사항 정리용)
+* 04_05_analysis_kor_ksco8_merge_summary.do
+* 한국 업무용 대화 비중 + AI 지표의 SOC 결합과 KSCO 8차 변환 결과 요약(특이사항 정리용)
+* 2026-10-24 재설계: 대화 건수(conv_k3) 대신 업무용 대화 비중(share_work)과 비중 × 절감 시간(saved_w)을 쓴다.
 * (paper 23: results/paper/23_한국대화량_AI지표_KSCO결합.tex)
 *
 * 입력: $proc/merged/kor_soc6_conv_ai_indicators.dta, kor_ksco8_conv_ai_indicators.dta
-*       (03_merge_kor_conv_ai_ksco8.do 출력), $proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta
+*       (03_03_merge_kor_conv_ai_ksco8.do 출력), $proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta
 * 출력: $results/table/
 *   23_soc_merge.tex   월별 SOC 결합 결과와 대화량 SOC의 지표 보유(직업 수, 업무용 대화 비중)
 *   23_ksco_conv.tex   월별 KSCO 494개의 대화량 공개 범위(전부·일부·없음)
 *   23_ind_cov.tex     지표별 SOC·KSCO 보유 수와 덮개(cov)
-*   23_top_ksco.tex    2026-05 업무용 대화 상위 15개 KSCO
-*   23_partial.tex     2026-05 대화량 일부 공개 KSCO 중 대화량 상위 10개
-*   23_miss_ind.tex    2026-05 대화량은 있으나 observed exposure가 없는 KSCO
+*   23_top_ksco.tex    2026-05 업무용 대화 비중 상위 15개 KSCO(대화 비중, 절감 시간 비중)
+*   23_partial.tex     2026-05 대화 비중 일부 공개 KSCO 중 비중 상위 10개
+*   23_miss_ind.tex    2026-05 대화 비중은 있으나 observed exposure가 없는 KSCO
 *   23_twins.tex       연결된 SOC와 가중치가 같아 모든 값이 같아지는 KSCO 묶음(2026-05 대화 비중은 KSCO 하나당)
 *   23_twins_struct.tex 값이 같아지는 KSCO 묶음이 생기는 구조(ISCO 수, ISCO 집합 일치, SOC 수)
-*   23_product.tex     2026-05 총 절감 시간: SOC에서 곱한 뒤 배분(A) 대 KSCO 값끼리 곱함(B)
+*   23_product.tex     2026-05 대화당 평균 절감 시간(분): SOC에서 곱한 뒤 배분(A) 대 KSCO 값끼리 곱함(B)
 *   23_kor_ksco8_conv_ai.xlsx  시트 ksco8_2026_05(KSCO별 전체 변수)
 * =============================================================================
 
@@ -30,7 +31,7 @@ local soc "$proc/merged/kor_soc6_conv_ai_indicators.dta"
 local ks  "$proc/merged/kor_ksco8_conv_ai_indicators.dta"
 local cw  "$proc/exposure/bls_soc_crosswalk/soc2018_ksco8_crosswalk.dta"
 local out "$results/table"
-local hdr "% 04_analysis_kor_ksco8_merge_summary.do가 생성. 직접 고치지 말 것."
+local hdr "% 04_05_analysis_kor_ksco8_merge_summary.do가 생성. 직접 고치지 말 것."
 tempname fh
 
 * 숫자 서식
@@ -173,16 +174,18 @@ foreach p in "time_saved_min cov_aei" "observed_exposure cov_obs" "elo_gpt4_beta
 file close `fh'
 
 * -----------------------------------------------------------------------------
-* 4. 2026-05 대화량 상위 KSCO (23_top_ksco), 일부 공개 KSCO (23_partial), 지표 결측 KSCO (23_miss_ind)
+* 4. 2026-05 대화 비중 상위 KSCO (23_top_ksco), 일부 공개 KSCO (23_partial), 지표 결측 KSCO (23_miss_ind)
 * -----------------------------------------------------------------------------
 use "`ks'" if month == "2026-05", clear
-gsort -conv_k3
+quietly summarize saved_w
+generate double sv_sh = 100 * saved_w / r(sum)          // KSCO 494개 안 절감 시간 비중(%)
+gsort -share_work ksco8
 file open `fh' using "`out'/23_top_ksco.tex", write replace
 file write `fh' "`hdr'" _n
 forvalues i = 1/15 {
     fmt 100*share_work[`i'] %5.2f
     local a "`r(s)'"
-    fmt conv_k3[`i']/10000 %9.0fc
+    fmt sv_sh[`i'] %5.2f
     local b "`r(s)'"
     fmt time_saved_min[`i'] %5.0f
     local c "`r(s)'"
@@ -194,7 +197,7 @@ file close `fh'
 
 preserve
 keep if n_soc_conv > 0 & n_soc_conv < n_soc_link
-gsort -conv_k3
+gsort -share_work ksco8
 file open `fh' using "`out'/23_partial.tex", write replace
 file write `fh' "`hdr'" _n
 forvalues i = 1/10 {
@@ -208,8 +211,8 @@ file close `fh'
 restore
 
 preserve
-keep if !missing(conv_k3) & missing(observed_exposure)
-gsort -conv_k3
+keep if !missing(share_work) & missing(observed_exposure)
+gsort -share_work ksco8
 file open `fh' using "`out'/23_miss_ind.tex", write replace
 file write `fh' "`hdr'" _n
 forvalues i = 1/`=_N' {
@@ -219,7 +222,7 @@ forvalues i = 1/`=_N' {
     file write `fh' "`=ksco8[`i']' `=ksco8_title[`i']' & `a' & `=n_soc_conv[`i']'/`=n_soc_link[`i']' & `t' \\" _n
 }
 file close `fh'
-display as text "대화량은 있으나 observed exposure가 없는 KSCO: " _N
+display as text "대화 비중은 있으나 observed exposure가 없는 KSCO: " _N
 restore
 
 * -----------------------------------------------------------------------------
@@ -291,8 +294,8 @@ file write `fh' "묶음 & `ngr' & 100.0 \\" _n
 file write `fh' "\quad 구성원이 받는 ISCO 집합이 모두 같은 묶음 & `t_g1' & `p_g1' \\" _n
 file close `fh'
 
-* 묶음별로 대화량 합(5월) 순서
-bysort gid: egen double gconv = total(conv_k3) if ng > 1
+* 묶음별로 대화 비중 합(5월) 순서
+bysort gid: egen double gconv = total(share_work) if ng > 1
 sort gid ksco8
 generate str244 members = ""
 by gid: replace members = cond(_n == 1, "", members[_n-1] + "; ") + ksco8 + " " + ksco8_title if ng > 1
@@ -302,7 +305,7 @@ gsort -gconv
 file open `fh' using "`out'/23_twins.tex", write replace
 file write `fh' "`hdr'" _n
 forvalues i = 1/`=min(12, _N)' {
-    local a = cond(missing(conv_k3[`i']), "--", trim(string(100*share_work[`i'], "%5.2f")))
+    local a = cond(missing(share_work[`i']), "--", trim(string(100*share_work[`i'], "%5.2f")))
     file write `fh' "`=members[`i']' & `=ng[`i']' & `a' \\" _n
 }
 file write `fh' "\midrule" _n
@@ -310,24 +313,25 @@ file write `fh' "합계(묶음 `ngr'개) & `ntw' & -- \\" _n
 file close `fh'
 
 * -----------------------------------------------------------------------------
-* 6. 곱한 양은 SOC에서 계산해야 함 (23_product): 2026-05 총 절감 시간 = Σ 대화 수 × 대화당 절감 시간
-*    (A) SOC에서 곱한 뒤 합산  (B) KSCO에서 배분된 대화 수 × KSCO 평균 절감 시간
+* 6. 곱한 양은 SOC에서 계산해야 함 (23_product): 2026-05 대화당 평균 절감 시간(분) = Σ 비중 × 대화당 절감 시간
+*    (A) SOC에서 곱한 뒤 합산  (B) KSCO에서 배분된 비중 × KSCO 평균 절감 시간
+*    (예전에는 총 대화 수를 곱한 총 절감 시간(백만 시간)이었다. 비율 (B)/(A)와 상관은 총량과 무관하다.)
 * -----------------------------------------------------------------------------
 use "`soc'" if month == "2026-05" & conv_pub, clear
-generate double ts = conv_k3 * time_saved_min / 60
+generate double ts = share_work * time_saved_min
 quietly summarize ts
 local A = r(sum)
 use "`soc'" if month == "2026-05" & conv_pub, clear
-keep soc6 conv_k3 time_saved_min
+keep soc6 share_work time_saved_min
 rename soc6 soc2018
 joinby soc2018 using "`cw'"
-generate double ts = w_alloc * conv_k3 * time_saved_min / 60
+generate double ts = w_alloc * share_work * time_saved_min
 collapse (sum) tsA = ts, by(ksco8)
 tempfile ka
 save `ka'
 use "`ks'" if month == "2026-05", clear
 merge 1:1 ksco8 using `ka', nogenerate
-generate double tsB = conv_k3 * time_saved_min / 60
+generate double tsB = share_work * time_saved_min
 quietly summarize tsA
 local A2 = r(sum)
 quietly summarize tsB
@@ -343,12 +347,12 @@ display as text "A(SOC) = `A', A2(KSCO 합) = `A2', B(KSCO 곱) = `B'"
 assert abs(`A2' / `A' - 1) < 1e-9
 file open `fh' using "`out'/23_product.tex", write replace
 file write `fh' "`hdr'" _n
-fmt `A'/1e6 %9.2f
+fmt `A' %9.2f
 file write `fh' "(A) SOC에서 곱한 뒤 \texttt{w\_alloc}으로 배분해 합산 & `r(s)' & 100.0 \\" _n
-fmt `B'/1e6 %9.2f
+fmt `B' %9.2f
 local b "`r(s)'"
 fmt 100*`B'/`A' %5.1f
-file write `fh' "(B) KSCO 대화 수 × KSCO 평균 절감 시간(\texttt{w\_mean}) & `b' & `r(s)' \\" _n
+file write `fh' "(B) KSCO 대화 비중 × KSCO 평균 절감 시간(\texttt{w\_mean}) & `b' & `r(s)' \\" _n
 file write `fh' "\midrule" _n
 fmt `rho' %5.3f
 file write `fh' "KSCO별 (A)와 (B)의 상관계수 & `r(s)' & -- \\" _n

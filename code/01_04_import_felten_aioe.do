@@ -1,5 +1,5 @@
 * =============================================================================
-* 01_import_felten_aioe.do
+* 01_04_import_felten_aioe.do
 * Felten, Raj, and Seamans (2023) 언어모델 AIOE: SOC 2010 → SOC 2018 세부 직업(6자리)
 *
 * 입력:
@@ -26,7 +26,7 @@
 *   split = 1이면 원천 2010 코드 중 하나 이상이 여러 2018 직업으로 나뉨(값 복사)
 * 매칭 키: soc6(str7, SOC 2018) = aei_soc6_time_savings의 soc6 = job_exposure occ_code
 * 주의: lm_aioe는 Felten 원자료 그대로(774개 SOC 2010 직업 기준 표준화 값). 변환 후 다시 표준화하지 않는다.
-*   확인용 마지막 단계는 01_import_aei_soc_time_savings.do 출력(aei_soc6_time_savings.dta)을 읽는다.
+*   확인용 마지막 단계는 01_03_import_aei_soc_time_savings.do 출력(aei_soc6_time_savings.dta)을 읽는다.
 * =============================================================================
 
 version 17
@@ -164,7 +164,7 @@ save "`outf'/felten_lm_aioe_soc2018.dta", replace
 export delimited using "`outf'/felten_lm_aioe_soc2018.csv", replace
 summarize lm_aioe
 
-* 확인용: AEI 시간 절감(soc6, 01_import_aei_soc_time_savings.do)과 매칭되는 직업 수(결합 파일은 만들지 않음)
+* 확인용: AEI 시간 절감(soc6, 01_03_import_aei_soc_time_savings.do)과 매칭되는 직업 수(결합 파일은 만들지 않음)
 local aeit "$proc/usage/anthropic_economic_index/aei_soc6_time_savings.dta"
 capture confirm file "`aeit'"
 if _rc == 0 {

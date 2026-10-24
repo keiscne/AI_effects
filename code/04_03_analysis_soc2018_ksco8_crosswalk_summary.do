@@ -1,14 +1,14 @@
 * =============================================================================
-* 04_analysis_soc2018_ksco8_crosswalk_summary.do
+* 04_03_analysis_soc2018_ksco8_crosswalk_summary.do
 * SOC 2018–KSCO 8차(–KECO 2025) 연계표의 구조 요약: 단계별 대응 유형, 1:1이 아닌 경우의 원인·규모
 * (report 21: results/paper/21_SOC2018_KSCO8_연계표_구축.tex)
 *
-* 입력: $proc/exposure/bls_soc_crosswalk/  (01_import_soc2018_ksco8_crosswalk.do 출력)
+* 입력: $proc/exposure/bls_soc_crosswalk/  (01_06_import_soc2018_ksco8_crosswalk.do 출력)
 *   soc2018_ksco8_stages.dta      단계별 연계쌍(4개 표)
 *   soc2018_ksco8_paths.dta       연결 경로(soc2018, soc2010, isco08, ksco8)
 *   soc2018_ksco8_crosswalk.dta   고유 (soc2018, ksco8) 쌍 + 가중치
 *   확인용: $proc/merged/soc6_ai_indicators.dta,
-*           $proc/macro/scaling/sensortower_state_of_ai_2026/sensortower_aei_kor_soc6_conversations.dta
+*           $proc/usage/anthropic_economic_index/aei_soc6_work_share.dta
 * 출력: $results/table/
 *   21_sources.tex      단계별 연계쌍 수, 코드 수, 경로에 쓰인 쌍·코드 수
 *   21_types.tex        단계별·최종 연계쌍의 대응 유형(1:1, 1:N, N:1, M:N)
@@ -43,7 +43,7 @@ if `"$results"' == "" global results "$root/results"
 local cwd "$proc/exposure/bls_soc_crosswalk"
 local out "$results/table"
 local xl  "`out'/21_soc2018_ksco8_crosswalk.xlsx"
-local hdr "% 04_analysis_soc2018_ksco8_crosswalk_summary.do가 생성. 직접 고치지 말 것."
+local hdr "% 04_03_analysis_soc2018_ksco8_crosswalk_summary.do가 생성. 직접 고치지 말 것."
 tempname fh
 
 * LaTeX 특수문자 처리
@@ -499,19 +499,19 @@ forvalues b = 1/7 {
 quietly count
 local ain = r(N)
 
-use if month == "2026-05" using "$proc/macro/scaling/sensortower_state_of_ai_2026/sensortower_aei_kor_soc6_conversations.dta", clear
-keep soc6 conv_k3
+use if month == "2026-05" & geo_id == "KOR" using "$proc/usage/anthropic_economic_index/aei_soc6_work_share.dta", clear
+keep soc6 share_work
 rename soc6 soc2018
 merge 1:1 soc2018 using `sb', keep(master match)
-quietly summarize conv_k3
+quietly summarize share_work
 local ctot = r(sum)
-quietly summarize conv_k3 if _merge == 1
+quietly summarize share_work if _merge == 1
 local cmiss = r(sum)
 keep if _merge == 3
 forvalues b = 1/7 {
     quietly count if bin == `b'
     local kc`b' = r(N)
-    quietly summarize conv_k3 if bin == `b'
+    quietly summarize share_work if bin == `b'
     local kv`b' : display %5.1f 100 * r(sum) / `ctot'
 }
 quietly count
@@ -529,10 +529,10 @@ file write `fh' "합계 & `nsoc' & `ain' & `kcn' & 100.0 \\" _n
 file close `fh'
 
 * 한국 대화 비중 상위 10개 SOC 직업의 KSCO 배분(w_alloc)
-use if month == "2026-05" using "$proc/macro/scaling/sensortower_state_of_ai_2026/sensortower_aei_kor_soc6_conversations.dta", clear
-keep soc6 conv_k3
+use if month == "2026-05" & geo_id == "KOR" using "$proc/usage/anthropic_economic_index/aei_soc6_work_share.dta", clear
+keep soc6 share_work
 rename soc6 soc2018
-generate double sh = 100 * conv_k3 / `ctot'
+generate double sh = 100 * share_work / `ctot'
 gsort -sh
 keep in 1/10
 generate int rank = _n
