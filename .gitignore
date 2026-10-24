@@ -8,10 +8,10 @@
 /reference/papers/
 
 # 컴파일된 보고서 산출물(pdf/docx): .tex/.md 소스에서 재생성 가능
-/results/report/*.pdf
-/results/report/*.docx
-/results/paper/*.pdf
-/results/paper/*.docx
+/results/report/**/*.pdf
+/results/report/**/*.docx
+/results/paper/**/*.pdf
+/results/paper/**/*.docx
 
 # 로컬 도구 설정
 /.claude/
