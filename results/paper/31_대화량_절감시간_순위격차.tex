@@ -1,9 +1,10 @@
 % !TEX program = xelatex
 % AI-effects 프로젝트 --- AI 점유율 지표 A(대화 점유율)와 B(절감 시간 점유율)의 순위 격차가 큰 직업.
 % 표 본문: results/table/31_summary.tex, 31_top_pos.tex, 31_top_neg.tex, 31_top30A.tex, 31_ksco1.tex
-%          (code/04_analysis_kor_conv_saved_gap.do가 생성)
+%          (code/04_14_analysis_kor_conv_saved_gap.do가 생성)
+% 2026-10-24 재설계: 지표 A·B를 AEI 업무용 대화 비중에서 직접 만듦(총량·K 없음, 두 달 = 월별 비중 단순평균). 수치 갱신.
 % 전체 자료: results/table/31_kor_conv_saved_gap.xlsx
-% 관련: paper 25(활용도, tau_eff), paper 26(소분류 × SOC 구성), paper 27(점유율 지표 A~C), paper 29(점유율과 노출도의 격차)
+% 관련: paper 25(상대 활용도, tau_eff), paper 26(소분류 × SOC 구성), paper 27(점유율 지표 A~C), paper 29(점유율과 노출도의 격차)
 % 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
 \documentclass[11pt]{article}
 
@@ -28,7 +29,7 @@
 \renewcommand{\arraystretch}{1.15}
 \setlength{\tabcolsep}{3.5pt}
 
-\title{대화량 지표(A)와 절감 시간 지표(B)의 순위 격차가 큰 직업\\[2mm]
+\title{대화 점유율 지표(A)와 절감 시간 지표(B)의 순위 격차가 큰 직업\\[2mm]
 \large --- 대화당 절감 시간과 SOC 구성으로 본 차이 ---}
 \author{AI-effects 프로젝트}
 \date{\today}
@@ -37,12 +38,12 @@
 \maketitle
 
 \begin{abstract}
-\noindent paper 27의 AI 점유율 지표 중 A(업무용 대화 점유율)와 B(AI 절감 시간 점유율)의 순위가 크게 다른 직업을 KSCO 8차 소분류 129개에서 찾았다. 격차는 순위 격차 $\mathrm{RG} = r(\text{A}) - r(\text{B})$로 쟀다. 양수이면 절감 시간 순위가 대화량 순위보다 높은 직업이다. B/A는 그 직업의 대화당 절감 시간 $\tau$에 비례하므로, 두 지표의 차이는 모두 $\tau$에서 나온다. 그리고 SOC별 대화당 절감 시간은 AEI의 전 세계(GLOBAL) 값이므로, 한국 소분류 사이의 $\tau$ 차이는 그 소분류로 들어온 대화의 SOC 구성에서 나온다.
+\noindent paper 27의 AI 점유율 지표 중 A(업무용 대화 점유율)와 B(AI 절감 시간 점유율)의 순위가 크게 다른 직업을 KSCO 8차 소분류 129개에서 찾았다. 격차는 순위 격차 $\mathrm{RG} = r(\text{A}) - r(\text{B})$로 쟀다. 양수이면 절감 시간 순위가 대화 점유율 순위보다 높은 직업이다. B/A는 그 직업의 대화당 절감 시간 $\tau$에 비례하므로, 두 지표의 차이는 모두 $\tau$에서 나온다. 그리고 SOC별 대화당 절감 시간은 AEI의 전 세계(GLOBAL) 값이므로, 한국 소분류 사이의 $\tau$ 차이는 그 소분류로 들어온 대화의 SOC 구성에서 나온다.
 \begin{itemize}[leftmargin=*]
-  \item \textbf{두 지표는 대체로 같다.} A와 B의 Spearman 순위상관은 0.96이다. 대화량 상위 10개 중 8개가 절감 시간 상위 10개에도 있다. 순위 격차의 절댓값은 평균 7.5계단이고, 20계단 이상인 소분류는 9개다.
+  \item \textbf{두 지표는 대체로 같다.} A와 B의 Spearman 순위상관은 0.96이다. 대화 점유율 상위 10개 중 8개가 절감 시간 상위 10개에도 있다. 순위 격차의 절댓값은 평균 7.4계단이고, 20계단 이상인 소분류는 9개다.
   \item \textbf{대화당 절감 시간 $\tau$는 소분류마다 크게 다르다.} 전체 평균은 259분이고, 소분류 값은 21$\sim$473분(90분위/10분위 6.9배)이다. $\tau$는 노출도와 양의 상관(0.36$\sim$0.47), 취업자 수와 음의 상관($-0.36$)을 보인다.
   \item \textbf{B 순위가 더 높은 직업(RG > 0)}: 226 통신 및 방송 송출 장비 기사(+21), 159 기타 판매 및 고객 서비스 관리자(+18), 132 보험 및 금융 관리자, 139 기타 전문 서비스 관리자, 951 가사 및 육아 도우미(각 +16). 상위 15개 중 7개가 관리자(대분류 1)이고 4개가 돌봄$\cdot$교육 직업이다. 대화가 대화당 400$\sim$540분짜리 관리자 SOC나 돌봄$\cdot$교육 SOC로 연결된 직업이다.
-  \item \textbf{A 순위가 더 높은 직업(RG < 0)}: 411 경찰$\cdot$소방 및 교도 관련 종사자($-32$), 992 계기$\cdot$자판기 및 주차 관리 종사자, 999 기타 서비스 관련 단순 종사자(각 $-30$), 522 상품 대여 종사자($-26$), 521 매장 판매 종사자($-25$). 대화가 대화당 20$\sim$90분짜리 판매$\cdot$서비스$\cdot$보안 SOC로 연결된 직업이다. 대화량 상위 30에 드는 522와 521은 B로 보면 각각 48위, 55위로 내려간다.
+  \item \textbf{A 순위가 더 높은 직업(RG < 0)}: 411 경찰$\cdot$소방 및 교도 관련 종사자($-32$), 992 계기$\cdot$자판기 및 주차 관리 종사자, 999 기타 서비스 관련 단순 종사자(각 $-30$), 522 상품 대여 종사자($-26$), 521 매장 판매 종사자($-25$). 대화가 대화당 20$\sim$90분짜리 판매$\cdot$서비스$\cdot$보안 SOC로 연결된 직업이다. 대화 점유율 상위 30에 드는 522와 521은 B로 보면 각각 48위, 55위로 내려간다.
   \item \textbf{대분류}: 관리자는 B 점유율이 A보다 2.0\%p 높고(16개 중 13개 RG > 0), 판매 종사자는 1.9\%p 낮다(5개 모두 RG < 0). 판매$\cdot$서비스$\cdot$단순노무$\cdot$농림어업은 $\tau$가 33$\sim$122분으로 전체 평균의 절반 이하다.
 \end{itemize}
 \end{abstract}
@@ -78,7 +79,7 @@ d_{sj} = 100 \times \left( \frac{v_{sj}}{S_j} - \frac{c_{sj}}{C_j} \right) \quad
   \item \textbf{로그 비율} $\mathrm{LR}_j = \ln(\text{B}_j / \text{A}_j) = \ln(\tau_j / \bar\tau)$. 순위 격차와 달리 직업 규모와 순위 위치에 영향받지 않는 강도 비교다. $\tau_j$ 순위와 같다.
   \item \textbf{점유율 차이} $\mathrm{DS}_j = \text{B}_j - \text{A}_j$(\%p, 합 0). 큰 직업일수록 커진다.
 \end{itemize}
-순위 격차는 같은 $\tau_j$라도 분포 위치에 따라 크기가 달라진다. A 분포의 위쪽은 값의 간격이 넓어 순위가 잘 움직이지 않고, 가운데는 간격이 좁아 조금만 달라도 여러 계단 움직인다. 실제로 $|\mathrm{RG}|$ 평균은 A 순위 1$\sim$43위 5.3, 44$\sim$86위 11.7, 87$\sim$129위 5.6이다(표~\ref{tab:summary}). 아래쪽(87위 이하)은 순위가 129위에서 막혀 아래로 덜 움직인다. 그래서 RG와 LR의 순위상관은 0.77에 그친다. 이 노트의 목록은 RG로 만들되, 표에 $\tau_j$를 함께 적어 강도 차이를 바로 볼 수 있게 했다.
+순위 격차는 같은 $\tau_j$라도 분포 위치에 따라 크기가 달라진다. A 분포의 위쪽은 값의 간격이 넓어 순위가 잘 움직이지 않고, 가운데는 간격이 좁아 조금만 달라도 여러 계단 움직인다. 실제로 $|\mathrm{RG}|$ 평균은 A 순위 1$\sim$43위 5.3, 44$\sim$86위 11.7, 87$\sim$129위 5.3이다(표~\ref{tab:summary}). 아래쪽(87위 이하)은 순위가 129위에서 막혀 아래로 덜 움직인다. 그래서 RG와 LR의 순위상관은 0.78에 그친다. 이 노트의 목록은 RG로 만들되, 표에 $\tau_j$를 함께 적어 강도 차이를 바로 볼 수 있게 했다.
 
 \section{결과}
 
@@ -94,7 +95,7 @@ d_{sj} = 100 \times \left( \frac{v_{sj}}{S_j} - \frac{c_{sj}}{C_j} \right) \quad
 \bottomrule
 \end{longtable}
 
-A와 B는 순위상관 0.96으로 거의 같은 순서를 준다. 그러나 $\tau_j$는 소분류 사이에 6.9배(90분위/10분위)나 차이가 난다. 그런데도 순위상관이 높은 이유는 A 자체의 분포가 훨씬 넓기 때문이다(A는 0.0007\%$\sim$11.9\%, 약 16,000배). 소분류 $\tau_j$의 단순 평균은 217분, 중앙값은 197분으로, 대화량 가중 평균 $\bar\tau$(259분)보다 짧다. 대화가 많은 직업일수록 대화당 절감 시간이 긴 편이라는 뜻이다. $\ln \text{B} = \ln \text{A} + \ln(\tau/\bar\tau)$에서 $\ln \text{A}$의 분산이 $\ln \tau$의 분산보다 훨씬 커서 순서가 크게 바뀌지 않는다.
+A와 B는 순위상관 0.96으로 거의 같은 순서를 준다. 그러나 $\tau_j$는 소분류 사이에 6.9배(90분위/10분위)나 차이가 난다. 그런데도 순위상관이 높은 이유는 A 자체의 분포가 훨씬 넓기 때문이다(A는 0.0007\%$\sim$11.9\%, 약 16,000배). 소분류 $\tau_j$의 단순 평균은 217분, 중앙값은 197분으로, 대화 점유율 가중 평균 $\bar\tau$(259분)보다 짧다. 대화가 많은 직업일수록 대화당 절감 시간이 긴 편이라는 뜻이다. $\ln \text{B} = \ln \text{A} + \ln(\tau/\bar\tau)$에서 $\ln \text{A}$의 분산이 $\ln \tau$의 분산보다 훨씬 커서 순서가 크게 바뀌지 않는다.
 
 순위 격차가 양수인 소분류는 68개, 음수는 52개, 0은 9개다. 양수 쪽은 작은 격차가 많고, 음수 쪽은 크기가 크다($|\mathrm{RG}| \ge 20$ 9개 중 8개가 음수). 순위 격차는 로그 비율 $\mathrm{LR}_j = \ln(\tau_j/\bar\tau)$과 같은 방향으로 움직이는데, $\tau_j/\bar\tau$는 0.08$\sim$1.83배라 LR은 $-2.50\sim+0.60$이다. 즉 로그 척도에서 아래쪽 꼬리가 훨씬 길다. 이는 ``대화는 많지만 대화당 절감 시간이 아주 짧은'' 직업이 소수 있고, 이들이 B에서 크게 밀린다.
 
@@ -106,7 +107,7 @@ $\tau_j$는 노출도 지표와 양의 상관(Observed exposure 0.36, Felten 0.4
 
 \begin{small}
 \begin{longtable}{R{0.5cm}L{3.6cm}R{0.9cm}R{0.7cm}R{0.9cm}R{0.7cm}R{0.8cm}R{0.8cm}L{6.0cm}}
-\caption{순위 격차 상위 15: B(절감 시간) 순위가 A(대화량) 순위보다 높은 소분류}\label{tab:pos}\\
+\caption{순위 격차 상위 15: B(절감 시간) 순위가 A(대화 점유율) 순위보다 높은 소분류}\label{tab:pos}\\
 \toprule
  & 소분류 & A(\%) & $r$(A) & B(\%) & $r$(B) & RG & $\tau$(분) & $\tau$를 가장 올린 SOC($\tau_s$, $d_{sj}$) \\
 \midrule
@@ -120,7 +121,7 @@ $\tau_j$는 노출도 지표와 양의 상관(Observed exposure 0.36, Felten 0.4
 \end{longtable}
 
 \begin{longtable}{R{0.5cm}L{3.6cm}R{0.9cm}R{0.7cm}R{0.9cm}R{0.7cm}R{0.8cm}R{0.8cm}L{6.0cm}}
-\caption{순위 격차 하위 15: A(대화량) 순위가 B(절감 시간) 순위보다 높은 소분류}\label{tab:neg}\\
+\caption{순위 격차 하위 15: A(대화 점유율) 순위가 B(절감 시간) 순위보다 높은 소분류}\label{tab:neg}\\
 \toprule
  & 소분류 & A(\%) & $r$(A) & B(\%) & $r$(B) & RG & $\tau$(분) & $\tau$를 가장 내린 SOC($\tau_s$, $d_{sj}$) \\
 \midrule
@@ -140,21 +141,21 @@ $\tau_j$는 노출도 지표와 양의 상관(Observed exposure 0.36, Felten 0.4
   \item \textbf{돌봄$\cdot$교육}(951 가사 및 육아 도우미, 421 교사 보조 및 아동 돌봄, 251 보육교사, 262 학교 교사). 39-9011 Childcare Workers(334분), 25-9042 Teaching Assistants(378분), 25-2051 Special Education Teachers, Preschool(471분)로 연결된다. 대화 수는 적어도 대화당 절감 시간이 길다.
   \item \textbf{그 밖의 직업}(226 통신 및 방송 송출 장비 기사, 851 금속 공작 기계 조작원, 941 청소 관련 종사자, 322 운송 및 무역 사무원). 226은 대화의 84\%가 27-4011 Audio and Video Technicians(450분)다. 941은 대화의 97\%가 37-1011 First-Line Supervisors of Housekeeping and Janitorial Workers(303분)다. 청소 작업 자체가 아니라 청소 감독자 SOC의 대화다. 322는 대화의 99\%가 41-3031 Securities, Commodities, and Financial Services Sales Agents(270분)로 연결된다(연계표 배분 결과이며, 이 연결이 적절한지는 확인하지 않았다). 851은 연계 SOC가 51-4041 Machinists 하나라($d = 0$) $\tau_j$가 그 SOC 값(249분) 그대로다. 851의 $\tau_j$는 $\bar\tau$보다 짧지만, A 순위가 비슷한 직업(95$\sim$100위, $\tau$ 77$\sim$198분)보다 길어서 순위가 14계단 오른다.
 \end{itemize}
-이 직업들은 모두 A 순위 40$\sim$110위의 대화량이 적은 직업이다. 순위 격차는 A 순위가 비슷한 직업과의 상대 비교다. 그래서 순위가 촘촘한 이 구간에서는 이웃 직업보다 $\tau_j$가 조금만 길어도 12$\sim$21계단 오른다. A 상위 30에 드는 직업 중 RG가 가장 큰 것은 121 행정 및 경영 지원 관리자(+8)다(표~\ref{tab:top30A}).
+이 직업들은 모두 A 순위 40$\sim$110위의 대화 점유율이 낮은 직업이다. 순위 격차는 A 순위가 비슷한 직업과의 상대 비교다. 그래서 순위가 촘촘한 이 구간에서는 이웃 직업보다 $\tau_j$가 조금만 길어도 12$\sim$21계단 오른다. A 상위 30에 드는 직업 중 RG가 가장 큰 것은 121 행정 및 경영 지원 관리자(+8)다(표~\ref{tab:top30A}).
 
 \paragraph{A 순위가 높은 직업.} 하위 15개의 $\tau_j$는 24$\sim$135분으로 모두 소분류 중앙값(197분)보다 짧고, 대부분 전체 평균(259분)의 절반 이하다. 다음 경우가 겹친다.
 \begin{itemize}[leftmargin=*]
-  \item \textbf{판매$\cdot$대면 서비스$\cdot$간병}(522 상품 대여, 521 매장 판매, 532 방문 및 노점 판매, 953 판매 관련 단순, 531 통신 관련 판매, 441 운송 서비스, 992 계기$\cdot$자판기 및 주차 관리, 422 요양보호사 및 간병인). 41-2021 Counter and Rental Clerks(90분), 41-2011 Cashiers(58분), 41-9091 Door-to-Door Sales Workers(36분), 31-1131 Nursing Assistants(37분)처럼 대화당 절감 시간이 짧은 SOC로 연결된다. 522와 521은 대화량 상위 30에 드는 직업이지만 B로는 48위, 55위다. 같은 돌봄 직업이라도 보육$\cdot$아동 돌봄(표~\ref{tab:pos})은 B 순위가 높고 간병(422)은 낮다.
+  \item \textbf{판매$\cdot$대면 서비스$\cdot$간병}(522 상품 대여, 521 매장 판매, 532 방문 및 노점 판매, 953 판매 관련 단순, 531 통신 관련 판매, 992 계기$\cdot$자판기 및 주차 관리, 422 요양보호사 및 간병인). 41-2021 Counter and Rental Clerks(90분), 41-2011 Cashiers(58분), 41-9091 Door-to-Door Sales Workers(36분), 31-1131 Nursing Assistants(37분)처럼 대화당 절감 시간이 짧은 SOC로 연결된다. 522와 521은 대화 점유율 상위 30에 드는 직업이지만 B로는 48위, 55위다. 같은 돌봄 직업이라도 보육$\cdot$아동 돌봄(표~\ref{tab:pos})은 B 순위가 높고 간병(422)은 낮다.
   \item \textbf{한 SOC가 대화를 차지하는 경우}. 411 경찰$\cdot$소방 및 교도는 대화의 86\%가 33-3012 Correctional Officers and Jailers(33분)다. 같은 소분류의 33-1012 First-Line Supervisors of Police and Detectives(409분)는 대화의 5.6\%이지만 절감 시간의 41\%를 차지한다. 999 기타 서비스 단순 종사자는 78\%가 39-3093 Locker Room Attendants(24분), 241 의사$\cdot$한의사 및 치과의사는 74\%가 29-1212 Cardiologists(48분)다. 이 직업들의 $\tau_j$는 사실상 그 SOC 하나의 값이다.
   \item \textbf{정보 통신 관련 관리자}(135). 관리자 중 유일하게 하위 15에 들어간다. 연계 SOC가 11-3021 Computer and Information Systems Managers 하나이고, 이 SOC의 $\tau_s$가 115분으로 다른 관리자 SOC(400$\sim$540분)보다 훨씬 짧다.
   \item \textbf{사무}(311 기획 및 마케팅 사무원, 331 회계 및 경리 사무원). 311은 43-4151 Order Clerks(53분), 331은 43-3031 Bookkeeping Clerks(125분)로 연결된다. paper 29에서 ``노출도 > 사용''으로 나온 311과 331은 B로 보면 점유율이 더 낮아진다.
 \end{itemize}
 
-\subsection{대화량 상위 30 직업의 B 순위}
+\subsection{대화 점유율 상위 30 직업의 B 순위}
 
 \begin{small}
 \begin{longtable}{R{0.6cm}L{3.8cm}R{0.9cm}R{0.9cm}R{0.7cm}R{0.7cm}R{0.9cm}R{0.7cm}L{5.8cm}}
-\caption{A(대화량) 상위 30 소분류의 B 순위와 대화 1위 SOC(소분류 대화 중 몫, $\tau_s$)}\label{tab:top30A}\\
+\caption{A(대화 점유율) 상위 30 소분류의 B 순위와 대화 1위 SOC(소분류 대화 중 몫, $\tau_s$)}\label{tab:top30A}\\
 \toprule
 $r$(A) & 소분류 & A(\%) & B(\%) & $r$(B) & RG & DS(\%p) & $\tau$(분) & 대화 1위 SOC \\
 \midrule
@@ -168,7 +169,7 @@ $r$(A) & 소분류 & A(\%) & B(\%) & $r$(B) & RG & DS(\%p) & $\tau$(분) & 대�
 \end{longtable}
 \end{small}
 
-대화량 상위 30개 중 B 상위 30에도 드는 직업은 26개다. 상위 10개 중 8개는 B에서도 상위 10에 남는다. 빠지는 둘은 292 학예사$\cdot$사서 및 기록물 관리사(A 7위 $\to$ B 12위, $\tau$ 156분)와 340 금융 사무 종사자(10위 $\to$ 16위, 177분)이고, 211 생명 및 자연과학 관련 전문가(B 9위)와 293 연극$\cdot$영화 및 영상 전문가(B 10위)가 들어온다. 1$\cdot$2위는 서로 바뀐다. A로는 291 작가 및 언론(11.9\%)이 1위지만, B로는 222 컴퓨터 시스템 및 소프트웨어(12.2\%, $\tau$ 318분)가 1위다. 225 정보 시스템 및 웹 운영자는 $\tau$가 166분으로 짧아 점유율이 8.3\%에서 5.3\%로 129개 중 가장 많이 줄지만(DS $-2.98$\%p) 순위는 3위 그대로다.
+대화 점유율 상위 30개 중 B 상위 30에도 드는 직업은 26개다. 상위 10개 중 8개는 B에서도 상위 10에 남는다. 빠지는 둘은 292 학예사$\cdot$사서 및 기록물 관리사(A 7위 $\to$ B 12위, $\tau$ 156분)와 340 금융 사무 종사자(10위 $\to$ 16위, 177분)이고, 211 생명 및 자연과학 관련 전문가(B 9위)와 293 연극$\cdot$영화 및 영상 전문가(B 10위)가 들어온다. 1$\cdot$2위는 서로 바뀐다. A로는 291 작가 및 언론(11.9\%)이 1위지만, B로는 222 컴퓨터 시스템 및 소프트웨어(12.2\%, $\tau$ 318분)가 1위다. 225 정보 시스템 및 웹 운영자는 $\tau$가 166분으로 짧아 점유율이 8.3\%에서 5.3\%로 129개 중 가장 많이 줄지만(DS $-2.98$\%p) 순위는 3위 그대로다.
 
 상위 30 안에서 순위가 크게 내려가는 직업은 522 상품 대여($-26$), 521 매장 판매($-25$), 510 영업 종사자($-11$), 371 총무 사무원 및 대학 행정조교($-8$)다. 크게 올라가는 직업은 121 행정 및 경영 지원 관리자(+8), 122 마케팅 및 광고$\cdot$홍보 관리자(+7), 224 데이터 전문가(+6)다.
 
@@ -193,13 +194,13 @@ $r$(A) & 소분류 & A(\%) & B(\%) & $r$(B) & RG & DS(\%p) & $\tau$(분) & 대�
   \item \textbf{$\tau_j$의 차이는 한국 직업의 차이가 아니라 SOC 구성의 차이다.} $\tau_s$는 전 세계 Claude.ai 대화의 평균이다. 같은 SOC라면 한국 대화도 같은 시간을 줄인다고 가정했다. 한국 대화의 과업 구성이 전 세계와 다르면 $\tau_j$도 달라질 수 있다.
   \item \textbf{SOC 하나가 대화를 차지하는 소분류는 연계 경로에 민감하다.} 411(Correctional Officers 86\%), 999(Locker Room Attendants 78\%), 241(Cardiologists 74\%), 522$\cdot$135(SOC 하나)는 $\tau_j$가 SOC 하나의 값이다. 241에서 대화의 대부분이 의사 SOC 중 Cardiologists 하나로 연결되는 이유는 이 노트에서 확인하지 않았다(AEI의 SOC는 사용자의 직업이 아니라 대화 과업의 직업이므로, AEI 과업 분류와 연계표 배분을 함께 확인해야 한다). 이 직업들의 순위 격차는 연계표 배분(paper 21)과 AEI 과업 분류에 따라 달라질 수 있다.
   \item \textbf{절감 시간은 추정치다.} $\tau_s$는 Claude가 ``사람이 혼자 하면 걸릴 시간''과 ``AI와 함께 걸린 시간''을 대화마다 추정한 값의 차이다\parencite{tamkin-2025-estimating-ai-productivity-gains-from}. 실측이 아니다. 따라서 관리자$\cdot$교육 직업의 높은 $\tau_s$와 판매$\cdot$서비스 직업의 낮은 $\tau_s$에는 모델 추정의 오차가 섞여 있을 수 있다.
-  \item \textbf{순위 격차는 분포의 가운데에서 커진다.} 순위가 촘촘한 A 44$\sim$86위 구간의 $|\mathrm{RG}|$ 평균(11.7)은 위$\cdot$아래 구간(5.3, 5.6)의 두 배다. 상위 15 목록에는 대화량이 적은 직업이 많이 들어온다. 강도 자체를 비교하려면 표의 $\tau_j$(= LR 순위)를 함께 본다.
+  \item \textbf{순위 격차는 분포의 가운데에서 커진다.} 순위가 촘촘한 A 44$\sim$86위 구간의 $|\mathrm{RG}|$ 평균(11.7)은 위$\cdot$아래 구간(각 5.3)의 두 배다. 상위 15 목록에는 대화 점유율이 낮은 직업이 많이 들어온다. 강도 자체를 비교하려면 표의 $\tau_j$(= LR 순위)를 함께 본다.
 \end{enumerate}
 
 \section{산출 파일}
 
 \begin{itemize}[leftmargin=*]
-  \item 코드: \texttt{code/04\_analysis\_kor\_conv\_saved\_gap.do}(Stata 17). 입력은 \texttt{kor\_ai\_usage\_ksco3}(paper 25), \texttt{kor\_soc6\_conv\_ai\_indicators}, SOC 2018--KSCO 8차 연계표와 SOC 명칭. 기여 합이 소분류 $C$, $S$와 같음을 assert로 확인한다.
+  \item 코드: \texttt{code/04\_14\_analysis\_kor\_conv\_saved\_gap.do}(Stata 17). 입력은 \texttt{kor\_ai\_usage\_ksco3}(paper 25$\cdot$27), \texttt{kor\_soc6\_conv\_ai\_indicators}, SOC 2018--KSCO 8차 연계표와 SOC 명칭. 기여 합이 소분류 A, B와 같음을 assert로 확인한다.
   \item 표: \texttt{results/table/31\_kor\_conv\_saved\_gap.xlsx}. 시트 \texttt{ksco3}(129개 소분류의 A, B, 순위, RG, DS, LR, $\tau$, 노출도, 대화 1위$\cdot\tau$ 최대 상승$\cdot$최대 하락 SOC), \texttt{top}(RG 상위$\cdot$하위 15), \texttt{top30A}(A 상위 30), \texttt{soc}(상위$\cdot$하위 15 소분류 $\times$ SOC의 대화 몫, 절감 시간 몫, $d_{sj}$, $\tau_s$), \texttt{ksco1}, \texttt{stats}.
   \item 이 노트의 표: \texttt{results/table/31\_summary.tex}, \texttt{31\_top\_pos.tex}, \texttt{31\_top\_neg.tex}, \texttt{31\_top30A.tex}, \texttt{31\_ksco1.tex}.
 \end{itemize}

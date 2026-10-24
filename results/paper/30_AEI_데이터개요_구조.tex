@@ -1,6 +1,7 @@
 % !TEX program = xelatex
+% 2026-10-24 재설계: 지표 A~C로 이어지는 경로(3.4절)를 총량 없이 비중에서 바로 가는 것으로 고치고 지표 D를 더함.
 % AI-effects 프로젝트 --- Anthropic Economic Index(AEI) 데이터 해설: 개요, 릴리스별 특징, 데이터 구조, 지표 A~C로 이어지는 경로.
-% 표 본문: results/table/30_v6_cells.tex, 30_v6_kor.tex (code/04_analysis_aei_v6_structure.do가 생성)
+% 표 본문: results/table/30_v6_cells.tex, 30_v6_kor.tex (code/04_13_analysis_aei_v6_structure.do가 생성)
 % 전체 자료: results/table/30_aei_v6_structure.xlsx
 % 원자료: data/raw/usage/anthropic_economic_index/ (HF Anthropic/EconomicIndex, 커밋 2ea58ff, 2026-09-26 다운로드)
 % 관련: report 08(AEI 스키마 초기 정리), paper 19(한국 직업별 대화량), paper 21·23(연계표), paper 25·27(활용도, 지표 A~C)
@@ -41,7 +42,7 @@
 \begin{itemize}[leftmargin=*]
   \item 릴리스마다 표본 기간, 플랫폼, 지리 단위, 분류 범주, 파일 형식이 달라 릴리스 간 값을 그대로 이어 붙일 수 없다. V1$\cdot$V2는 과업별 비중 CSV, V3$\sim$V5는 1주 표본의 긴 형식(long format) 패널, V6은 달력 월 단위의 새 스키마다.
   \item V6은 국가 단위에서 세부 범주(세부 직업, O*NET 과업 등)는 대화 비중 \texttt{pct}만, 대분류 수준(SOC 대분류 등)은 모든 지표를 공개한다. 세부 직업의 시간 지표는 전 세계(GLOBAL) 값만 있다.
-  \item 지표 A$\sim$C는 점유율이라 한국 대화 총량(Sensor Tower)과 대화당 메시지 수 $K$가 지워진다. 그래서 사실상 AEI의 네 가지 값으로 정해진다. 한국 SOC 대분류의 \texttt{pct}와 \texttt{use\_case\_work\_pct}, 한국 세부 직업 \texttt{pct}, 전 세계 세부 직업의 소요 시간 두 가지다. 여기에 SOC--KSCO 연계표가 더해지고, 지표 C에는 1인당 근로시간이 더해진다.
+  \item 지표 A$\sim$C는 점유율이라 한국 대화 총량과 대화당 메시지 수 $K$가 필요 없다(2026년 10월 재설계부터 총량을 거치지 않고 AEI 비중에서 바로 만든다). 그래서 AEI의 네 가지 값으로 정해진다. 한국 SOC 대분류의 \texttt{pct}와 \texttt{use\_case\_work\_pct}, 한국 세부 직업 \texttt{pct}, 전 세계 세부 직업의 소요 시간 두 가지다. 여기에 SOC--KSCO 연계표가 더해지고, 지표 C에는 1인당 근로시간이 더해진다. 지표 D(한국 특화도)에는 전 세계 SOC 대분류$\cdot$세부 직업 비중이 더해진다.
 \end{itemize}
 \end{abstract}
 
@@ -61,7 +62,7 @@ AEI는 Anthropic이 2025년 2월부터 공개하는 자료다. 목적은 AI가 �
   \item \textbf{관측된 사용.} 설문의 자기 보고나 전문가 판정이 아니라 실제 대화의 표본을 집계한다. 대화 내용은 프라이버시 보존 분석 도구(Clio)로 처리하고, 개별 대화가 아니라 집계값만 공개한다.
   \item \textbf{과업 중심 분류.} 각 대화를 O*NET 과업(task statement)에 대응시키고, 과업이 속한 직업으로 SOC 직업을 정한다. 따라서 \textbf{AEI의 SOC는 사용자의 직업이 아니라 대화 과업이 속한 직업}이다. 이와 별도로 직업 분류와 무관하게 대화 요청 내용을 묶은 요청 범주(request)도 있다.
   \item \textbf{모델이 분류$\cdot$추정한 값.} 과업 대응, 협업 유형, 업무$\cdot$개인$\cdot$학업 용도, 사람 단독 소요 시간, AI를 쓴 소요 시간 등은 모두 Claude 기반 분류기가 대화마다 판정$\cdot$추정한 값이다. 분류기 프롬프트는 V4 부록(\texttt{aei\_v4\_appendix.pdf})에 있다. 측정 오차와 분류기 특성이 값에 들어 있다.
-  \item \textbf{비중 중심 공개.} 대화 건수 자체보다 비중(\%)과 평균을 주로 공개한다. V3$\sim$V5의 raw 파일에는 \texttt{*\_count}가 있지만 V6에는 건수가 없다. 그래서 다른 규모 자료와 결합하려면 외부에서 총량을 가져와야 한다(이 프로젝트에서는 Sensor Tower 이용자 수, paper 17).
+  \item \textbf{비중 중심 공개.} 대화 건수 자체보다 비중(\%)과 평균을 주로 공개한다. V3$\sim$V5의 raw 파일에는 \texttt{*\_count}가 있지만 V6에는 건수가 없다. 그래서 다른 규모 자료와 결합하려면 외부에서 총량을 가져와야 한다(이 프로젝트는 Sensor Tower 이용자 수로 총량을 추정했으나(paper 17), 정합성이 부족해 2026년 10월부터 총량 없이 비중만 쓴다).
   \item \textbf{공개 임계치.} 대화 수와 고유 계정 수가 기준에 못 미치는 셀은 공개하지 않는다. 행이 없다는 것은 값이 0이라는 뜻이 아니다. 공개된 비중의 합은 100\%보다 작다.
   \item \textbf{플랫폼 범위.} Claude.ai(소비자용 채팅; V6은 Cowork 포함)와 1P API(기업 직접 API; V6은 Claude Code 제외) 두 소스다. Claude 사용자만의 자료라 다른 AI 제품 사용자의 직업 구성과 같다는 보장이 없다.
 \end{enumerate}
@@ -236,35 +237,28 @@ V6의 지표 21개(산출물 32종 제외)는 성격에 따라 네 묶음으로 
 \begin{itemize}[leftmargin=*]
   \item \textbf{분포 $\times$ 구성 = 결합 비중.} 노드 $g$의 \texttt{pct}와 \texttt{use\_case\_work\_pct}를 곱해 100으로 나누면, 그 지역 전체 대화 중 ``노드 $g$이면서 업무용''인 대화의 비중이 된다. 이를 노드에 대해 더하고 \texttt{pct}의 합으로 나누면 지역 전체의 업무용 비중이 된다. 한국 2026년 5월은 SOC 대분류로 다시 계산한 값이 47.36\%, \texttt{overall}의 공개값이 47.24\%로 0.12\%p 차이다(paper 19).
   \item \textbf{대화당 절감 시간.} 두 시간 지표는 단위가 다르다. 그래서 $\text{절감 시간(분)} = 60 \times \texttt{human\_only\_time\_mean} - \texttt{human\_with\_ai\_time\_mean}$으로 맞춘다. 같은 대화 집합의 평균이므로 평균의 차이가 차이의 평균과 같다. 예를 들어 한국 전체(2026년 5월)는 사람 단독 4.76시간, AI 사용 41.79분이다.
-  \item \textbf{8자리에서 6자리로.} SOC 세부 직업의 평균 지표를 6자리로 묶을 때는 \texttt{pct}로 가중평균한다(대화 평균이므로). \texttt{pct} = 0.00으로 반올림된 코드는 실제 값이 0$\sim$0.005\%이므로 가중치를 0.0025로 둔다(\texttt{01\_import\_aei\_soc\_time\_savings.do}).
+  \item \textbf{8자리에서 6자리로.} SOC 세부 직업의 평균 지표를 6자리로 묶을 때는 \texttt{pct}로 가중평균한다(대화 평균이므로). \texttt{pct} = 0.00으로 반올림된 코드는 실제 값이 0$\sim$0.005\%이므로 가중치를 0.0025로 둔다(\texttt{01\_03\_import\_aei\_soc\_time\_savings.do}).
   \item \textbf{반올림.} 모든 값이 소수 둘째 자리로 반올림되어 있어, 아주 작은 비중은 상대 오차가 크다.
 \end{itemize}
 
-\subsection{지표 A$\sim$C로 이어지는 경로}
+\subsection{지표 A$\sim$D로 이어지는 경로}
 
-지표 A$\sim$C(paper 27)는 KSCO 8차 소분류 $j$의 한국 업무용 AI 사용 점유율이다. 정의는 다음과 같다.
-\[
-  \text{A: } \mathrm{CS}_j = \frac{C_j}{\sum_k C_k}, \qquad
-  \text{B: } \mathrm{SS}_j = \frac{S_j}{\sum_k S_k}, \qquad
-  \text{C: } \mathrm{FS}_j = \frac{S_j/\bar h_j}{\sum_k S_k/\bar h_k}.
-\]
-여기서 $C_j$는 월평균 업무용 대화 수, $S_j$는 월평균 절감 시간, $\bar h_j$는 1인당 월 주업 근로시간(2022년 상반기 지역별고용조사)이다. AEI 셀에서 $C_j$, $S_j$까지 가는 과정은 다음과 같다(월 $t \in$ \{2026-04, 2026-05\}).
+지표 A$\sim$C(paper 27)는 KSCO 8차 소분류 $j$의 한국 업무용 AI 사용 점유율이고, D는 그 점유율을 전 세계 점유율과 비교한 특화도다. AEI 셀에서 지표까지 가는 과정은 다음과 같다(월 $t \in$ \{2026-04, 2026-05\}).
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{한국 SOC 대분류의 업무용 기준 비중}(\texttt{KOR}, \texttt{soc\_occupation}, 계층 1). 대분류 $g$의 \texttt{pct} $p_{gt}$와 \texttt{use\_case\_work\_pct} $w_{gt}$로
   \[ s^{\text{work}}_{gt} = \frac{p_{gt}\,w_{gt}}{\sum_{g'} p_{g't}\,w_{g't}}. \]
   AEI의 \texttt{pct}는 업무$\cdot$개인$\cdot$학업 대화를 모두 포함하고 대분류마다 업무용 비중이 8$\sim$85\%로 다르다. 그래서 업무용 대화 안의 구성으로 바꾼다(paper 19).
   \item \textbf{세부 직업 배분}(\texttt{KOR}, \texttt{soc\_occupation}, 계층 0). 대분류 $g$ 안 세부 직업 $d$(8자리)의 \texttt{pct}로 대분류 안 몫을 구해 곱한다: $s^{\text{work}}_{dt} = s^{\text{work}}_{gt} \cdot p_{dt} / \sum_{d' \in g} p_{d't}$. 8자리를 앞 7자리로 더해 SOC 2018 세부 직업 $s$(6자리)를 만든다.
-  \item \textbf{대화 수}. 한국 월 업무용 대화 총량 $V_t(K)$(Sensor Tower 이용자 수 $\times$ 1인당 메시지 $\times$ Signals 업무 비중 $\div$ 대화당 메시지 수 $K$, paper 17)를 곱한다: $\mathrm{conv}_{st} = V_t(K)\, s^{\text{work}}_{st}$.
-  \item \textbf{대화당 절감 시간}(\texttt{GLOBAL}, \texttt{soc\_occupation}, 계층 0). $\tau_s = 60 \times \texttt{human\_only\_time\_mean} - \texttt{human\_with\_ai\_time\_mean}$(분)을 8자리에서 계산해 \texttt{pct} 가중으로 6자리에 묶고, 두 달을 합친다. 절감 시간은 SOC 단계에서 대화 수와 곱한다: $\mathrm{saved}_{st} = \mathrm{conv}_{st}\,\tau_s/60$(시간).
-  \item \textbf{KSCO 변환}. SOC 2018--KSCO 8차 연계표의 배분 가중치 $w^{\text{alloc}}(s, j)$(SOC마다 합 1, paper 21)로 소분류에 더한다: $C_{jt} = \sum_s w^{\text{alloc}}(s,j)\,\mathrm{conv}_{st}$, $S_{jt} = \sum_s w^{\text{alloc}}(s,j)\,\mathrm{saved}_{st}$. $C_j$, $S_j$는 값이 있는 달의 평균이다.
-  \item \textbf{점유율}. 지표가 있는 소분류 129개에서 A$\sim$C를 계산한다. C는 절감 시간을 1인당 근로시간 $\bar h_j$로 나눠 ``몇 명분의 일인가''로 바꾼 뒤 점유율을 구한다.
+  \item \textbf{대화당 절감 시간}(\texttt{GLOBAL}, \texttt{soc\_occupation}, 계층 0). $\tau_s = 60 \times \texttt{human\_only\_time\_mean} - \texttt{human\_with\_ai\_time\_mean}$(분)을 8자리에서 계산해 \texttt{pct} 가중으로 6자리에 묶고, 두 달을 합친다. 절감 시간은 SOC 단계에서 비중과 곱한다: $v_{st} = s^{\text{work}}_{st}\,\tau_s$(분; 업무용 대화 1건 평균 기준).
+  \item \textbf{KSCO 변환}. SOC 2018--KSCO 8차 연계표의 배분 가중치 $w^{\text{alloc}}(s, j)$(SOC마다 합 1, paper 21)로 소분류에 더한다: $a_{jt} = \sum_s w^{\text{alloc}}(s,j)\,s^{\text{work}}_{st}$, $b_{jt} = \sum_s w^{\text{alloc}}(s,j)\,v_{st}$.
+  \item \textbf{점유율}. 지표가 있는 소분류 129개 안에서 월마다 합이 1이 되게 나눈 뒤 두 달을 단순평균한다: $\text{A}_j = 100 \cdot \tfrac12 \sum_t a_{jt}/\sum_k a_{kt}$, B도 $b$로 같다. C는 B를 1인당 근로시간 $\bar h_j$(2022년 상반기 지역별고용조사)로 나눠 ``몇 명분의 일인가''로 바꾼 뒤 점유율을 구한다. D는 1$\sim$4단계를 \texttt{GLOBAL}의 \texttt{soc\_occupation} 비중(계층 1의 \texttt{pct}$\cdot$\texttt{use\_case\_work\_pct}, 계층 0의 \texttt{pct})에 똑같이 적용해 만든 점유율로 A를 나눈 값이다.
 \end{enumerate}
 
-\paragraph{무엇이 지워지고 무엇이 남는가.} $V_t(K)$는 모든 직업에 같은 배수로 곱해지므로 점유율에서 지워진다. 대화당 메시지 수 $K$는 정확히 지워지고, Sensor Tower$\cdot$Signals의 월별 총량은 두 달을 평균할 때의 가중치로만 남는다(두 달 총량이 거의 같아 영향이 작다). 따라서 지표 A$\sim$C를 정하는 AEI 값은 표~\ref{tab:bridge}의 네 가지다.
+\paragraph{총량을 쓰지 않는 이유.} 재설계 전에는 2단계와 3단계 사이에 한국 월 업무용 대화 총량 $V_t(K)$(Sensor Tower 이용자 수 $\times$ 1인당 메시지 $\times$ Signals 업무 비중 $\div$ 대화당 메시지 수 $K$)를 곱해 대화 수를 만들었다. 이 배수는 모든 직업에 같아 점유율에서 지워진다. $K$는 정확히 지워지고, 월별 총량은 두 달을 평균할 때의 가중치로만 남았다. 총량 추정의 정합성이 부족하다고 판단해(2026-10-24) 이 곱셈을 뺐고, 두 달은 월별 비중의 단순평균으로 합친다. 결과는 예전과 거의 같다(A$\cdot$B 순위상관 0.9999, 0.9998; paper 25$\cdot$27). 따라서 지표 A$\sim$C를 정하는 AEI 값은 표~\ref{tab:bridge}의 네 가지이고, D에는 전 세계 비중이 더해진다.
 
 \begin{longtable}{L{4.4cm}L{3.4cm}R{1.6cm}L{1.0cm}L{1.0cm}L{1.0cm}L{3.6cm}}
-\caption{지표 A$\sim$C에 들어가는 AEI 셀}\label{tab:bridge}\\
+\caption{지표 A$\sim$C에 들어가는 AEI 셀(마지막 행은 지표 D에만)}\label{tab:bridge}\\
 \toprule
 AEI 셀(\texttt{geo\_id}, 범주, 계층) & \texttt{metric\_id} & 노드 수(4월/5월) & A & B & C & 역할 \\
 \midrule
@@ -273,6 +267,7 @@ AEI 셀(\texttt{geo\_id}, 범주, 계층) & \texttt{metric\_id} & 노드 수(4�
 \texttt{KOR}, \texttt{soc\_occupation}, 1 & \texttt{use\_case\_work\_pct} & 22/22 & $\checkmark$ & $\checkmark$ & $\checkmark$ & 업무용 기준으로 바꾸는 가중치 \\
 \texttt{KOR}, \texttt{soc\_occupation}, 0 & \texttt{pct} & 389/424 & $\checkmark$ & $\checkmark$ & $\checkmark$ & 대분류 안 세부 직업 구성 \\
 \texttt{GLOBAL}, \texttt{soc\_occupation}, 0 & \texttt{human\_only\_time\_mean}, \texttt{human\_with\_ai\_time\_mean}, \texttt{pct} & 696/718 & & $\checkmark$ & $\checkmark$ & 대화당 절감 시간(\texttt{pct}는 8$\to$6자리 가중치) \\
+\texttt{GLOBAL}, \texttt{soc\_occupation}, 1$\cdot$0 & \texttt{pct}, \texttt{use\_case\_work\_pct}(계층 1) & 22$\cdot$696/22$\cdot$718 & & & & 지표 D의 전 세계 점유율 \\
 \bottomrule
 \end{longtable}
 
@@ -280,14 +275,14 @@ AEI 밖에서 들어가는 것은 SOC 2018--KSCO 8차 연계표(A$\sim$C)와 1�
 
 \paragraph{가정.}
 \begin{itemize}[leftmargin=*]
-  \item \textbf{B1 대표성}: 한국 AI 업무용 대화의 직업 구성 = AEI Claude.ai 한국 업무용 대화의 직업 구성. 총량이 지워지므로 지표 A$\sim$C는 사실상 ``Claude.ai 한국 업무용 대화의 직업 구성''을 KSCO로 옮긴 것이다.
+  \item \textbf{B1 대표성}: 한국 AI 업무용 대화의 직업 구성 = AEI Claude.ai 한국 업무용 대화의 직업 구성. 총량을 쓰지 않으므로 지표 A$\sim$C는 ``Claude.ai 한국 업무용 대화의 직업 구성''을 KSCO로 옮긴 것이다.
   \item \textbf{B2 미공개 셀}: 공개되지 않은 몫(대분류 1$\sim$3\%, 세부 직업 2$\sim$4\%)은 공개된 셀과 같은 비율로 나뉜다(합이 1이 되게 다시 정규화).
   \item \textbf{B3 세부 직업의 업무용 비중}: 세부 직업은 \texttt{pct}만 공개되므로 업무용 비중이 소속 대분류와 같다고 둔다.
   \item \textbf{B4 절감 시간}: 한국의 직업별 대화당 절감 시간 = 전 세계 값(세부 직업의 시간 지표는 \texttt{GLOBAL}에만 있음).
   \item \textbf{B5 직업의 의미}: AEI의 SOC는 대화 과업이 속한 직업이고 사용자의 직업이 아니다. 예를 들어 기자$\cdot$언론 과업(27-3023)의 사용은 연계표를 거쳐 293 연극$\cdot$영화 및 영상 전문가로도 간다(paper 29).
 \end{itemize}
 
-\paragraph{이 경로에 쓰지 않은 AEI 자료.} 한국의 \texttt{onet} 과업 비중은 과업 상위 30 표(paper 26)에만 썼다. 요청 범주(\texttt{request})와 협업$\cdot$산출물 지표는 아직 쓰지 않았다. V3의 국가별 \texttt{usage\_pct}(18개국 비중)는 Sensor Tower 1인당 메시지 환산(paper 17)에 쓰였지만, 지표 A$\sim$C에서는 총량과 함께 지워진다. \texttt{labor\_market\_impacts}의 observed exposure는 비교 대상 노출도로 썼다(paper 28$\cdot$29).
+\paragraph{이 경로에 쓰지 않은 AEI 자료.} 한국의 \texttt{onet} 과업 비중은 과업 상위 30 표(paper 26)에만 썼다. 요청 범주(\texttt{request})와 협업$\cdot$산출물 지표는 아직 쓰지 않았다. V3의 국가별 \texttt{usage\_pct}(18개국 비중)는 Sensor Tower 1인당 메시지 환산(보관한 paper 17)에 쓰였지만, 재설계 뒤에는 쓰지 않는다. \texttt{labor\_market\_impacts}의 observed exposure는 비교 대상 노출도로 썼다(paper 28$\cdot$29).
 
 \section{이용 시 유의사항}
 
@@ -302,10 +297,10 @@ AEI 밖에서 들어가는 것은 SOC 2018--KSCO 8차 연계표(A$\sim$C)와 1�
 \section{산출 파일}
 
 \begin{itemize}[leftmargin=*]
-  \item \texttt{code/04\_analysis\_aei\_v6\_structure.do}: V6 공개 범위표를 만든다.
+  \item \texttt{code/04\_13\_analysis\_aei\_v6\_structure.do}: V6 공개 범위표를 만든다.
   \item \texttt{results/table/30\_aei\_v6\_structure.xlsx}: 시트 \texttt{cells}(소스 $\times$ 월 $\times$ 지리 $\times$ 범주 $\times$ 계층), \texttt{kor}, \texttt{metrics}(지표 목록).
   \item \texttt{results/table/30\_v6\_cells.tex}, \texttt{30\_v6\_kor.tex}: 표~\ref{tab:cells}, \ref{tab:kor}.
-  \item 지표 A$\sim$C의 계산 파일: \texttt{01\_import\_aei\_soc\_time\_savings.do}, \texttt{03\_merge\_sensortower\_aei\_kor\_soc\_conversations.do}, \texttt{03\_merge\_kor\_conv\_ai\_ksco8.do}, \texttt{03\_merge\_kor\_ksco3\_ai\_usage.do}, \texttt{04\_analysis\_kor\_ai\_share\_index.do}.
+  \item 지표 A$\sim$D의 계산 파일: \texttt{01\_03\_import\_aei\_soc\_time\_savings.do}, \texttt{03\_02\_merge\_aei\_kor\_soc\_work\_share.do}, \texttt{03\_03\_merge\_kor\_conv\_ai\_ksco8.do}, \texttt{03\_05\_merge\_kor\_ksco3\_ai\_usage.do}, \texttt{04\_10\_analysis\_kor\_ai\_share\_index.do}.
 \end{itemize}
 
 \printbibliography[title={참고문헌}]

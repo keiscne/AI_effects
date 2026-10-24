@@ -1,0 +1,261 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 한국(과 전 세계) 직업(SOC)별 업무용 AI 대화 비중 산출 과정.
+% 2026-10-24 재설계: 예전 paper 19(Sensor Tower 기반 한국 대화량, results/paper/archive/19_한국_직업별_업무용대화량_산출)를 대신한다.
+%   대화 건수를 만들지 않고 AEI 업무용 대화 비중만 만든다.
+% 표 본문: results/table/19_{coverage,workpct,major,detailed,major_months,b3}.tex
+%          (code/04_01_analysis_kor_soc_work_share_summary.do가 생성)
+% 데이터:  code/03_02_merge_aei_kor_soc_work_share.do
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\title{한국 직업(SOC)별 업무용 AI 대화 비중 산출\\[2mm]
+\large --- AEI 한국$\cdot$전 세계 직업 비중의 업무용 보정 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 본 문서는 Anthropic Economic Index(AEI) release 2026-06-26 \parencite{massenkoff-2026-cadences}의 Claude.ai 직업(SOC) 비중으로 한국의 \textbf{업무용 대화 비중}을 SOC 직업별로 만드는 과정을 기록한다. 이 비중이 이후 모든 직업 지표(점유율 지표 A$\sim$D, 상대 활용도 RU1$\cdot$RU2)의 출발점이다. 2026년 10월 재설계에 따라 한국 생성형 AI의 대화 \emph{건수}는 추정하지 않는다. 예전 판(Sensor Tower 이용자 수 $\times$ ChatGPT 1인당 메시지 수로 만든 대화량을 직업별로 나눈 것)은 정합성이 부족하다고 판단해 보관 폴더로 옮겼다.
+
+핵심은 \textbf{업무용 대화 비중의 적용}이다. AEI의 직업 비중은 업무$\cdot$개인$\cdot$학업 대화를 모두 포함하고, 직업마다 업무용 비중이 8\%에서 85\%까지 다르다. 그래서 대분류 비중에 그 직업의 업무용 비중을 곱해 다시 정규화한 ``업무용 대화 기준 비중''을 쓴다. 이 보정으로 2026년 5월 컴퓨터$\cdot$수학의 비중은 22.8\%에서 27.7\%로 오르고, 교육$\cdot$도서관(12.9\% $\to$ 9.1\%), 판매, 지역사회$\cdot$사회서비스, 보건의료 전문$\cdot$기술은 내려간다. 대분류로 다시 계산한 한국 업무용 비중(47.36\%)은 AEI가 공개한 한국 전체 값(47.24\%)과 0.12\%p 차이로 맞는다.
+
+지표 D(한국 특화도, paper 27)를 위해 전 세계(GLOBAL) 비중도 같은 방식으로 만들었다. 대분류 단위에서 한국은 교육$\cdot$도서관(전 세계의 1.29배), 예술$\cdot$미디어(1.19배)의 몫이 크고 판매(0.77배), 경영(0.81배), 컴퓨터$\cdot$수학(0.91배)의 몫이 작다. 세부 직업의 업무용 비중이 대분류와 같다는 가정(B3)은 GLOBAL 자료로 점검했다. 순위상관은 0.973으로 높지만, 대분류 안에서 비중의 약 14\%가 다른 세부 직업으로 옮겨 간다.
+\end{abstract}
+
+% ============================================================
+\section{목적과 개요}
+% ============================================================
+
+이 저장소의 직업 지표는 ``한국에서 업무용 AI 사용이 어느 직업(과업)에 얼마나 몰려 있는가''를 AEI 자료로 잰다. 그 출발점은 SOC 직업별 \textbf{한국 업무용 대화 비중}이다. 구축 흐름은 다음과 같다.
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{AEI 직업 비중}: 대분류 비중(\texttt{pct})과 대분류별 업무용 비중(\texttt{use\_case\_work\_pct}), 세부 직업 비중(\texttt{pct})
+  \item \textbf{업무용 대화 기준 대분류 비중}: \texttt{pct} $\times$ 업무용 비중을 합이 1이 되게 정규화
+  \item \textbf{세부 직업 비중}: 대분류 비중 $\times$ 대분류 안 세부 직업 비중
+  \item \textbf{SOC 2018 6자리}: 같은 앞 7자리를 가진 O*NET-SOC 8자리 코드의 합
+\end{enumerate}
+한국(KOR)과 전 세계(GLOBAL)에 같은 식을 쓴다. 이 비중은 paper 23에서 SOC$\to$KSCO 연계표로 한국 직업분류에 배분되고, paper 25$\cdot$27에서 지표가 된다.
+
+\textbf{예전 판과의 차이.} 예전 판은 이 비중에 한국 월간 업무용 대화 수(Sensor Tower 기반, 대화당 메시지 수 $K$ 격자)를 곱해 직업별 대화 건수를 만들었다. 대화 건수는 직업 간 상대 비교에서 총량이 약분되므로, 순위와 점유율 지표는 비중만으로 같은 값을 얻는다. 재설계에서는 이 곱셈을 빼고 비중만 남겼다. 그래서 예전 판의 한국 이용자$\cdot$메시지 표와 대화 건수 열은 없다.
+
+% ============================================================
+\section{원자료}
+% ============================================================
+
+\begin{longtable}{L{3.6cm}L{5.2cm}L{6.4cm}}
+\caption{원자료}\label{tab:src}\\
+\toprule
+자료 & 파일 & 내용 \\
+\midrule
+AEI release 2026-06-26 & \texttt{aei\_claude\_ai\_2026-06-26.csv} & \texttt{geo\_id} = KOR, GLOBAL; \texttt{category\_name} = \texttt{soc\_occupation}. 2026-04, 2026-05 \\
+AEI 국가별 정리본 & \texttt{aei\_claude\_ai\_country\_usage.dta} & 한국 전체 \texttt{use\_case\_work\_pct}(검증용, \texttt{01\_02\_import\_aei\_country\_usage.do}) \\
+BLS SOC 2018 명칭 & \texttt{soc2018\_titles.dta} & 6자리 직업 명칭(\texttt{01\_01\_import\_soc2018\_titles.do}) \\
+\bottomrule
+\end{longtable}
+
+AEI release 2026-06-26은 Claude.ai(Free$\cdot$Pro$\cdot$Max, Cowork 포함) 대화를 지역 $\times$ 월로 집계해 공개한다. \texttt{soc\_occupation} 범주는 대화가 해당하는 O*NET 과업을 SOC 직업으로 묶은 것이다(paper 30). 공개 범위는 지역마다 다르다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{대분류}(\texttt{hierarchy\_level} = 1, 2자리 코드): 한국$\cdot$전 세계 모두 \texttt{pct}와 \texttt{use\_case\_work\_pct}를 포함한 모든 지표
+  \item \textbf{세부 직업}(\texttt{hierarchy\_level} = 0, O*NET-SOC 코드 예: 15-1252.00): 한국은 \texttt{pct}만, 전 세계는 \texttt{use\_case\_work\_pct}도 공개
+  \item \texttt{pct}는 그 지역 대화 중 해당 직업의 비중(\%), \texttt{use\_case\_work\_pct}는 그 직업 대화 중 업무용 비중(\%)이다. 값은 소수 둘째 자리로 반올림되어 있다.
+  \item 표본 하한에 못 미친 셀은 공개되지 않으므로 공개 비중의 합은 100\%보다 작다(표~\ref{tab:cov}).
+\end{itemize}
+
+\begin{longtable}{L{7.2cm}R{1.8cm}R{1.8cm}R{1.8cm}R{1.8cm}}
+\caption{AEI SOC 공개 범위}\label{tab:cov}\\
+\toprule
+항목 & 한국 2026-04 & 한국 2026-05 & 전 세계 2026-04 & 전 세계 2026-05 \\
+\midrule
+\input{../table/19_coverage.tex}
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\section{업무용 대화 비중의 적용}
+% ============================================================
+
+\subsection{왜 필요한가}
+
+재려는 대상은 한국의 \textbf{업무용} AI 사용이다. 반면 AEI의 \texttt{pct}는 업무$\cdot$개인$\cdot$학업 대화를 모두 포함한 분포다. 직업마다 업무용 비중이 크게 다르다(표~\ref{tab:major}의 업무용 비중 열). 지역사회$\cdot$사회서비스는 8.06\%, 보건의료 전문$\cdot$기술은 10.89\%, 음식 조리$\cdot$서빙은 12.00\%인 반면 건설$\cdot$채굴은 85.29\%, 건물$\cdot$부지 청소$\cdot$관리는 71.54\%다. 따라서 \texttt{pct}를 그대로 쓰면 개인적 용도가 많은 직업(예: 건강 상담, 교육 질문)의 업무용 사용을 과대평가하게 된다.
+
+\subsection{식}
+
+지역 $r$, 월 $t$, 대분류 $g$에 대해 AEI 대분류 비중 $p_{gt}$(\texttt{pct})와 업무용 비중 $w_{gt}$(\texttt{use\_case\_work\_pct})로 업무용 대화 기준 비중을 만든다.
+\[
+s^{\text{work}}_{gt} = \frac{p_{gt}\, w_{gt}}{\sum_{g'} p_{g't}\, w_{g't}},\qquad
+s^{\text{all}}_{gt} = \frac{p_{gt}}{\sum_{g'} p_{g't}}\ (\text{비교용, 지표 A0})
+\]
+$p \times w / 100$은 그 지역 전체 대화 중 ``직업 $g$이면서 업무용''인 대화의 비중이다. 이를 정규화한 $s^{\text{work}}$는 업무용 대화 안에서 직업 $g$가 차지하는 비중이다. 분모가 공개된 22개 대분류의 합이므로, 공개되지 않은 몫(1$\sim$6\%)은 공개된 직업에 비례 배분된다. do 파일은 매월 비중의 합이 1인지 검사한다.
+
+\subsection{결과: 전체 기준 대 업무용 기준, 한국 대 전 세계}
+
+\begin{longtable}{L{4.4cm}R{1.3cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.3cm}R{1.6cm}R{1.4cm}}
+\caption{SOC 대분류별 비중(2026년 5월)}\label{tab:major}\\
+\toprule
+대분류 & AEI pct(\%) & AEI 업무용 비중(\%) & 비중: 전체 기준(\%) & 비중: 업무용 기준(\%) & 차이(\%p) & 전 세계 업무용 기준(\%) & 한국 / 전 세계 \\
+\midrule
+\endfirsthead
+\toprule
+대분류 & AEI pct(\%) & AEI 업무용 비중(\%) & 비중: 전체 기준(\%) & 비중: 업무용 기준(\%) & 차이(\%p) & 전 세계 업무용 기준(\%) & 한국 / 전 세계 \\
+\midrule
+\endhead
+\input{../table/19_major.tex}
+\bottomrule
+\multicolumn{8}{l}{\footnotesize 주: 한국 업무용 기준 비중 순. 차이 = 업무용 기준 $-$ 전체 기준. 합계 행의 업무용 비중은 함의된 한국 업무용 비중이다.}
+\end{longtable}
+
+업무용 비중이 한국 평균(약 47\%)보다 높은 직업은 비중이 오르고 낮은 직업은 내려간다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{오름}: 컴퓨터$\cdot$수학(22.80\% $\to$ 27.68\%, $+$4.88\%p), 사무$\cdot$행정 지원($+$2.74\%p), 예술$\cdot$디자인$\cdot$미디어($+$2.08\%p), 경영($+$1.59\%p), 건축$\cdot$공학($+$1.23\%p)
+  \item \textbf{내림}: 교육$\cdot$도서관(12.90\% $\to$ 9.07\%, $-$3.82\%p), 판매($-$3.05\%p), 지역사회$\cdot$사회서비스($-$2.14\%p), 보건의료 전문$\cdot$기술($-$1.91\%p)
+\end{itemize}
+상위 3개 대분류(컴퓨터$\cdot$수학, 예술$\cdot$디자인$\cdot$미디어, 사무$\cdot$행정 지원)가 한국 업무용 대화의 57.7\%를 차지한다.
+
+\textbf{한국 대 전 세계.} 같은 방식으로 만든 전 세계 업무용 기준 비중과 비교하면(마지막 열, 지표 D의 대분류판), 한국은 교육$\cdot$도서관(1.29), 예술$\cdot$디자인$\cdot$미디어(1.19), 생명$\cdot$물리$\cdot$사회과학(1.15), 건축$\cdot$공학(1.08)의 몫이 크고, 판매(0.77), 경영(0.81), 법률(0.89), 컴퓨터$\cdot$수학(0.91)의 몫이 작다. 한국은 업무용 대화의 비중 자체도 전 세계보다 높다(2026년 5월 함의된 업무용 비중 47.36\% 대 43.50\%).
+
+\subsection{검증: 함의된 한국 업무용 비중}
+
+대분류 값으로 한국 전체의 업무용 비중을 다시 계산하면 $\sum p\, w / \sum p$다. 이 값은 AEI가 별도로 공개한 한국 전체(\texttt{overall}) 업무용 비중과 같아야 한다.
+
+\begin{longtable}{L{9.5cm}R{2.2cm}R{2.2cm}}
+\caption{함의된 한국 업무용 비중 대 AEI 공개 값}\label{tab:workpct}\\
+\toprule
+항목 & 2026-04 & 2026-05 \\
+\midrule
+\input{../table/19_workpct.tex}
+\bottomrule
+\end{longtable}
+
+두 달 모두 차이가 0.2\%p 안이다. 남은 차이는 공개되지 않은 대분류 몫(1$\sim$3\%)과 반올림으로 설명된다. 따라서 대분류 \texttt{pct}와 \texttt{use\_case\_work\_pct}의 조합이 한국 전체 업무 대화를 일관되게 나눈다고 볼 수 있다.
+
+% ============================================================
+\section{세부 직업 배분}
+% ============================================================
+
+한국 세부 직업은 \texttt{pct}만 공개되므로 업무용 비중을 직접 적용할 수 없다. 세부 직업 $d$(대분류 $g$ 소속, O*NET-SOC 코드의 앞 2자리 = $g$)에 대해 다음과 같이 둔다.
+\[
+s^{\text{in}}_{dt} = \frac{p_{dt}}{\sum_{d' \in g} p_{d't}},\qquad
+s^{\text{work}}_{dt} = s^{\text{work}}_{gt}\, s^{\text{in}}_{dt}
+\]
+이는 같은 대분류 안의 세부 직업은 업무용 비중이 같다는 가정(B3)이다. 대분류 안에서 공개되지 않은 세부 직업 몫은 공개된 세부 직업에 비례 배분된다. 2026년 4월 한국 농림어업(45)은 공개된 세부 직업이 하나도 없다. 그래서 \texttt{soc\_code} = ``45-XXXX.XX'', \texttt{detail\_missing} = 1인 한 행에 대분류 몫 전체를 둔다(비중 합계 보존). 이 행은 연계표에 없어 KSCO로 배분되지 않는다(paper 23). 전 세계는 모든 대분류에 세부 직업이 공개되어 있다.
+
+\begin{longtable}{L{1.7cm}L{4.6cm}R{1.2cm}R{1.4cm}R{1.4cm}R{1.4cm}R{1.5cm}R{1.3cm}}
+\caption{한국 세부 직업 상위 30개(2026년 5월, 업무용 비중 순)}\label{tab:detailed}\\
+\toprule
+코드 & 직업 & AEI pct(\%) & 대분류 안 비중(\%) & 대분류 비중(\%) & 업무용 비중(\%) & 전 세계 업무용 비중(\%) & 한국 / 전 세계 \\
+\midrule
+\endfirsthead
+\toprule
+코드 & 직업 & AEI pct(\%) & 대분류 안 비중(\%) & 대분류 비중(\%) & 업무용 비중(\%) & 전 세계 업무용 비중(\%) & 한국 / 전 세계 \\
+\midrule
+\endhead
+\input{../table/19_detailed.tex}
+\bottomrule
+\end{longtable}
+
+세부 직업 1위는 Document Management Specialists(15-1299.03, 업무용 비중 6.73\%)다. 상위 30개는 편집자$\cdot$기자$\cdot$작가$\cdot$번역가 등 미디어 직업과 컴퓨터 직업이 대부분이다. 세부 직업 값은 대분류의 업무용 비중을 그대로 물려받으므로, 같은 대분류 안의 직업 간 순서는 \texttt{pct} 순서와 같다. 전 세계와 비교하면 Library Technicians(1.99), Interpreters and Translators(1.79), News Analysts, Reporters, and Journalists(1.55)가 한국에서 특히 크고, Mathematicians(0.61), Graphic Designers(0.67), Counter and Rental Clerks(0.68)가 작다.
+
+\subsection{가정 B3의 점검(전 세계 자료)}
+
+전 세계 세부 직업은 업무용 비중이 공개되므로 B3의 영향을 잴 수 있다. (가) B3대로 대분류 업무용 비중을 쓴 값과, (나) 세부 직업 공개 업무용 비중으로 대분류 안 배분을 바꾼 값(대분류 몫은 같게 둠)을 비교했다.
+
+\begin{longtable}{L{9.5cm}R{2.2cm}R{2.2cm}}
+\caption{가정 B3 점검: 전 세계 세부 직업 업무용 비중 (가) 대 (나)}\label{tab:b3}\\
+\toprule
+항목 & 2026-04 & 2026-05 \\
+\midrule
+\input{../table/19_b3.tex}
+\bottomrule
+\end{longtable}
+
+순위상관은 0.973이고 상위 30개 중 24$\sim$25개가 겹친다. 그러나 절대 차이의 합이 약 27\%p이므로 업무용 대화의 약 14\%가 같은 대분류 안의 다른 세부 직업으로 옮겨 간다. 세부 직업 하나의 차이는 평균적으로 그 비중의 27\% 정도다. 한국 세부 직업에도 같은 크기의 오차가 있다고 보면, 대분류 순위는 믿을 만하지만 같은 대분류 안 세부 직업 간 비교에는 이 정도의 불확실성이 있다. KSCO 소분류 지표는 여러 SOC를 합치므로 영향이 줄어들지만, 하나의 SOC가 대부분을 차지하는 소분류(paper 26)에서는 그대로 남는다.
+
+% ============================================================
+\section{월별 비교}
+% ============================================================
+
+\begin{longtable}{L{6.2cm}R{2.0cm}R{2.0cm}R{1.8cm}R{2.2cm}}
+\caption{대분류별 한국 업무용 기준 비중: 2026년 4월 대 5월}\label{tab:months}\\
+\toprule
+대분류 & 2026-04(\%) & 2026-05(\%) & 차이(\%p) & 두 달 평균(\%) \\
+\midrule
+\endfirsthead
+\toprule
+대분류 & 2026-04(\%) & 2026-05(\%) & 차이(\%p) & 두 달 평균(\%) \\
+\midrule
+\endhead
+\input{../table/19_major_months.tex}
+\bottomrule
+\end{longtable}
+
+두 달 사이 대분류 비중의 변화는 모두 $\pm$0.6\%p 안이다. 한 달 간격이라 직업 구성은 안정적이다. 컴퓨터$\cdot$수학($-$0.48\%p)과 판매($-$0.37\%p)가 줄고 사무$\cdot$행정 지원($+$0.53\%p)이 늘었다. 이후 지표는 월별 비중을 단순평균해 두 달을 합친다(사용자 결정, 2026-10-24). 예전 판은 월별 대화 건수를 평균했으므로 대화 총량이 큰 달(5월)의 가중치가 조금 컸다.
+
+% ============================================================
+\section{산출 파일}
+% ============================================================
+
+\texttt{data/proc/usage/anthropic\_economic\_index/}, 각 .csv/.dta. 지역 \texttt{geo\_id}(KOR, GLOBAL)이 키에 들어간다.
+
+\begin{longtable}{L{4.6cm}L{7.0cm}L{3.4cm}}
+\toprule
+파일 & 주요 변수 & 키 \\
+\midrule
+\texttt{aei\_soc\_work\_share\_major} & \texttt{soc\_major}, \texttt{pct}, \texttt{work\_pct}, \texttt{share\_all}, \texttt{share\_work}, \texttt{work\_pct\_geo} & geo\_id $\times$ month $\times$ soc\_major \\
+\texttt{aei\_soc\_work\_share\_detailed} & \texttt{soc\_code}, \texttt{soc6}, \texttt{pct}, \texttt{share\_in\_major}, \texttt{share\_work\_major}, \texttt{share\_work}, \texttt{share\_all}, \texttt{work\_pct\_detail}(GLOBAL), \texttt{detail\_missing} & geo\_id $\times$ month $\times$ soc\_code \\
+\texttt{aei\_soc6\_work\_share} & \texttt{soc6}, \texttt{soc6\_title}(BLS), \texttt{share\_work}, \texttt{share\_all}, \texttt{n\_onet}, \texttt{has00} & geo\_id $\times$ month $\times$ soc6 \\
+\bottomrule
+\end{longtable}
+
+기간은 AEI 직업 자료가 있는 2026-04, 2026-05 두 달이다. 요약표는 \texttt{results/table/19\_kor\_soc\_work\_share.xlsx}(시트 \texttt{major}, \texttt{detailed\_top30}, \texttt{coverage}, \texttt{b3})에도 있다.
+
+% ============================================================
+\section{가정과 한계}
+% ============================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{(B1) 제품 간 직업 구성 동일.} 한국 업무용 AI 사용 전체(ChatGPT, Gemini 등)의 직업 구성을 Claude.ai의 구성과 같다고 둔다. Claude는 코딩$\cdot$글쓰기 비중이 높은 제품이어서, 컴퓨터$\cdot$미디어 직업이 과대, 다른 직업이 과소 반영될 수 있다. 비중만 쓰는 재설계 뒤에도 이 가정은 남는다.
+  \item \textbf{(B2) 미공개 셀 비례 배분.} 공개되지 않은 대분류 몫(한국 1.1$\sim$2.6\%)과 세부 직업 몫은 공개된 셀과 같은 비율로 나뉜다고 둔다. 미공개 셀은 작은 직업이므로 작은 직업의 비중이 다소 과소일 수 있다.
+  \item \textbf{(B3) 대분류 안 업무용 비중 동일.} 한국 세부 직업은 업무용 비중이 공개되지 않아 대분류 값을 쓴다. 전 세계 자료로 본 영향은 4.1절과 같다.
+  \item \textbf{SOC의 의미.} AEI의 직업은 사용자의 직업이 아니라 대화 내용이 해당하는 O*NET 과업의 직업이다. 예를 들어 Document Management Specialists의 비중은 ``문서 관리 과업에 해당하는 업무용 대화''의 비중이지 그 직업 종사자의 대화가 아니다.
+  \item \textbf{총량 없음.} 비중만 만들므로 한국 업무용 AI 사용의 규모나 증가는 알 수 없다. 이후 지표는 모두 직업 간 상대 비교(점유율, 전국 평균 대비 배수)다.
+  \item \textbf{기간.} 직업 자료가 두 달뿐이다. 다른 달로 넓히려면 직업 구성이 시기에 따라 같다는 가정이 추가로 필요하다.
+  \item \textbf{반올림.} AEI 값은 소수 둘째 자리다. \texttt{pct}가 0.01$\sim$0.1\%인 세부 직업은 상대 오차가 크다.
+\end{enumerate}
+
+% ============================================================
+\section{재현}
+% ============================================================
+
+Stata 17에서 \texttt{code/00\_master.do}를 실행하거나, 다음 순서로 실행한다.
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{code/01\_01\_import\_soc2018\_titles.do}, \texttt{code/01\_02\_import\_aei\_country\_usage.do}: 직업 명칭, AEI 국가별 정리본(검증용)
+  \item \texttt{code/03\_02\_merge\_aei\_kor\_soc\_work\_share.do}: 한국$\cdot$전 세계 직업별 업무용 대화 비중 세 파일
+  \item \texttt{code/04\_01\_analysis\_kor\_soc\_work\_share\_summary.do}: 본 문서의 표(\texttt{results/table/19\_*.tex}, \texttt{.xlsx})
+\end{enumerate}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

@@ -49,12 +49,14 @@ AI-effects/
 
 모든 데이터 구축·가공·분석은 Stata do 파일로 관리합니다.
 
-- **명명 규칙**: 실행 순서를 접두 번호로 표시합니다.
-  - `00_master.do` — 전체 파이프라인을 순서대로 실행하는 마스터 스크립트
-  - `01_import_*.do` — raw 데이터를 읽어 최소 가공 후 `data/proc/`에 저장
-  - `02_clean_*.do` — 결측치 처리, 변수 정리 등 정제
-  - `03_merge_*.do` — exposure/usage/macro 데이터 결합 → `data/proc/merged/`
-  - `04_analysis_*.do` — 회귀분석 등 실제 분석 → `results/table/`, `results/report/`에 출력
+- **명명 규칙**: `단계_단계안순서_유형_내용.do`. 앞 두 자리는 단계, 다음 두 자리는 그 단계 안의 실행 순서입니다(2026-10-24부터).
+  - `00_master.do` — 전체 파이프라인을 순서대로 실행하는 마스터 스크립트(새 do 파일을 추가하면 여기에도 넣음)
+  - `01_NN_import_*.do` — raw 데이터를 읽어 최소 가공 후 `data/proc/`에 저장
+  - `02_NN_clean_*.do` — 결측치 처리, 변수 정리 등 정제(현재 없음)
+  - `03_NN_merge_*.do` — exposure/usage/macro 데이터 결합 → `data/proc/merged/`
+  - `04_NN_analysis_*.do` — 회귀분석 등 실제 분석 → `results/table/`. 04 단계의 순서는 대응하는 paper 번호 순입니다.
+  - 단계 안 순서는 의존 관계를 따릅니다(앞 번호 파일의 출력을 뒤 번호 파일이 읽음).
+- **보관(archive)**: 더 쓰지 않는 경로의 파일은 지우지 않고 같은 폴더의 `archive/` 하위 폴더로 옮깁니다(`code/archive/`, `data/proc/archive/`, `results/{report,paper,table}/archive/`). `00_master.do`는 archive 파일을 실행하지 않습니다. 2026-10-24에 Sensor Tower·ChatGPT 기준값으로 한국 생성형 AI 대화 총량을 추정하던 경로를 보관했습니다(`log.md` 참고).
 - **경로 관리**: 하드코딩된 절대경로 대신 `00_master.do` 상단 또는 별도 설정 파일에서 프로젝트 루트를 global로 지정하고, 이후 모든 do 파일은 이 global을 기준으로 상대경로를 사용합니다.
   ```stata
   global root "d:/research/AI_effects"
@@ -62,7 +64,8 @@ AI-effects/
   global proc "$root/data/proc"
   global results "$root/results"
   ```
-- **재현성**: `data/proc/`의 어떤 파일도 대응하는 do 파일 없이 존재해서는 안 됩니다. do 파일 하나로 원본부터 결과까지 재현 가능해야 합니다.
+- **재현성**: `data/proc/`의 어떤 파일도 대응하는 do 파일 없이 존재해서는 안 됩니다. do 파일 하나로 원본부터 결과까지 재현 가능해야 합니다(`data/proc/archive/`의 파일은 `code/archive/`의 do 파일이 만든 것).
+- **사용량 지표의 원칙(2026-10-24 결정)**: 한국 생성형 AI의 총 메시지·대화 수는 추정하지 않습니다. 직업별 사용은 AEI 업무용 대화 비중만으로 만든 점유율 지표 A~D와 상대 활용도 RU1·RU2로 봅니다. 두 달 이상의 자료는 월별 비중의 단순평균으로 합칩니다. 노동 절감 비용(LCE) 같은 수준값 추계는 당분간 하지 않습니다.
 - **결과 출력**: 표는 `results/table/`에 `.xlsx`로 저장 (`putexcel`, `esttab ... using ... .xlsx` 등 활용).
 
 ## results/ 하위 폴더 구분
