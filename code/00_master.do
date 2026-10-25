@@ -59,3 +59,4 @@ do "$code/04_12_analysis_kor_share_exposure_gap.do"          // paper 29
 do "$code/04_13_analysis_aei_v6_structure.do"                // paper 30
 do "$code/04_14_analysis_kor_conv_saved_gap.do"              // paper 31
 do "$code/04_15_analysis_kor_use_vs_share.do"                // paper 32
+do "$code/04_16_analysis_kor_share_exposure_dist.do"         // paper 33
