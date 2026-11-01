@@ -1,0 +1,188 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 점유율 지표 A·B·C와 노출도 3개의 순위 비교 엑셀 파일 설명.
+% 표 본문: results/table/35_spearman.tex, 35_cross.tex, 35_cross_rev.tex, 35_topC10.tex, 35_notes.tex
+%          (code/04_18_analysis_kor_share_exposure_rank.do가 생성)
+% 설명 대상: results/table/35_kor_share_exposure_rank.xlsx
+% 관련: paper 23(노출도의 KSCO 변환), 27(점유율 지표 A~D), 28(점유율과 노출도 상관), 29(격차), 33(분포 비교)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{AI 점유율 지표와 노출도의 순위 비교 엑셀 파일 설명\\[2mm]
+\large --- KSCO 8차 소분류 129개, 지표 A$\cdot$B$\cdot$C와 Felten$\cdot$Eloundou$\cdot$Observed Exposure ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 이 노트는 \texttt{results/table/35\_kor\_share\_exposure\_rank.xlsx}를 설명한다. 파일은 \texttt{code/04\_18\_analysis\_kor\_share\_exposure\_rank.do}가 만들고, 시트 7개로 되어 있다. 실제 사용을 나타내는 점유율 지표 A$\cdot$B$\cdot$C(paper 27)와 사전적 노출도 3개를 KSCO 8차 소분류 129개에서 순위로 비교한다. 노출도는 Felten AIOE(언어모델)\parencite{felten-2021-occupational-industry-and-geographic-exposure,felten-2023-how-will-language-modelers-like-chatgpt}, Eloundou 노출도(GPT-4 $\beta$)\parencite{eloundou-2023-gpts-are-gpts-an-early}, Observed Exposure\parencite{massenkoff-2026-labor-market-impacts-of-ai}다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{시트}: Spearman 순위상관 1개, 노출도별 상위$\cdot$하위 30과 지표 A$\cdot$B$\cdot$C 3개, 지표별 상위$\cdot$하위 30과 노출도 3개 3개.
+  \item \textbf{사용과 노출도의 순위상관은 0.60$\sim$0.70이다.} 사용 지표끼리(0.96$\sim$1.00)나 노출도끼리(0.81$\sim$0.85)보다 낮다. 사용 지표 중에서는 A가 Observed Exposure와, B$\cdot$C가 Eloundou $\beta$와 가장 가깝고, Felten과는 셋 모두 가장 멀다(paper 28과 같은 값).
+  \item \textbf{상위 30의 절반 정도만 겹친다.} 노출도 상위 30 중 지표 A$\cdot$B$\cdot$C 상위 30에도 드는 소분류는 Felten$\cdot$Eloundou 15개, Observed Exposure 17$\sim$18개다. 하위 30 겹침도 13$\sim$17개다.
+  \item \textbf{하위 목록은 동점과 공개 범위를 보고 읽어야 한다.} Observed Exposure가 0인 소분류가 13개라 그 하위 순위는 코드 순일 뿐이다. 한 달만 공개된 소분류 7개는 모두 지표 C 하위 30에 든다.
+\end{itemize}
+\end{abstract}
+
+\section{파일 구성}
+
+\begin{small}
+\begin{longtable}{L{2.0cm}L{4.2cm}L{8.6cm}}
+\caption{시트 구성}\label{tab:sheets}\\
+\toprule
+시트 & 내용 & 열 \\
+\midrule
+\endfirsthead
+\texttt{spearman} & 6개 지표의 Spearman 순위상관 & 위 6행은 순위상관($\rho$), 아래 6행은 p값. 지표 순서는 A, B, C, Felten AIOE, Eloundou $\beta$, Observed Exposure. \\
+\texttt{felten30} & Felten AIOE 상위$\cdot$하위 30 & 구분(상위$/$하위), Felten 순위, KSCO 코드, 직업명, Felten 값, 지표 A, A 순위, 지표 B, B 순위, 지표 C, C 순위 \\
+\texttt{elo30} & Eloundou $\beta$ 상위$\cdot$하위 30 & 같은 구성(Felten 대신 Eloundou $\beta$) \\
+\texttt{oe30} & Observed Exposure 상위$\cdot$하위 30 & 같은 구성(Observed Exposure) \\
+\texttt{A30} & 지표 A 상위$\cdot$하위 30 & 구분, KSCO 코드, 직업명, 지표 A, A 순위, Felten 값$\cdot$순위, Eloundou $\beta$ 값$\cdot$순위, Observed Exposure 값$\cdot$순위 \\
+\texttt{B30} & 지표 B 상위$\cdot$하위 30 & 같은 구성(지표 B) \\
+\texttt{C30} & 지표 C 상위$\cdot$하위 30 & 같은 구성(지표 C) \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{표본}: 지표 A$\cdot$B$\cdot$C와 노출도 3개가 모두 있는 소분류 129개(paper 27$\cdot$28과 같다). 순위는 모두 이 129개 안 순위다.
+  \item \textbf{순위}: 값이 큰 순서(1 = 가장 큼)이고, 같은 값은 소분류 코드 순이다. 상위 30은 1$\sim$30위, 하위 30은 100$\sim$129위다. 한 시트에 상위 30을 먼저, 하위 30을 다음에 순위 순으로 놓고 ``구분'' 열로 나눴다.
+  \item \textbf{값}: 엑셀 값은 반올림하지 않았다. 지표 A$\cdot$B$\cdot$C는 \%다.
+  \item 요청 목록의 Observed Exposure 시트 열 ``beta 값''은 Observed Exposure 값으로 했다. 노출도 시트에는 그 노출도의 순위 열을, 모든 상위$\cdot$하위 시트에는 구분 열을 더했다.
+\end{itemize}
+
+\section{지표}
+
+\paragraph{점유율 지표(실제 사용).} paper 27과 같다. AEI 한국 업무용 대화 비중(2026년 4$\cdot$5월, 월별 비중의 단순평균)을 SOC 2018--KSCO 8차 연계표로 소분류에 배분했다.
+\begin{itemize}[leftmargin=*]
+  \item A: 업무용 대화 점유율.
+  \item B: 절감 시간 점유율. 업무용 비중에 SOC별 대화당 절감 시간(AEI GLOBAL 추정)을 곱한 값의 점유율이다.
+  \item C: 취업자 환산 절감 점유율. B를 소분류의 1인당 월 근로시간(지역별고용조사 2022 상반기)으로 나눠 다시 정규화했다.
+\end{itemize}
+
+\paragraph{노출도(사전적 지표).} SOC 값을 연계표의 평균 가중치(\texttt{w\_mean})로 소분류에 평균했다(paper 23).
+\begin{itemize}[leftmargin=*]
+  \item Felten AIOE: 언어모델용 AI 직업 노출도. 표준화 점수라 음수가 있다(129개 중 49개).
+  \item Eloundou $\beta$: GPT-4가 평가한 과업 노출도($E1 + 0.5 \times E2$의 직업 평균, 0$\sim$1).
+  \item Observed Exposure: Eloundou $\beta$로 노출 가능한 과업 중 실제 Claude 업무 사용(Claude.ai 업무용 대화와 API, 자동화 사용에 더 큰 가중치)에서 관측된 과업의 몫(0$\sim$1). 0인 소분류가 13개다.
+\end{itemize}
+세 노출도는 ``AI가 일을 할 수 있는가''를 재고, 점유율 지표는 ``한국에서 실제로 AI 대화가 어디에 몰리는가''를 잰다. 노출도는 직업 규모와 상관없는 강도이고, 점유율은 직업 규모가 들어간 몫이라는 점도 다르다(paper 28, 32). 순위 비교는 이 차이를 그대로 담는다.
+
+\section{결과 개관}
+
+\subsection{순위상관}
+
+\begin{longtable}{L{3.4cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}}
+\caption{Spearman 순위상관(소분류 129개)}\label{tab:spearman}\\
+\toprule
+ & 지표 A & 지표 B & 지표 C & Felten & Eloundou $\beta$ & Observed \\
+\midrule
+\endfirsthead
+\input{../table/35_spearman.tex}
+\bottomrule
+\end{longtable}
+
+모든 상관은 1\% 수준에서 유의하다(p값은 엑셀 \texttt{spearman} 시트). 사용 지표와 노출도의 순위상관은 0.60$\sim$0.70으로, 노출도가 높은 직업이 대체로 많이 쓰지만 순서는 상당히 다르다. B와 C는 순위상관이 1.00(반올림)으로 사실상 같은 순서다. Felten과의 상관이 가장 낮다. 아래 사례에서 보듯 Felten은 판매$\cdot$상담$\cdot$교육 같은 대면 직업에도 높은 점수를 준다.
+
+\subsection{상위$\cdot$하위 30의 겹침}
+
+\begin{small}
+\begin{longtable}{L{3.0cm}*{9}{R{1.2cm}}}
+\caption{노출도 상위$\cdot$하위 30과 사용 지표 상위$\cdot$하위 30의 겹침(개)과 노출도 상위 30의 사용 순위 중앙값}\label{tab:cross}\\
+\toprule
+ & \multicolumn{3}{c}{지표 A} & \multicolumn{3}{c}{지표 B} & \multicolumn{3}{c}{지표 C} \\
+노출도 & 상위 & 하위 & 순위 & 상위 & 하위 & 순위 & 상위 & 하위 & 순위 \\
+\midrule
+\endfirsthead
+\input{../table/35_cross.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{3.0cm}*{6}{R{1.9cm}}}
+\caption{사용 지표 상위 30$\cdot$하위 30의 노출도 순위 중앙값}\label{tab:crossrev}\\
+\toprule
+ & \multicolumn{2}{c}{Felten} & \multicolumn{2}{c}{Eloundou $\beta$} & \multicolumn{2}{c}{Observed} \\
+사용 지표 & 상위 30 & 하위 30 & 상위 30 & 하위 30 & 상위 30 & 하위 30 \\
+\midrule
+\endfirsthead
+\input{../table/35_cross_rev.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+노출도 상위 30의 절반 정도(15$\sim$18개)가 사용 상위 30에도 든다. 노출도 상위 30의 사용 순위 중앙값은 24.5$\sim$31.5위라 대체로 위쪽에 있다. 거꾸로 사용 상위 30의 노출도 순위 중앙값은 24.5$\sim$34.0위, 사용 하위 30은 95.5$\sim$104.0위다. 겹침 수와 순위 중앙값으로는 Observed Exposure가 사용 순위와 가장 잘 맞는다(순위상관은 B$\cdot$C에서 Eloundou $\beta$가 조금 높다). Observed Exposure 자체가 Claude 업무 사용 기록으로 만든 지표라는 점이 영향을 준 것으로 보인다.
+
+\subsection{지표 C 상위 10의 노출도 순위}
+
+\begin{small}
+\begin{longtable}{R{0.4cm}L{5.4cm}R{1.3cm}R{2.2cm}R{2.4cm}R{2.4cm}}
+\caption{지표 C 상위 10 소분류의 노출도 값(괄호는 129개 안 순위)}\label{tab:topc}\\
+\toprule
+ & 소분류 & C(\%) & Felten & Eloundou $\beta$ & Observed \\
+\midrule
+\endfirsthead
+\input{../table/35_topC10.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+지표 C 상위 10 중 정보 통신$\cdot$데이터 직업(222, 225, 223, 332)은 Eloundou$\cdot$Observed 순위도 10위 안팎으로 높다. 그러나 Felten 순위는 222가 40위, 225가 47위로 낮다. 213 생명 및 자연과학 관련 시험원과 293 연극$\cdot$영화 및 영상 전문가는 사용 순위는 높지만 노출도 순위는 세 지표 모두 40위 이하다.
+
+\paragraph{노출도는 높고 사용은 적은 직업.} 노출도 셋 중 하나라도 상위 30이면서 지표 C 순위가 60위 밖인 소분류는 9개다. 531 통신 관련 판매 종사자(Felten 1위, C 72위), 254 종교 관련 종사자(Felten 4위, C 73위), 245 영양사(Felten 7위, C 98위), 532 방문 및 노점 판매(Felten 10위, C 104위), 311 기획 및 마케팅 사무원(Eloundou 2위, C 84위), 322 운송 및 무역 사무원(Eloundou 13위, C 85위) 등이다. 판매$\cdot$상담$\cdot$교육 직업은 Felten에서만 높고, 사무 직업은 세 노출도에서 모두 높은 편이다.
+
+\paragraph{사용은 많고 노출도는 낮은 직업.} 지표 C 상위 30이면서 노출도 셋 모두 40위 밖인 소분류는 293 연극$\cdot$영화 및 영상 전문가(C 9위), 239 기타 공학 전문가(21위), 799 기타 기능 관련 종사자(28위), 236 소방$\cdot$방재$\cdot$산업안전 기술자(30위)다. 이 직업들의 사용이 많은 이유는 연계표로 들어온 SOC 구성(paper 26)을 함께 봐야 한다.
+
+\section{읽을 때 유의사항}
+
+\begin{longtable}{L{12.5cm}R{2.5cm}}
+\caption{점검 수치}\label{tab:notes}\\
+\toprule
+항목 & 값 \\
+\midrule
+\endfirsthead
+\input{../table/35_notes.tex}
+\bottomrule
+\end{longtable}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Observed Exposure 하위 30의 순위 117$\sim$129는 동점이다.} 값이 0인 소분류 13개(252, 263, 422, 453, 611, 620, 630, 710, 852, 871, 881, 882, 952)는 코드 순으로 순위를 매겼다. 이 안의 순서는 의미가 없다. 852 냉난방 관련 설비 조작원은 Observed Exposure가 0인데 지표 C는 35위다.
+  \item \textbf{한 달만 공개된 소분류 7개는 지표 C 하위 30에 모두 든다.} 비공개 달을 0으로 두고 평균해 값이 절반이 됐다(paper 27). 이 소분류의 낮은 사용 순위에는 공개 범위의 영향이 섞여 있다.
+  \item \textbf{점유율은 규모가 들어간 값이고 노출도는 강도다.} 큰 직업은 점유율 순위가 올라가기 쉽다. 규모를 뺀 비교는 상대 활용도 RU1$\cdot$RU2(paper 25, 32)나 노출도 기반 점유율(paper 28, 33)로 본다.
+  \item \textbf{두 쪽 모두 SOC 값을 연계표로 옮긴 것이다.} 사용은 \texttt{w\_alloc}으로 배분하고, 노출도는 \texttt{w\_mean}으로 평균했다(paper 21, 23). 연계 경로가 한 SOC에 쏠린 소분류는 그 SOC의 값에 따라 순위가 크게 움직인다.
+  \item \textbf{순위 차이 자체의 분석은 다른 paper에 있다.} 순위 격차의 회귀 분석과 강건성은 paper 29, 분산$\cdot$쏠림의 비교는 paper 33이다. 이 파일은 목록을 직접 확인하기 위한 표다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item 코드: \texttt{code/04\_18\_analysis\_kor\_share\_exposure\_rank.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}).
+  \item 엑셀: \texttt{results/table/35\_kor\_share\_exposure\_rank.xlsx}(시트 7개).
+  \item 이 노트의 표: \texttt{results/table/35\_spearman.tex}, \texttt{35\_cross.tex}, \texttt{35\_cross\_rev.tex}, \texttt{35\_topC10.tex}, \texttt{35\_notes.tex}.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}
