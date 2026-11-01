@@ -35,6 +35,7 @@ AI-effects/
 │       └── merged/        # exposure + usage + macro 결합 데이터셋 (분석용 최종 데이터)
 └── results/
     ├── table/             # 분석 결과표 (주로 .xlsx)
+    ├── figure/            # 분석 그림 (.png, .pdf; 04 단계 do 파일이 생성)
     ├── report/            # 분석 방법론·결과에 대한 1차 문헌(작업 노트/초안)
     └── paper/             # report 내용을 정리한 논문/보고서 문헌
 ```
@@ -71,6 +72,7 @@ AI-effects/
 ## results/ 하위 폴더 구분
 
 - `table/`: 분석에서 산출된 표. 엑셀 파일(.xlsx)과, 논문에 바로 삽입할 LaTeX 표(.tex, `esttab ... using ... .tex` 등으로 생성)를 함께 둡니다.
+- `figure/`: 분석 그림(2026-11-01 추가). `code/`의 do 파일이 `graph export`로 만든 .png(가로 2400px)와 .pdf를 같은 이름으로 둡니다. 파일명은 표와 같이 대응하는 paper 번호로 시작합니다(예: `36_fig_heatmap_robust`). 한글은 `graph set window fontface "Malgun Gothic"`으로 씁니다.
 - `report/`: 분석 방법론과 결과에 대한 1차적인 작업 문헌(초안, 메모 수준). 분석 단위별로 나누어 작성합니다.
 - `paper/`: `report/`의 내용을 종합·정리한 논문/보고서 최종본.
 
