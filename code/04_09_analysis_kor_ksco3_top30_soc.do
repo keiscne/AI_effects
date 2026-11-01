@@ -123,7 +123,7 @@ merge 1:1 ksco3 using "$proc/merged/kor_ai_usage_ksco3.dta", keepusing(ksco3_tit
 rename (shA shB) (C S)
 tabulate _merge
 assert _merge != 1                                      // 기여가 있는 소분류는 모두 지표 파일에 있음(군인 제외)
-assert missing(C) if _merge == 2
+assert C == 0 & S == 0 if _merge == 2                 // 2026-11-01: 한국 비중이 관측되지 않은 소분류는 사용 0
 keep if _merge == 3
 assert reldif(sc, C) < 1e-9
 assert reldif(sv, S) < 1e-9 | (missing(sv) & missing(S))

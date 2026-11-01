@@ -12,12 +12,13 @@
 *   28_corr.tex, 28_overlap.tex, 28_top_fs.tex, 28_top_expo.tex   (paper 28 표)
 *
 * 지표(소분류 j, 합은 비교 대상 소분류 전체):
-*   A CS = shA, B SS = shB(129개 안 다시 정규화, 값은 같음), C FS = (shB / hbar) / Σ(shB / hbar), hbar = H / emp
+*   A CS = shA, B SS = shB(163개 안 다시 정규화, 값은 같음), C FS = (shB / hbar) / Σ(shB / hbar), hbar = H / emp
 *     (04_10_analysis_kor_ai_share_index.do와 같은 정의, 여기서 다시 계산)
 *   노출도(강도): OE = observed exposure, FEL = Felten LM AIOE, ELO = Eloundou GPT-4 β
 *   노출도 기반 점유율(작업자 판단, 규모를 맞춘 비교용): XS_x = emp × x / Σ(emp × x), x ∈ {OE, ELO}
 *     Felten은 표준화 점수(음수 포함)라 점유율로 만들지 않는다.
-* 비교 대상: A~C와 노출도 3개가 모두 있는 소분류(paper 25와 같은 129개, assert).
+* 비교 대상: 지역별고용조사 소분류 163개(2026-11-01부터 한국 사용이 관측되지 않은 34개를 사용 0으로 포함, assert).
+*   순위는 평균 순위(같은 값은 같은 순위; 사용 0인 34개는 146.5위).
 * 상관: Spearman(주), Pearson(엑셀만). 상위 순위: 상위 30 겹침 수, 지표 C 상위 20, 노출도별 상위 10.
 * 매칭 키: ksco3(str3).
 * =============================================================================
@@ -51,7 +52,7 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
 keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
-assert r(N) == 129
+assert r(N) == 163
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
 
 generate double fte = shB / hbar
@@ -70,7 +71,7 @@ drop fte eoe eel shA shB hbar
 
 local all "CS SS FS OE FEL ELO XS_OE XS_ELO"
 foreach v of local all {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
 
 label variable ksco3    "KSCO 8차 소분류"

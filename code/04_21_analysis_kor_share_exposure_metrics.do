@@ -12,27 +12,29 @@
 *                   노출도 순: 노출도 상위 k개 소분류가 가진 A·B·C 점유율)
 *        conc       집중지수 CI(사용 | 노출도 순), CI(XS | 노출도 순), HHI와 실효 직업 수 1/HHI
 *        elas       탄력성 ln R = α + β ln RX(취업자 가중 OLS, 비가중 OLS, 분위수 회귀 τ = .1 .5 .9), Felten 준탄력성
-*        d_all      129개 소분류의 로그 거리 d(6개 쌍)
+*        d_all      163개 소분류의 로그 거리 d(6개 쌍; 사용 0인 34개는 빈칸)
 *        d_top30    쌍마다 d 상위 30(사용 > 노출도)과 하위 30(노출도 > 사용)
-*        z_all      129개 소분류의 로버스트 z(6개 지표)와 Δz(9개 쌍)
+*        z_all      163개 소분류의 로버스트 z(6개 지표)와 Δz(9개 쌍; 사용 0인 34개는 빈칸)
 *        z_top30    쌍마다 Δz 상위 30과 하위 30
 *   37_topshare.tex, 37_conc.tex, 37_hhi.tex, 37_elas.tex, 37_d_C_ELO.tex, 37_z_C_FEL.tex, 37_dzsum.tex  (paper 37 표)
 *   $results/figure/ (.png 가로 2400px, .pdf; paper 37 그림, 대표 쌍 = d: 지표 C × Eloundou β, Δz: 지표 C × Felten)
 *     37_fig_d_C_ELO_bar      d 상위 30·하위 30 발산형 가로 막대
 *     37_fig_z_C_FEL_bar      Δz 상위 30·하위 30 발산형 가로 막대
-*     37_fig_dz_scatter       129개 산점도 2칸(ln R 대 ln RX, z(사용) 대 z(노출도)), 45도선, 상위·하위 30 색
+*     37_fig_dz_scatter       사용 > 0인 129개 산점도 2칸(ln R 대 ln RX, z(사용) 대 z(노출도)), 45도선, 상위·하위 30 색
 *     색은 04_20과 같은 dataviz 참고 팔레트(파랑 = 사용 > 노출도, 주황 = 노출도 > 사용, 회색 = 그 밖).
 *
-* 같은 척도(129개 안에서 다시 정규화): w_j = E_j / ΣE, s^m_j(합 1, m ∈ A, B, C; C = (B / hbar) 정규화),
+* 표본(2026-11-01): 소분류 163개(사용 0인 34개 포함). 로그를 쓰는 값(로그 거리, 로버스트 z, 탄력성)은
+*   사용 > 0인 129개로 계산한다(04_16과 같음). 누적 점유율·집중지수·HHI는 163개.
+* 같은 척도(163개 안에서 다시 정규화): w_j = E_j / ΣE, s^m_j(합 1, m ∈ A, B, C; C = (B / hbar) 정규화),
 *   XS^x_j = E_j x_j / Σ E x(x ∈ OE, ELO; Felten은 음수가 있어 없음), R^m = s^m / w, RX^x = XS^x / w = x / x̄_E.
-* 누적 점유율: 값 내림차순(같은 값은 코드 순) 상위 k개 합(%).
+* 누적 점유율: 값 내림차순(같은 값은 코드 순) 상위 k개 합(%). 상위 30 안에 사용 0·OE 0 동점은 없다.
 * 집중지수 CI(y | x) = 1 − 2 × (x 오름차순 집중곡선 아래 면적), 인원 w 기준, 같은 x는 한 점(04_16 Mata conc).
 *   0 = 노출도와 무관, +1에 가까울수록 노출도 높은 직업에 몰림. CI(XS^x | x) = 지니(RX^x).
 * HHI = Σ s²(0~1), 실효 직업 수 = 1 / HHI.
 * 탄력성: β = d ln R / d ln RX. 1이면 사용 강도가 노출도에 비례, 1보다 크면 노출도 차이가 사용에서 증폭.
-*   OE = 0인 13개는 ln RX가 없어 빠진다(116개).
+*   사용 0인 34개는 ln R이 없어, 사용 > 0이면서 OE = 0인 13개는 ln RX가 없어 빠진다(129개, OE 쌍 116개).
 * 로그 거리 d^{m,x} = ln R^m − ln RX^x = ln(s^m / XS^x)(paper 29 LR와 같음). e^d = 사용 강도 / 노출도 강도.
-* 로버스트 z(v) = (v − 중위값) / (1.4826 MAD), v = ln R^m, ln RX^x, Felten 원값(비가중).
+* 로버스트 z(v) = (v − 중위값) / (1.4826 MAD), v = ln R^m, ln RX^x, Felten 원값(비가중, 사용 > 0인 129개 안).
 *   Δz^{m,x} = z(ln R^m) − z(노출도). 양수 = 사용 분포 안 위치가 노출도 분포 안 위치보다 높음.
 * 매칭 키: ksco3(str3).
 * =============================================================================
@@ -113,10 +115,13 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
 keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
-assert r(N) == 129
+assert r(N) == 163
 local N = r(N)
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
-assert shA > 0 & shB > 0 & emp > 0 & ELO > 0
+assert emp > 0 & ELO > 0
+assert (shA > 0) == (shB > 0)
+quietly count if shA == 0
+assert r(N) == 34
 generate double fte = shB / hbar
 generate double eoe = emp * OE
 generate double eel = emp * ELO
@@ -134,7 +139,7 @@ generate double s_W    = w
 drop fte eoe eel
 foreach m in A B C {
     generate double R_`m'   = s_`m' / w
-    generate double lnR_`m' = ln(R_`m')
+    generate double lnR_`m' = ln(R_`m') if R_`m' > 0
 }
 foreach x in OE ELO {
     generate double RX_`x'   = XS_`x' / w
@@ -151,15 +156,15 @@ foreach m in A B C {
         assert abs(d_`m'_`x' - ln(s_`m' / XS_`x')) < 1e-9 if !missing(d_`m'_`x')
     }
 }
-* 로버스트 z(비가중; OE는 ln RX가 있는 116개 안)
+* 로버스트 z(비가중, 사용 > 0인 129개 안; OE는 그중 ln RX가 있는 116개 안)
 generate double zsrc_FEL = FEL
 foreach v in lnR_A lnR_B lnR_C lnRX_OE lnRX_ELO zsrc_FEL {
-    quietly summarize `v', detail
+    quietly summarize `v' if s_A > 0, detail
     local med = r(p50)
     tempvar ad
-    generate double `ad' = abs(`v' - `med')
+    generate double `ad' = abs(`v' - `med') if s_A > 0
     quietly summarize `ad', detail
-    generate double z_`v' = (`v' - `med') / (1.4826 * r(p50))
+    generate double z_`v' = (`v' - `med') / (1.4826 * r(p50)) if s_A > 0
     drop `ad'
 }
 drop zsrc_FEL
@@ -375,9 +380,9 @@ use `k3', clear
 label variable ksco3       "KSCO 코드(8차 소분류)"
 label variable ksco3_title "KSCO 직업명(소분류)"
 label variable emp         "취업자 수(2022 상반기)"
-label variable w           "취업자 비중(129개 안)"
+label variable w           "취업자 비중(163개 안)"
 foreach m in A B C {
-    label variable s_`m'   "`lab_`m'' 점유율(129개 안, 합 1)"
+    label variable s_`m'   "`lab_`m'' 점유율(163개 안, 합 1)"
     label variable R_`m'   "`lab_`m'' 상대 강도 R = s / w"
     label variable z_`m'   "로버스트 z: ln R(`lab_`m'')"
     foreach x in OE ELO {
@@ -557,7 +562,7 @@ foreach st in n p10 p50 p90 mabs n2 n10 rho {
 file close `fh'
 
 * -----------------------------------------------------------------------------
-* 7. 그림(paper 37): 대표 쌍의 상위·하위 30 막대, 129개 산점도
+* 7. 그림(paper 37): 대표 쌍의 상위·하위 30 막대, 사용 > 0인 129개 산점도
 * -----------------------------------------------------------------------------
 local fig "$results/figure"
 capture mkdir "`fig'"
@@ -625,18 +630,18 @@ foreach spec in "d C ELO 37_fig_d_C_ELO_bar" "dz C FEL 37_fig_z_C_FEL_bar" {
     }
     if "`kind'" == "d" {
         local gt "지표 C와 Eloundou β의 로그 거리 d = ln R − ln RX (괄호 = e^d, 사용 강도 / 노출도 강도)"
-        local nt "d > 0: 사용 강도가 노출도 강도보다 큼. Observed Exposure = 0인 소분류는 d가 없어 OE 쌍에서 빠진다."
+        local nt "d > 0: 사용 강도가 노출도 강도보다 큼. 사용 0인 34개와 Observed Exposure = 0인 소분류는 d가 없다."
     }
     else {
         local gt "지표 C와 Felten AIOE의 로버스트 z 차이 Δz = z(사용) − z(노출도) (괄호 = Δz)"
-        local nt "z = (값 − 중위값) / (1.4826 × MAD), 비가중. Δz > 0: 사용 분포 안 위치가 노출도 분포 안 위치보다 높음."
+        local nt "z = (값 − 중위값) / (1.4826 × MAD), 비가중. Δz > 0: 사용 분포 안 위치가 노출도 분포 안 위치보다 높음. 사용 0인 34개는 빠진다."
     }
     graph combine g_pos g_neg, cols(2) title("`gt'", size(small) color("`c_ink'")) ///
         note("`nt'", size(vsmall) span) graphregion(color(white)) xsize(12) ysize(8)
     savefig "`fig'/`f'"
 }
 
-* (3) 129개 산점도 2칸: 대각선에서 세로로 떨어진 정도가 거리. 상위·하위 30 색, 상위·하위 5 코드
+* (3) 사용 > 0인 129개 산점도 2칸: 대각선에서 세로로 떨어진 정도가 거리. 상위·하위 30 색, 상위·하위 5 코드
 foreach spec in "d C ELO lnR_C lnRX_ELO" "dz C FEL z_C z_FEL" {
     local kind : word 1 of `spec'
     local m    : word 2 of `spec'
@@ -693,7 +698,7 @@ foreach spec in "d C ELO lnR_C lnRX_ELO" "dz C FEL z_C z_FEL" {
         `gopt' name(s_`kind', replace) nodraw
 }
 graph combine s_d s_dz, cols(2) ///
-    title("129개 소분류의 거리: 대각선에서 세로로 떨어진 정도 = d 또는 Δz", size(small) color("`c_ink'")) ///
+    title("사용 > 0인 129개 소분류의 거리: 대각선에서 세로로 떨어진 정도 = d 또는 Δz", size(small) color("`c_ink'")) ///
     note("왼쪽: 사용의 퍼짐(세로)이 노출도의 퍼짐(가로)보다 훨씬 커서 d는 사실상 사용 강도 순서를 따른다." ///
         "오른쪽: 두 축을 각자의 중위값·MAD로 맞춰 퍼짐 차이를 지운 비교. 코드 = 상위·하위 5.", size(vsmall) span) ///
     graphregion(color(white)) xsize(12) ysize(6.5)

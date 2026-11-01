@@ -22,14 +22,16 @@
 *          45-XXXX(농림어업 미공개 자리표시)는 순위에서 뺀다.
 *   세분류 k: A_k = 100 × ½ Σ_t Σ_s share_work(s, t) × w_alloc(s, k) / tot_sw_t
 *             B_k = 100 × ½ Σ_t Σ_s saved_w(s, t)  × w_alloc(s, k) / tot_sv_t
-*             tot_*_t = 03_05의 월 t 소분류 표본(129개) 합 → 소분류 안 세분류 합 = shA, shB (assert).
+*             tot_*_t = 03_05의 월 t 소분류 표본 합(사용 0인 34개는 0) → 소분류 안 세분류 합 = shA, shB (assert).
 *             지표 C는 분모(1인당 근로시간)가 소분류에만 있어 세분류에서는 만들지 않는다.
 *   소분류·중분류·대분류: 03_05의 shA, shB, shC 그대로.
 * 기여 1위: 상위 분류 값에 가장 많이 기여한 하위 단위(시트의 기준 지표로 판단)와 그 몫(%).
 *   세분류 ← SOC: share_work × w_alloc(A), saved_w × w_alloc(B).
 *   소분류 ← 세분류: A_k(A), B_k(B·C; 소분류 안에서는 hbar가 같아 C의 몫 = B의 몫).
 *   중분류 ← 소분류, 대분류 ← 중분류: 각 지표 값.
-* 순위: 값 내림차순, 같은 값은 코드 순(unique).
+* 순위: 값 내림차순, 같은 값은 평균 순위. 목록은 30번째와 같은 값을 모두 포함한다(경계 동점).
+* 2026-11-01: 03_05의 163개 소분류 전부(사용 0인 34개 포함)와 그 안 세분류 전부를 대상으로 한다.
+*   사용 0인 단위는 기여 1위가 없다(빈칸). 하위 목록은 사용 0 동점으로 채워진다.
 * 매칭 키: soc6 = soc2018(str7), ksco3 = substr(ksco8, 1, 3), ksco2 = substr(ksco3, 1, 2), ksco1 = substr(ksco3, 1, 1).
 * 주의: KSCO 값은 연계표 배분 가정(paper 21)에 따른 값이다.
 * =============================================================================
@@ -76,8 +78,9 @@ program define top1
     tempvar tot
     bysort `by': egen double `tot' = total(`varlist')
     gsort `by' -`varlist' `lab'
-    by `by': generate str244 `gen' = `lab'[1]
-    by `by': generate double `gen'_sh = 100 * `varlist'[1] / `tot'
+    * 하위 단위가 모두 0이면(사용 0) 기여 1위가 없다
+    by `by': generate str244 `gen' = cond(`tot' > 0, `lab'[1], "")
+    by `by': generate double `gen'_sh = 100 * `varlist'[1] / `tot' if `tot' > 0
 end
 
 * key 내림차순(같은 값은 code 순) 상위 n개를 xl에, 오름차순 하위 n개를 xlb에 같은 시트 이름으로 내보냄.
@@ -94,30 +97,36 @@ program define putsheet
     foreach side in top bot {
         preserve
         keep if !missing(`key')
+        * 평균 순위(같은 값은 같은 순위). n번째와 같은 값이면 모두 포함하므로 n개보다 많을 수 있다
+        *   (2026-11-01: 사용 0인 소분류·세분류가 동점이라 하위 목록은 0인 직업 전부가 된다)
         if "`side'" == "top" {
-            gsort -`key' `code'
+            egen double rank = rank(-`key')
+            gsort rank `code'
             local f "`xl'"
-            local rl "순위(`keylab')"
+            local rl "순위(`keylab', 같은 값은 평균 순위)"
         }
         else {
-            gsort `key' `code'
+            egen double rank = rank(`key')
+            gsort rank `code'
             local f "`xlb'"
-            local rl "하위 순위(`keylab', 1 = 가장 작음)"
+            local rl "하위 순위(`keylab', 1 = 가장 작음, 같은 값은 평균 순위)"
         }
-        generate int rank = _n
         label variable rank "`rl'"
-        keep if rank <= `n'
+        * n번째 행의 순위 이하를 모두 남긴다(경계 동점 포함)
+        local rcut = rank[min(`n', _N)]
+        keep if rank <= `rcut' | _n <= `n'
+        local n_`side' = _N
         quietly summarize `key'
         local sum_`side' = r(sum)
         export excel rank `varlist' using "`f'", sheet("`sheet'") firstrow(varlabels) `how'
         list rank `varlist' in 1/3, noobs abbreviate(12)
         restore
     }
-    post sheetpost ("`sheet'") ("`level'") ("`keylab'") (`nall') (`n') (`sum_top') (`sum_bot')
+    post sheetpost ("`sheet'") ("`level'") ("`keylab'") (`nall') (`n_top') (`n_bot') (`sum_top') (`sum_bot')
 end
 
 tempfile sheets
-postfile sheetpost str10 sheet str24 level str10 ind int(nall n) double(sum_top sum_bot) using `sheets'
+postfile sheetpost str10 sheet str24 level str10 ind int(nall n_top n_bot) double(sum_top sum_bot) using `sheets'
 
 * -----------------------------------------------------------------------------
 * 0. 소분류 표본과 월별 정규화 분모(03_05)
@@ -189,6 +198,23 @@ top1 ca, by(ksco8) lab(soc_lab) gen(topA)
 top1 cb, by(ksco8) lab(soc_lab) gen(topB)
 collapse (sum) A = ca B = cb (first) topA topA_sh topB topB_sh, by(ksco8 ksco8_title ksco3)
 isid ksco8
+* 2026-11-01: 한국 비중이 공개된 SOC와 연결되지 않은 세분류도 사용 0으로 넣는다(163개 소분류 안 세분류 전부)
+tempfile k8u
+save `k8u'
+use `cw', clear
+keep ksco8 ksco8_title
+duplicates drop
+generate str3 ksco3 = substr(ksco8, 1, 3)
+merge m:1 ksco3 using `k3', keep(match) keepusing(ksco3) nogenerate
+merge 1:1 ksco8 using `k8u', assert(master match)
+generate byte zero8 = _merge == 1
+drop _merge
+replace A = 0 if zero8
+replace B = 0 if zero8
+count if zero8
+local k4_nzero = r(N)
+drop zero8
+isid ksco8
 tempfile k8
 save `k8'
 
@@ -210,13 +236,21 @@ label variable topB_sh     "기여 1위 SOC 몫(%, 지표 B 중)"
 putsheet ksco8 ksco8_title A B topA topA_sh, key(A) keylab(지표 A) level(KSCO 세분류) sheet("ksco4_A") xl("`xl'") xlb("`xlb'") n(`ntop')
 putsheet ksco8 ksco8_title B A topB topB_sh, key(B) keylab(지표 B) level(KSCO 세분류) sheet("ksco4_B") xl("`xl'") xlb("`xlb'") n(`ntop')
 * 노트용: 기여 1위 SOC 몫이 50% 이상(상위 30)·100%(하위 30)인 세분류 수
-gsort -A ksco8
-quietly count in 1/`ntop' if topA_sh >= 50
+*   (목록과 같이 평균 순위, 경계 동점 포함)
+egen double rt = rank(-A)
+egen double rb = rank(A)
+gsort rt ksco8
+local rcut = rt[`ntop']
+quietly count if rt <= `rcut' & topA_sh >= 50
 local k4_top50 = r(N)
-gsort A ksco8
-quietly count in 1/`ntop' if topA_sh > 100 - 1e-9
+gsort rb ksco8
+local rcut = rb[`ntop']
+quietly count if rb <= `rcut' & topA_sh > 100 - 1e-9 & !missing(topA_sh)
 local k4_bot100 = r(N)
-quietly count if topA_sh > 100 - 1e-9
+quietly count if rb <= `rcut'
+local k4_nbot = r(N)
+drop rt rb
+quietly count if topA_sh > 100 - 1e-9 & !missing(topA_sh)
 local k4_all100 = r(N)
 local k4_n = _N
 
@@ -248,13 +282,18 @@ putsheet ksco3 ksco3_title shB shA shC topB topB_sh, key(shB) keylab(지표 B) l
 putsheet ksco3 ksco3_title shC shA shB topC topC_sh, key(shC) keylab(지표 C) level(KSCO 소분류) sheet("ksco3_C") xl("`xl'") xlb("`xlb'") n(`ntop')
 * 노트용: 상위 30 겹침, 하위 30 안 한 달만 공개된 소분류 수
 foreach m in A B C {
-    egen int r_`m' = rank(-sh`m'), unique
-    gsort sh`m' ksco3
-    quietly count in 1/`ntop' if n_month_conv == 1
+    egen double r_`m' = rank(-sh`m')
+    egen double rb = rank(sh`m')
+    gsort rb ksco3
+    local rcut = rb[`ntop']
+    quietly count if rb <= `rcut' & n_month_conv == 1
     local k3_bot1m_`m' = r(N)
+    drop rb
 }
 quietly count if n_month_conv == 1
 local k3_1m = r(N)
+quietly count if n_month_conv == 0
+local k3_0m = r(N)
 quietly count if r_A <= `ntop' & r_B <= `ntop'
 local k3_ovAB = r(N)
 quietly count if r_A <= `ntop' & r_C <= `ntop'
@@ -311,7 +350,7 @@ assert missing(shA) if _merge == 2
 keep if _merge == 3
 drop _merge
 foreach m in A B C {
-    egen int r_`m' = rank(-sh`m'), unique
+    egen double r_`m' = rank(-sh`m')
 }
 label variable ksco1       "KSCO 코드(8차 대분류)"
 label variable ksco1_title "KSCO 직업명(대분류)"
@@ -387,7 +426,7 @@ forvalues i = 1/`=_N' {
     local a "`r(s)'"
     fmt sum_bot[`i'] %6.2f
     local b "`r(s)'"
-    file write `fh' `"\texttt{`s'} & `=level[`i']' & `=ind[`i']' & `=nall[`i']' & `=n[`i']' & `a' & `b' \\"' _n
+    file write `fh' `"\texttt{`s'} & `=level[`i']' & `=ind[`i']' & `=nall[`i']' & `=n_top[`i']' / `=n_bot[`i']' & `a' & `b' \\"' _n
 }
 file close `fh'
 list, noobs clean
@@ -400,10 +439,11 @@ file write `fh' "SOC 지표 A 최솟값(\%) / 그 값을 가진 SOC 수 & `r(s)'
 fmt `soc_bmin' %7.5f
 file write `fh' "SOC 지표 B 최솟값(\%) / 그 값을 가진 SOC 수 & `r(s)' / `soc_nbmin' \\" _n
 file write `fh' "세분류 지표 A 상위 `ntop' 중 기여 1위 SOC 몫이 50\% 이상인 수 & `k4_top50' \\" _n
-file write `fh' "세분류 지표 A 하위 `ntop' 중 기여 1위 SOC 몫이 100\%(SOC 하나)인 수 & `k4_bot100' \\" _n
+file write `fh' "세분류 지표 A 하위 목록(`k4_nbot'개, 경계 동점 포함) 중 기여 1위 SOC 몫이 100\%(SOC 하나)인 수 & `k4_bot100' \\" _n
+file write `fh' "세분류 중 사용 0(한국 비중 공개 SOC와 연결 없음)인 수 & `k4_nzero' / `k4_n' \\" _n
 file write `fh' "세분류 전체 중 기여 1위 SOC 몫이 100\%인 수 & `k4_all100' / `k4_n' \\" _n
-file write `fh' "소분류 중 한 달만 공개된 수 & `k3_1m' \\" _n
-file write `fh' "소분류 하위 `ntop' 중 한 달만 공개된 수(A / B / C) & `k3_bot1m_A' / `k3_bot1m_B' / `k3_bot1m_C' \\" _n
+file write `fh' "소분류 중 사용 0(두 달 모두 미공개) / 한 달만 공개된 수 & `k3_0m' / `k3_1m' \\" _n
+file write `fh' "소분류 하위 목록 중 한 달만 공개된 수(A / B / C) & `k3_bot1m_A' / `k3_bot1m_B' / `k3_bot1m_C' \\" _n
 file write `fh' "소분류 상위 `ntop' 겹침(A와 B / A와 C) & `k3_ovAB' / `k3_ovAC' \\" _n
 file write `fh' "대분류 중 A·B·C 기여 1위 중분류가 모두 같은 수 & `k1_same' / `k1_n' \\" _n
 file close `fh'

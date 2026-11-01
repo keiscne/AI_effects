@@ -17,6 +17,7 @@
 *   25_decomp.tex    log RU2 = log RU1 + log 실효 절감 시간 − log 근로시간 + 상수 분해(분산 기여)
 *   25_robust.tex    강건성: 분모 근로시간·기준 연도·달을 바꿨을 때 순위상관과 중앙값 비
 *   25_kor_ai_usage_index.xlsx  시트 ksco3, ksco2, ksco1(전체 변수)
+* 2026-11-01: 사용 0 소분류 34개를 포함(RU = 0). 중앙값·순위상관은 163개 기준, 로그 분해(25_decomp)는 RU2 > 0인 129개.
 * 주의: RU는 규모 대비 상대 강도다. 취업자가 적은 직업에서 커지기 쉬우므로 점유율 지표 A~C(paper 27)와 함께 읽는다.
 * =============================================================================
 
@@ -56,11 +57,15 @@ foreach lv in 3 2 1 {
     use "`ind'/kor_ai_usage_ksco`lv'.dta", clear
     quietly count
     local n = r(N)
-    quietly count if !missing(ru1)
+    * 2026-11-01: 사용 0 소분류도 RU = 0으로 들어가므로, "지표가 있는 단위"는 한국 사용이 관측된 단위로 센다.
+    *   덮개 = 관측된 소분류의 취업자 비중(중·대분류는 emp_cover로 합산).
+    if `lv' == 3 generate double emp_obs = emp * obs_share
+    else         generate double emp_obs = emp * emp_cover
+    quietly count if emp_obs > 0
     local nv = r(N)
     quietly summarize emp
     local te = r(sum)
-    quietly summarize emp if !missing(ru1)
+    quietly summarize emp_obs
     fmt 100*r(sum)/`te' %5.1f
     local cov "`r(s)'"
     quietly summarize ru1, detail

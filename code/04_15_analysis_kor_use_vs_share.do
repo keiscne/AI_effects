@@ -13,13 +13,15 @@
 *   32_summary.tex, 32_g1_pos.tex, 32_g1_neg.tex, 32_g2_pos.tex, 32_g2_neg.tex,
 *   32_top_use1.tex, 32_top_use2.tex, 32_ksco1.tex   (paper 32 표)
 *
-* 정의(소분류 129개, 2026-04·05 월별 비중 단순평균):
+* 2026-11-01: 표본 163개(한국 사용이 관측되지 않은 34개는 A = B = RU = 0, 사용자 결정). 순위는 평균 순위라
+*   이들은 모두 146.5위, G1 = G2 = 0. 로그를 쓰는 분산 분해·규모 탄력성은 사용 > 0인 129개.
+* 정의(소분류 163개, 2026-04·05 월별 비중 단순평균):
 *   상대 활용도 1  use1 = ru1 = A / es      es = 취업자 비중(%, 163개 전체)
 *   상대 활용도 2  use2 = ru2 = B / hs      hs = 총 주업 근로시간 비중(%)
 *   지표 A    A = shA,  지표 B  B = shB  (%)
 *   → ln A = ln use1 + ln es,  ln B = ln use2 + ln hs   (assert)
 *     두 쌍의 순위 차이는 모두 직업 규모(E, H)에서 온다.
-*   순위 r(·): 129개 안, 1 = 최상위, 동순위 없음(unique; 같은 값은 ksco3 순)
+*   순위 r(·): 163개 안, 1 = 최상위, 같은 값은 평균 순위
 *   격차 G1 = r(use1) − r(A),  G2 = r(use2) − r(B)   (양수 = 점유율 순위가 활용도 순위보다 높음 = 큰 직업)
 *   분산 분해: var(ln A) = var(ln use1) + var(ln E) + 2 cov(ln use1, ln E)   (B도 같은 방식, use2·H)
 * 플래그: small = 1   지역별고용조사 2022 표본 수 < 30(분모 E, H가 불안정; 표에 † 표시)
@@ -59,12 +61,12 @@ keep ksco1 ksco1_title ksco3 ksco3_title n_obs small emp H hrs_wk shA shB es hs 
 keep if in_share
 drop in_share
 count
-assert r(N) == 129
+assert r(N) == 163
 generate double A = shA
 generate double B = shB
 rename (ru1 ru2) (use1 use2)                           // 아래 코드의 use1·use2 = RU1·RU2
-assert abs(ln(A) - (ln(use1) + ln(es))) < 1e-9
-assert abs(ln(B) - (ln(use2) + ln(hs))) < 1e-9
+assert abs(ln(A) - (ln(use1) + ln(es))) < 1e-9 if A > 0      // 2026-11-01: 사용 0이면 로그 없음
+assert abs(ln(B) - (ln(use2) + ln(hs))) < 1e-9 if B > 0
 drop shA shB es hs
 quietly summarize emp
 local t_E = r(sum)
@@ -74,10 +76,10 @@ generate double emp_sh = 100 * emp / `t_E'
 generate double H_sh   = 100 * H / `t_H'
 sort ksco3
 foreach v in use1 use2 A B emp H {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
-generate int G1 = r_use1 - r_A
-generate int G2 = r_use2 - r_B
+generate double G1 = r_use1 - r_A
+generate double G2 = r_use2 - r_B
 label variable A      "A 대화 점유율(%)"
 label variable B      "B 절감 시간 점유율(%)"
 label variable emp_sh "취업자 비중(%)"
@@ -115,7 +117,7 @@ foreach p in "use1 A" "use2 B" {
     }
 }
 foreach g in G1 G2 {
-    generate int a`g' = abs(`g')
+    generate double a`g' = abs(`g')
     quietly summarize a`g'
     post `pf' ("|`g'| 평균") (r(mean))
     post `pf' ("|`g'| 최대") (r(max))
@@ -185,14 +187,14 @@ foreach t in ///
     "\(G_1\)과 취업자 수의 Spearman 순위상관" ///
     "\(G_2\)와 총 주업 근로시간의 Spearman 순위상관" ///
     "\(G_1\)과 \(G_2\)의 Spearman 순위상관" ///
-    "\(\mathrm{var}(\ln \mathrm{A})\)" ///
+    "\(\mathrm{var}(\ln \mathrm{A})\)(사용 > 0인 소분류)" ///
     "\quad RU1 분산의 몫" ///
     "\quad 취업자 수 분산의 몫" ///
     "\quad 공분산(\(2\,\mathrm{cov}\))의 몫" ///
     "\(\ln\) RU1과 \(\ln E\)의 Pearson 상관" ///
     "\(\ln \mathrm{A}\)를 \(\ln E\)에 회귀한 기울기(규모 탄력성)" ///
     "\quad 같은 회귀의 \(R^2\)" ///
-    "\(\mathrm{var}(\ln \mathrm{B})\)" ///
+    "\(\mathrm{var}(\ln \mathrm{B})\)(사용 > 0인 소분류)" ///
     "\quad RU2 분산의 몫" ///
     "\quad 총 주업 근로시간 분산의 몫" ///
     "\quad 공분산(\(2\,\mathrm{cov}\))의 몫" ///
@@ -203,7 +205,7 @@ foreach t in ///
     "표본 30 미만 소분류 수: 지표 A 상위 10 중" ///
     "표본 30 미만 소분류 수: RU2 상위 10 중" ///
     "표본 30 미만 소분류 수: 지표 B 상위 10 중" ///
-    "표본 30 미만 소분류 수(129개 중)" ///
+    "표본 30 미만 소분류 수(163개 중)" ///
     "취업자 수 최댓값 / 최솟값(배)" ///
     "RU1과 취업자 수의 Spearman 순위상관" ///
     "지표 A와 취업자 수의 Spearman 순위상관" ///
@@ -256,7 +258,7 @@ foreach g in G1 G2 {
             local a "`r(s)'"
             fmt `s'[`k'] %5.2f
             local b "`r(s)'"
-            fmt `g'[`k'] %4.0f sign
+            fmt `g'[`k'] %9.0g sign
             local gg "`r(s)'"
             fmt emp[`k']/1000 %6.0fc
             local e "`r(s)'"
@@ -296,7 +298,7 @@ foreach u in use1 use2 {
         local a "`r(s)'"
         fmt `s'[`k'] %5.2f
         local b "`r(s)'"
-        fmt `g'[`k'] %4.0f sign
+        fmt `g'[`k'] %9.0g sign
         local gg "`r(s)'"
         fmt emp[`k']/1000 %6.0fc
         local e "`r(s)'"

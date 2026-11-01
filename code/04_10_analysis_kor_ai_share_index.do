@@ -10,8 +10,11 @@
 * 출력: $results/table/
 *   27_kor_ai_share_index.xlsx   시트 ksco3(지표가 있는 소분류 전부), ksco2(중분류 합), ksco1(대분류 합), top_d
 *   27_summary.tex, 27_top_fs.tex, 27_ksco1.tex, 27_dstats.tex, 27_top_d.tex   (paper 27 표)
+*   27_zero_usage_ksco3.xlsx     사용 0으로 둔 소분류 34개 목록(03_05의 kor_ksco3_zero_usage)
 *
-* 지표(소분류 j, 지표 표본 129개; 정의는 03_05 머리말):
+* 2026-11-01: 지표 표본을 163개 전부로 바꿈(사용자 결정). 한국 비중이 관측되지 않은 34개는 사용 0.
+*   순위는 평균 순위(같은 값은 같은 순위, 사용 0인 34개는 146.5위). 지표 D는 0/0인 8개가 결측.
+* 지표(소분류 j, 지표 표본 163개(사용 0 34개 포함); 정의는 03_05 머리말):
 *   A 대화 점유율 shA, B 절감 시간 점유율 shB, C 취업자 환산 절감 점유율 shC(= (B / hbar) 정규화)
 *   D 한국 특화도 spD = shA / shA_glb(같은 SOC→KSCO 배분을 GLOBAL 비중에 적용한 값과의 비)
 *   (참고) A0 = 모든 use case 비중으로 만든 A
@@ -48,20 +51,48 @@ end
 * 1. 지표
 * -----------------------------------------------------------------------------
 use "$proc/merged/kor_ai_usage_ksco3.dta", clear
-keep ksco1 ksco1_title ksco2 ksco2_title ksco3 ksco3_title emp hbar in_share shA shB shC spD shA0 shA_glb es ///
+keep ksco1 ksco1_title ksco2 ksco2_title ksco3 ksco3_title emp hbar in_share zero_use shA shB shC spD shA0 shA_glb es ///
     ru1 ru2 small conv_lb n_month_conv
 count
 keep if in_share
-assert !missing(shA, shB, shC, spD, emp, hbar) & emp > 0
+assert !missing(shA, shB, shC, emp, hbar) & emp > 0
+assert !missing(spD) if !zero_use
 count
 local n3 = r(N)
+assert `n3' == 163
+quietly count if zero_use
+local nz = r(N)
+
+* 사용 0으로 둔 소분류 목록(별도 엑셀)
+preserve
+use "$proc/merged/kor_ksco3_zero_usage.dta", clear
+assert _N == `nz'
+label variable ksco3       "KSCO 8차 소분류"
+label variable ksco3_title "소분류 명칭"
+label variable ksco2       "중분류"
+label variable ksco2_title "중분류 명칭"
+label variable ksco1       "대분류"
+label variable ksco1_title "대분류 명칭"
+label variable emp         "취업자 수(2022 상반기)"
+label variable es          "취업자 비중(%, 163개)"
+label variable H           "월 총 주업 근로시간(2022 상반기)"
+label variable hs          "근로시간 비중(%, 163개)"
+label variable n_obs       "지역별고용조사 표본 수"
+label variable small       "1 = 표본 30 미만"
+label variable hbar        "1인당 월 주업 근로시간"
+label variable n_ksco8     "소분류에 속한 세분류 수(연계표)"
+label variable shA_glb     "GLOBAL 업무용 대화 점유율(%, 163개 안)"
+label variable glb_obs     "1 = GLOBAL 비중은 관측됨(한국만 미관측)"
+label variable spD         "지표 D(0 = GLOBAL 관측, 결측 = GLOBAL도 미관측)"
+export excel using "`out'/27_zero_usage_ksco3.xlsx", sheet("zero_use") firstrow(varlabels) replace
+restore
 
 quietly summarize emp
-generate double ES = 100 * emp / r(sum)                 // 같은 129개 안 취업자 비중(비교용)
+generate double ES = 100 * emp / r(sum)                 // 163개 안 취업자 비중(= es, 비교용)
 generate double fs_per10k = shC / 100 * 10000          // 전국 1만 명분일 때 배분 인원
 generate double xcap = emp / (shC / 100)               // 배분 인원 = 취업자 수가 되는 전국 X
 foreach v in shA shB shC spD shA0 ru1 ru2 {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
 
 * 확인: 점유율 합 100
@@ -118,11 +149,11 @@ foreach v in shA shB shC shA0 ES {
     quietly summarize `v' in 1/30
     local t30_`v' = r(sum)
 }
-* 순위상관(Spearman)
+* 순위상관(Spearman). D가 들어가는 쌍은 사용이 관측된 소분류만(사용 0이면 D = 0 또는 결측이라 비교 의미 없음)
 local cv "shA shB shC shA0 ru1 ru2 spD"
 foreach a of local cv {
     foreach b of local cv {
-        quietly spearman `a' `b'
+        quietly spearman `a' `b' if !zero_use | ("`a'" != "spD" & "`b'" != "spD")
         local rho_`a'_`b' = r(rho)
     }
 }
@@ -195,7 +226,14 @@ list ksco3 ksco3_title shC shA shB r_shA r_shB r_ru2 spD in 1/20, noobs abbrevia
 * 4. 지표 D: 분포와 목록(A ≥ dmin%)
 * -----------------------------------------------------------------------------
 use `k3', clear
-quietly summarize spD, detail
+* D의 분포는 한국 사용이 관측된 소분류에서만 본다(사용 0이면 D = 0 또는 0/0이라 비교 의미 없음)
+quietly count if !zero_use
+local d_nobs = r(N)
+quietly count if zero_use & spD == 0
+local d_z0 = r(N)
+quietly count if zero_use & missing(spD)
+local d_zmiss = r(N)
+quietly summarize spD if !zero_use, detail
 local d_p10 = r(p10)
 local d_p50 = r(p50)
 local d_p90 = r(p90)
@@ -206,9 +244,9 @@ generate double wD = shA * spD
 quietly summarize wD
 local d_wA = r(sum) / 100
 drop wD
-quietly count if spD > 1
+quietly count if spD > 1 & !missing(spD)             // 결측(사용 0이면서 GLOBAL도 미관측)은 세지 않음
 local d_gt1 = r(N)
-quietly summarize shA if spD > 1
+quietly summarize shA if spD > 1 & !missing(spD)
 local d_gt1A = r(sum)
 quietly count if shA >= `dmin'
 local d_n = r(N)
@@ -218,15 +256,16 @@ local d_p90b = r(p90)
 file open `fh' using "`out'/27_dstats.tex", write replace
 file write `fh' "% 04_10_analysis_kor_ai_share_index.do가 생성. 직접 고치지 말 것." _n
 fmt `d_p50' %5.2f
-file write `fh' "D 중앙값(129개) & `r(s)' \\" _n
+file write `fh' "D 중앙값(사용이 관측된 `d_nobs'개) & `r(s)' \\" _n
 fmt `d_p10' %5.2f
 local a "`r(s)'"
 fmt `d_p90' %5.2f
-file write `fh' "D 10분위 / 90분위(129개) & `a' / `r(s)' \\" _n
+file write `fh' "D 10분위 / 90분위(사용이 관측된 `d_nobs'개) & `a' / `r(s)' \\" _n
 fmt `d_min' %5.2f
 local a "`r(s)'"
 fmt `d_max' %5.2f
-file write `fh' "D 최솟값 / 최댓값(129개) & `a' / `r(s)' \\" _n
+file write `fh' "D 최솟값 / 최댓값(사용이 관측된 `d_nobs'개) & `a' / `r(s)' \\" _n
+file write `fh' "사용 0인 `nz'개의 D: 0(GLOBAL 관측) / 결측(GLOBAL도 미관측) & `d_z0' / `d_zmiss' \\" _n
 fmt `d_p10b' %5.2f
 local a "`r(s)'"
 fmt `d_p90b' %5.2f
@@ -236,16 +275,16 @@ file write `fh' "D \$>\$ 1인 소분류 수(한국 A 합, \%) & `d_gt1' (`r(s)')
 fmt `d_wA' %5.2f
 file write `fh' "한국 A로 가중한 D 평균 & `r(s)' \\" _n
 fmt `rho_shA_spD' %5.2f
-file write `fh' "D와 A의 Spearman 순위상관 & `r(s)' \\" _n
+file write `fh' "D와 A의 Spearman 순위상관(사용이 관측된 `d_nobs'개) & `r(s)' \\" _n
 fmt `rho_ru1_spD' %5.2f
-file write `fh' "D와 RU1의 Spearman 순위상관 & `r(s)' \\" _n
+file write `fh' "D와 RU1의 Spearman 순위상관(사용이 관측된 `d_nobs'개) & `r(s)' \\" _n
 fmt `rho_shA_shA0' %5.3f
 file write `fh' "A와 A0의 Spearman 순위상관 & `r(s)' \\" _n
 file write `fh' "A와 A0의 상위 30 겹침(개) & `ov_A_A0' \\" _n
 file close `fh'
 
 keep if shA >= `dmin'
-egen int r_d_sub = rank(-spD), unique
+egen double r_d_sub = rank(-spD)
 generate byte side = .
 quietly count
 local nd = r(N)
@@ -280,7 +319,7 @@ collapse (sum) shA shB shC shA_glb ES (count) n_ksco3 = shA, by(ksco2 ksco2_titl
 isid ksco2
 generate double spD = shA / shA_glb
 foreach v in shA shB shC {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
 label variable ksco2       "중분류"
 label variable ksco2_title "중분류 명칭"

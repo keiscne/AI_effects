@@ -11,11 +11,13 @@
 *   29_reg.tex, 29_agree.tex, 29_abc.tex, 29_top_OE.tex, 29_top_FEL.tex, 29_top_ELO.tex,
 *   29_size.tex, 29_robust_pos.tex, 29_robust_neg.tex, 29_ksco1.tex   (paper 29 표)
 *
-* 지표(04_11_analysis_kor_share_vs_exposure.do와 같은 정의, 소분류 129개에서 다시 계산):
+* 2026-11-01: 표본을 163개로(사용 0 34개 포함, 사용자 결정). 순위는 평균 순위(사용 0은 146.5위).
+*   로그를 쓰는 LR·RE는 사용 > 0인 소분류만(ln 0 결측). DS·RG는 163개.
+* 지표(04_11_analysis_kor_share_vs_exposure.do와 같은 정의, 소분류 163개에서 다시 계산):
 *   점유율 m ∈ {CS(A), SS(B), FS(C)}(%), 노출도 x ∈ {OE, FEL, ELO},
 *   노출도 기반 점유율 XS_x = 100 × emp × x / Σ(emp × x), x ∈ {OE, ELO}
 * 격차(모두 양수 = 실제 사용이 노출도보다 큼, 작업자 판단):
-*   방법 1 RG_m_x = r_x − r_m   (129개 안 순위, 1 = 최상위, 동순위 없음(unique))
+*   방법 1 RG_m_x = r_x − r_m   (163개 안 순위, 1 = 최상위, 같은 값은 평균 순위)
 *   방법 3 DS_m_x = m − XS_x   (%p, 합 0), LR_m_x = ln(m / XS_x)   (x ∈ {OE, ELO}; OE = 0인 13개는 LR 결측)
 *   방법 4 RE_m_x = ln(m)을 x와 ln(emp)에 회귀(OLS, robust SE)한 잔차
 * 격차 상위·하위 10: 격차 값으로 정렬, 같은 값은 ksco3 순. 강건 목록: 지표 C의 목록 8개
@@ -54,7 +56,7 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
 keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
-assert r(N) == 129
+assert r(N) == 163
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
 
 generate double fte = shB / hbar
@@ -71,7 +73,7 @@ generate double XS_OE  = 100 * eoe / `t_eoe'
 generate double XS_ELO = 100 * eel / `t_eel'
 drop fte eoe eel shA shB hbar
 foreach v in CS SS FS OE FEL ELO XS_OE XS_ELO {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
 generate double ln_emp = ln(emp)
 
@@ -91,7 +93,7 @@ foreach m of local M {
     generate double ln_`m' = ln(`m')
     foreach x of local X {
         local ++i
-        generate int RG_`m'_`x' = r_`x' - r_`m'
+        generate double RG_`m'_`x' = r_`x' - r_`m'
         label variable RG_`m'_`x' "방법1 순위 격차 `m'-`x'"
         if "`x'" != "FEL" {
             generate double DS_`m'_`x' = `m' - XS_`x'
@@ -108,8 +110,11 @@ foreach m of local M {
     }
 }
 matrix list REG, format(%7.3f)
+* LR는 사용 0(ln 0) 또는 OE = 0(XS = 0)이면 결측, 회귀(RE)는 사용 > 0인 소분류만(2026-11-01)
+assert missing(LR_FS_OE) == (FS == 0 | XS_OE == 0)
+assert missing(RE_FS_OE) == (FS == 0)
 count if missing(LR_FS_OE)
-assert r(N) == 13
+display "LR 결측(사용 0 또는 OE = 0): " r(N)
 
 * 부호 확인용(노트): 지표 C의 격차가 양수인 소분류 수
 foreach v of varlist RG_FS_* DS_FS_* RE_FS_* {
@@ -316,7 +321,7 @@ foreach x of local X {
         local g  = 방법[`k']
         local sd = 방향[`k']
         local r  = 순위[`k']
-        if "`g'" == "RG" fmt 격차[`k'] %4.0f sign
+        if "`g'" == "RG" fmt 격차[`k'] %9.0g sign
         if "`g'" == "DS" fmt 격차[`k'] %5.2f sign
         if "`g'" == "RE" fmt 격차[`k'] %5.2f sign
         local c_`sd'_`g'_`r' "`=ksco3[`k']' `=ksco3_title[`k']' (`r(s)')"

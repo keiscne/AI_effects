@@ -10,7 +10,8 @@
 *   36_fig_dumbbell_C_ELO       지표 C × Eloundou β 순위 격차 상위·하위 30 덤벨 그래프
 *   36_fig_heatmap_robust       9개 쌍 격차 목록 중 7개 이상에 든 소분류 × 9개 쌍의 순위 격차 히트맵
 *
-* 순위·격차 정의는 04_18·04_19와 같다: 129개 소분류, 값 내림차순(같은 값은 코드 순),
+* 순위·격차 정의는 04_18·04_19와 같다: 163개 소분류(사용 0인 34개 포함), 값 내림차순(같은 값은 평균 순위),
+*   목록은 30번째와 같은 값을 모두 포함(경계 동점),
 *   순위 격차 G = r(노출도) − r(사용)(양수 = 사용 > 노출도).
 * 색(dataviz 참고 팔레트, 검증기로 확인): 범주 1 파랑 #2a78d6, 2 주황 #eb6834, 3 청록 #1baf7a,
 *   그 밖 회색 #9a9893. 발산(격차) 파랑(+) ↔ 빨강(−), 가운데 회색 #f0efec.
@@ -65,16 +66,15 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title shA shB shC lm_aioe elo_gpt4_beta observed_exposure
 keep if !missing(shA, shB, shC, lm_aioe, elo_gpt4_beta, observed_exposure)
 count
-assert r(N) == 129
+assert r(N) == 163
 local N = r(N)
 rename (shA shB shC lm_aioe elo_gpt4_beta observed_exposure) (A B C FEL ELO OE)
 foreach v in A B C FEL ELO OE {
-    gsort -`v' ksco3
-    generate int r_`v' = _n
+    egen double r_`v' = rank(-`v')
 }
 foreach m in A B C {
     foreach x in FEL ELO OE {
-        generate int g_`m'_`x' = r_`x' - r_`m'
+        generate double g_`m'_`x' = r_`x' - r_`m'
     }
 }
 * 그림 라벨: 코드 + 이름(16자 넘으면 줄임)
@@ -88,6 +88,7 @@ save `k3'
 * -----------------------------------------------------------------------------
 use `k3', clear
 keep if r_C <= `ntop'
+assert _N == `ntop'                                    // 상위 30에는 동점이 없다
 * 상위 30 안에서 소분류가 많은 대분류 3개에 색, 나머지는 기타
 bysort ksco1: generate int nk = _N
 preserve
@@ -130,7 +131,7 @@ twoway `bars', ///
     xtitle("지표 C: 취업자 환산 절감 점유율(%)", size(small) margin(t=3)) ///
     legend(order(`legspec') cols(1) size(vsmall) symxsize(3) keygap(1) position(4) ring(0) region(lcolor(white) fcolor(white))) ///
     title("지표 C 상위 30 소분류", size(medium) color("`c_ink'")) ///
-    note("KSCO 8차 소분류 129개 중." "색 = 대분류(상위 30 안에서 소분류가 많은 3개, 나머지는 기타).", size(vsmall) span) ///
+    note("KSCO 8차 소분류 163개(사용 0인 34개 포함) 중." "색 = 대분류(상위 30 안에서 소분류가 많은 3개, 나머지는 기타).", size(vsmall) span) ///
     `gopt' graphregion(margin(l=20 r=4)) xsize(10) ysize(9)
 savefig "`fig'/34_fig_ksco3_top30_C"
 
@@ -143,15 +144,15 @@ rename (r_FEL r_ELO r_OE) (rx1 rx2 rx3)
 reshape long rx, i(ksco3) j(xi)
 label define xilab 1 "Felten AIOE" 2 "Eloundou β" 3 "Observed Exposure"
 label values xi xilab
-generate int G = rx - r_C
+generate double G = rx - r_C
 generate byte hi = cond(G >= 60, 1, cond(G <= -60, 2, 0))
-generate str3 code = ksco3 if hi > 0
+generate str3 code = ksco3 if hi > 0 & r_C < 146   // 사용 0(146.5 동점) 줄은 라벨이 겹쳐 빼고 노트에 적는다
 quietly count if hi > 0
 display "산점도 라벨 수(|G| >= 60): " r(N)
 * 같은 칸에서 라벨이 겹치는 점(가로 8, 세로 5순위 안): 코드가 큰 쪽의 라벨을 왼쪽(9시)에 붙인다
 generate byte lpos = 3
 preserve
-keep if hi > 0
+keep if hi > 0 & r_C < 146
 keep xi ksco3 rx r_C
 tempfile hp
 save `hp'
@@ -173,14 +174,14 @@ twoway (line rx rx, sort lcolor("`c_light'") lwidth(thin)) ///
         mlabel(code) mlabsize(vsmall) mlabcolor("`c_ink'") mlabvposition(lpos)) ///
     (scatter r_C rx if hi == 2, msymbol(O) msize(small) mcolor("`c_orange'") mlwidth(none) ///
         mlabel(code) mlabsize(vsmall) mlabcolor("`c_ink'") mlabvposition(lpos)), ///
-    by(xi, rows(1) note("") title("지표 C 순위와 노출도 순위(소분류 129개)", size(medium) color("`c_ink'")) ///
+    by(xi, rows(1) note("지표 C 순위 146.5의 가로줄 = 사용 0인 34개(동점). 이 줄의 점에는 코드 라벨을 달지 않았다.", size(vsmall)) title("지표 C 순위와 노출도 순위(소분류 163개, 사용 0인 34개는 146.5)", size(medium) color("`c_ink'")) ///
         graphregion(color(white)) plotregion(color(white))) ///
     subtitle(, size(small) fcolor(white) lcolor(white)) ///
     xscale(reverse range(1 `N')) yscale(reverse range(1 `N')) ///
-    xlabel(1 30 60 90 129, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
-    ylabel(1 30 60 90 129, labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin)) ///
-    xline(30.5 99.5, lpattern(dash) lcolor("`c_light'") lwidth(vthin)) ///
-    yline(30.5 99.5, lpattern(dash) lcolor("`c_light'") lwidth(vthin)) ///
+    xlabel(1 30 60 90 120 163, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+    ylabel(1 30 60 90 120 163, labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin)) ///
+    xline(30.5 133.5, lpattern(dash) lcolor("`c_light'") lwidth(vthin)) ///
+    yline(30.5 133.5, lpattern(dash) lcolor("`c_light'") lwidth(vthin)) ///
     xtitle("노출도 순위(1 = 가장 높음)", size(small)) ytitle("지표 C 순위(1 = 가장 높음)", size(small)) ///
     legend(order(3 "사용 > 노출도(격차 60계단 이상)" 4 "노출도 > 사용(격차 60계단 이상)" 2 "그 밖") ///
         rows(1) size(small) region(lcolor(white))) ///
@@ -192,12 +193,14 @@ savefig "`fig'/35_fig_rank_scatter_C"
 * -----------------------------------------------------------------------------
 foreach side in pos neg {
     use `k3', clear
-    if "`side'" == "pos" gsort -g_C_ELO ksco3
-    else                 gsort  g_C_ELO ksco3
-    keep in 1/`ntop'
+    if "`side'" == "pos" egen double rk = rank(-g_C_ELO)
+    else                 egen double rk = rank(g_C_ELO)
+    gsort rk ksco3
+    keep if rk <= rk[`ntop']                            // 경계 동점 포함(04_19 목록과 같음)
     generate int pos = _n
+    local np = _N
     capture label drop dlab`side'
-    forvalues i = 1/`ntop' {
+    forvalues i = 1/`np' {
         local l = lab[`i'] + " (" + cond(g_C_ELO[`i'] > 0, "+", "") + string(g_C_ELO[`i']) + ")"
         label define dlab`side' `i' `"`l'"', add
     }
@@ -207,8 +210,8 @@ foreach side in pos neg {
     twoway (rspike r_C r_ELO pos, horizontal lcolor("`c_light'") lwidth(medthick)) ///
         (scatter pos r_C, msymbol(O) msize(medsmall) mcolor("`c_blue'") mlwidth(none)) ///
         (scatter pos r_ELO, msymbol(O) msize(medsmall) mcolor("`c_orange'") mlwidth(none)), ///
-        yscale(reverse) ylabel(1/`ntop', valuelabel angle(0) labsize(vsmall) noticks nogrid) ytitle("") ///
-        xscale(range(1 `N')) xlabel(1 30 60 90 129, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+        yscale(reverse) ylabel(1/`np', valuelabel angle(0) labsize(vsmall) noticks nogrid) ytitle("") ///
+        xscale(range(1 `N')) xlabel(1 30 60 90 120 163, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
         xtitle("순위(1 = 가장 높음)", size(small) margin(t=3)) ///
         title("`ttl'", size(medsmall) color("`c_ink'")) ///
         legend(`lg' order(2 "지표 C 순위" 3 "Eloundou β 순위") rows(1) size(small) region(lcolor(white))) ///
@@ -229,10 +232,14 @@ local pairs ""
 foreach m in A B C {
     foreach x in FEL ELO OE {
         local pairs "`pairs' `m'_`x'"
-        gsort -g_`m'_`x' ksco3
-        generate byte inpos_`m'_`x' = _n <= `ntop'
-        gsort g_`m'_`x' ksco3
-        generate byte inneg_`m'_`x' = _n <= `ntop'
+        egen double rk = rank(-g_`m'_`x')
+        gsort rk ksco3
+        generate byte inpos_`m'_`x' = rk <= rk[`ntop']
+        drop rk
+        egen double rk = rank(g_`m'_`x')
+        gsort rk ksco3
+        generate byte inneg_`m'_`x' = rk <= rk[`ntop']
+        drop rk
     }
 }
 egen byte kpos = rowtotal(inpos_*)
@@ -270,7 +277,7 @@ generate byte bin = cond(G <= -60, 1, cond(G <= -30, 2, cond(G <= -10, 3, cond(G
 generate double x0 = col - 0.48
 generate double x1 = col + 0.48
 local bincols "d_n3 d_n2 d_n1 d_0 d_p1 d_p2 d_p3"
-local binlab `""−60 이하" "−59~−30" "−29~−10" "−9~+9" "+10~+29" "+30~+59" "+60 이상""'
+local binlab `""−60 이하" "−59.5~−30" "−29.5~−10" "−9.5~+9.5" "+10~+29.5" "+30~+59.5" "+60 이상""'
 local layers ""
 local legspec ""
 local k = 0
@@ -281,7 +288,7 @@ forvalues b = 1/7 {
     local ++k
     local legspec `"`legspec' `k' "`bl'""'
 }
-generate str4 gtxt = cond(G > 0, "+", "") + string(G)
+generate str8 gtxt = cond(G > 0, "+", "") + string(G)
 twoway `layers' ///
     (scatter row col if inlist(bin, 1, 7), msymbol(none) mlabel(gtxt) mlabposition(0) mlabsize(tiny) mlabcolor(white)) ///
     (scatter row col if !inlist(bin, 1, 7), msymbol(none) mlabel(gtxt) mlabposition(0) mlabsize(tiny) mlabcolor("`c_ink'")), ///
@@ -294,5 +301,5 @@ twoway `layers' ///
     subtitle("격차 목록 9개 중 7개 이상에 든 소분류", size(small) color("`c_ink'")) ///
     note("위: 사용 > 노출도(평균 격차 큰 순), 아래: 노출도 > 사용(평균 격차 작은 순)." ///
         "G = 노출도 순위 − 사용 순위.", size(vsmall) span) ///
-    `gopt' graphregion(margin(l=22 r=4)) xsize(10) ysize(11)
+    `gopt' graphregion(margin(l=22 r=4)) xsize(12) ysize(11)
 savefig "`fig'/36_fig_heatmap_robust"

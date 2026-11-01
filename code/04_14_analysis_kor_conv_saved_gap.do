@@ -17,9 +17,11 @@
 *                                soc(소분류 × SOC 기여), ksco1, stats
 *   31_summary.tex, 31_top_pos.tex, 31_top_neg.tex, 31_top30A.tex, 31_ksco1.tex   (paper 31 표)
 *
-* 정의(paper 27과 같음, 소분류 129개):
+* 2026-11-01: 표본 163개(한국 사용이 관측되지 않은 34개는 A = B = 0, 사용자 결정). 순위는 평균 순위라 이들은
+*   A·B 모두 146.5위, RG = 0. tau·LR(로그)는 사용 > 0인 129개만.
+* 정의(paper 27과 같음, 소분류 163개):
 *   A = shA, B = shB(%, 03_05 정의)
-*   순위 r(·): 129개 안, 1 = 최상위, 동순위 없음(unique; 같은 값은 ksco3 순)
+*   순위 r(·): 163개 안, 1 = 최상위, 같은 값은 평균 순위
 *   순위 격차 RG = r(A) − r(B)   (양수 = 절감 시간 순위가 대화 순위보다 높음)
 *   점유율 차이 DS = B − A(%p, 합 0), 로그 비율 LR = ln(B / A)
 *   tau = 대화당 실효 절감 시간(분) = tau_eff = tau_bar × B / A, tau_bar = tbar(표본 전체 대화당 평균 절감 시간)
@@ -148,8 +150,8 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title emp shA shB tau_eff tbar ts_cover observed_exposure lm_aioe elo_gpt4_beta
 keep if !missing(shA, shB)
 count
-assert r(N) == 129
-assert abs(ts_cover - 1) < 1e-9
+assert r(N) == 163
+assert abs(ts_cover - 1) < 1e-9 if shA > 0          // 2026-11-01: 사용 0 소분류는 덮개·tau가 0/0이라 결측
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
 local tau_bar = tbar[1]
 generate double A   = shA
@@ -157,13 +159,14 @@ generate double B   = shB
 generate double tau = tau_eff
 drop shA shB tbar
 sort ksco3
-egen int r_A = rank(-A), unique
-egen int r_B = rank(-B), unique
-egen int r_tau = rank(-tau), unique
-generate int    RG = r_A - r_B
+egen double r_A = rank(-A)
+egen double r_B = rank(-B)
+egen double r_tau = rank(-tau)
+generate double RG = r_A - r_B
 generate double DS = B - A
 generate double LR = ln(B / A)
-assert abs(LR - ln(tau / `tau_bar')) < 1e-9
+assert abs(LR - ln(tau / `tau_bar')) < 1e-9 if A > 0
+assert missing(LR, tau) == (A == 0) & RG == 0 if A == 0
 quietly summarize DS
 assert abs(r(sum)) < 1e-9
 generate double ln_emp = ln(emp)
@@ -180,7 +183,7 @@ display "tau_bar = " %6.2f `tau_bar' " 분"
 merge 1:1 ksco3 using `topsoc', keep(master match) nogenerate
 merge 1:1 ksco3 using `upsoc',  keep(master match) nogenerate
 merge 1:1 ksco3 using `dnsoc',  keep(master match) nogenerate
-assert !missing(top_soc, up_soc, dn_soc)
+assert !missing(top_soc, up_soc, dn_soc) if A > 0
 order ksco3 ksco3_title ksco1 ksco1_title emp A B r_A r_B RG DS LR tau r_tau
 gsort -RG ksco3
 export excel ksco3-r_tau OE FEL ELO top_* up_* dn_* using "`xl'", sheet("ksco3") firstrow(variables) replace
@@ -207,13 +210,13 @@ foreach s in p50 min max {
 post `pf' ("tau p90/p10") (r(p90) / r(p10))
 quietly summarize RG
 post `pf' ("|RG| 최대") (max(abs(r(min)), r(max)))
-generate int aRG = abs(RG)
+generate double aRG = abs(RG)
 quietly summarize aRG
 post `pf' ("|RG| 평균") (r(mean))
 quietly count if aRG >= 20
 post `pf' ("|RG| >= 20 소분류 수") (r(N))
-generate byte grpA = cond(r_A <= 43, 1, cond(r_A <= 86, 2, 3))
-forvalues g = 1/3 {
+generate byte grpA = cond(r_A <= 43, 1, cond(r_A <= 86, 2, cond(r_A <= 129, 3, 4)))   // 4 = 사용 0(146.5위)
+forvalues g = 1/4 {
     quietly summarize aRG if grpA == `g'
     post `pf' ("|RG| 평균, A 순위 그룹 `g'") (r(mean))
 }
@@ -248,15 +251,16 @@ local tl10 "\(|\mathrm{RG}| \ge 20\)인 소분류 수"
 local tl11 "\(|\mathrm{RG}|\) 평균: A 순위 1\(\sim\)43위"
 local tl12 "\(|\mathrm{RG}|\) 평균: A 순위 44\(\sim\)86위"
 local tl13 "\(|\mathrm{RG}|\) 평균: A 순위 87\(\sim\)129위"
-local tl14 "RG와 LR의 Spearman 순위상관"
-local tl15 "RG와 취업자 수의 Spearman 순위상관"
-local tl16 "\(\tau\)와 취업자 수의 Spearman 순위상관"
-local tl17 "\(\tau\)와 Observed exposure의 Spearman 순위상관"
-local tl18 "\(\tau\)와 Felten LM AIOE의 Spearman 순위상관"
-local tl19 "\(\tau\)와 Eloundou GPT-4 \(\beta\)의 Spearman 순위상관"
+local tl14 "\(|\mathrm{RG}|\) 평균: 사용 0(A·B 모두 146.5위)"
+local tl15 "RG와 LR의 Spearman 순위상관(사용 > 0)"
+local tl16 "RG와 취업자 수의 Spearman 순위상관"
+local tl17 "\(\tau\)와 취업자 수의 Spearman 순위상관(사용 > 0)"
+local tl18 "\(\tau\)와 Observed exposure의 Spearman 순위상관(사용 > 0)"
+local tl19 "\(\tau\)와 Felten LM AIOE의 Spearman 순위상관(사용 > 0)"
+local tl20 "\(\tau\)와 Eloundou GPT-4 \(\beta\)의 Spearman 순위상관(사용 > 0)"
 forvalues k = 1/`=_N' {
     local f "%6.2f"
-    if inlist(`k', 3, 4, 5, 6, 9, 11, 12, 13) local f "%6.1f"
+    if inlist(`k', 3, 4, 5, 6, 9, 11, 12, 13, 14) local f "%6.1f"
     if inlist(`k', 8, 10) local f "%4.0f"
     fmt 값[`k'] `f'
     file write `fh' "`tl`k'' & `r(s)' \\" _n
@@ -284,7 +288,7 @@ foreach sd in pos neg {
         local a "`r(s)'"
         fmt B[`k'] %5.2f
         local b "`r(s)'"
-        fmt RG[`k'] %4.0f sign
+        fmt RG[`k'] %9.0g sign
         local g "`r(s)'"
         fmt tau[`k'] %5.0f
         local t "`r(s)'"
@@ -319,7 +323,7 @@ forvalues k = 1/`=_N' {
     local a "`r(s)'"
     fmt B[`k'] %5.2f
     local b "`r(s)'"
-    fmt RG[`k'] %4.0f sign
+    fmt RG[`k'] %9.0g sign
     local g "`r(s)'"
     fmt DS[`k'] %5.2f sign
     local ds "`r(s)'"

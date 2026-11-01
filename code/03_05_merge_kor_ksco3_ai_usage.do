@@ -22,7 +22,13 @@
 *
 * 결정(사용자, 2026-10-17·10-24): 분모 = 지역별고용조사 2022년 상반기, 분석 단위 = 소분류(중분류·대분류도 계산),
 *   분모 근로시간 = 지역별고용조사(다른 조사는 강건성), 절감 시간 = SOC 단계에서 곱한 뒤 배분, 두 달 = 월별 비중 단순평균.
-* 정의(소분류 j, 월 t; 표본 = 한국 비중이 한 달이라도 있는 소분류(지표 표본, 129개), 결측 달은 0):
+* 지표 표본(2026-11-01 변경, 사용자 결정): 지역별고용조사 소분류 163개 전부(in_share = 1).
+*   한국 업무용 대화 비중이 두 달 모두 관측되지 않은 34개(zero_use = 1)는 제외하지 않고 사용 0으로 둔다.
+*   관측된 129개는 obs_share = 1. 0을 더해도 합이 같으므로 129개의 A·B·C·RU 값은 바뀌지 않는다.
+*   GLOBAL 비중(shA_glb)은 163개 안에서 정규화하므로 지표 D는 모든 소분류에서 조금 바뀐다.
+*   0인 소분류의 D는 shA_glb > 0이면 0, shA_glb = 0이면 결측(0/0). tau_eff·ts_cover도 0/0이라 결측.
+*   사용 0 목록: $proc/merged/kor_ksco3_zero_usage.{dta,csv}
+* 정의(소분류 j, 월 t; 표본 = 위 163개, 관측되지 않은 달·소분류는 0):
 *   a_jt = share_work_jt / Σ_k share_work_kt        월 t 표본 안 업무용 대화 비중
 *   b_jt = saved_w_jt / Σ_k saved_w_kt              월 t 표본 안 절감 시간 비중
 *   지표 A  shA_j = 100 × (a_j04 + a_j05) / 2        대화 점유율(%)
@@ -181,9 +187,13 @@ merge m:1 ksco1 using `t1', keep(master match) nogenerate
 merge m:1 ksco2 using `t2', keep(master match) nogenerate
 assert !missing(ksco1_title, ksco2_title)
 
-* 지표 표본: 한국 비중이 한 달이라도 있는 소분류
-generate byte in_share = n_month_conv > 0
-* 결측 달은 0(미공개 셀의 몫은 이미 공개 셀에 비례 배분되어 있음, paper 19의 B2)
+* 지표 표본: 163개 전부(2026-11-01). 한 달도 관측되지 않은 소분류는 사용 0(zero_use)
+generate byte obs_share = n_month_conv > 0
+generate byte zero_use  = !obs_share
+generate byte in_share  = 1
+count if zero_use
+assert r(N) == 34
+* 결측 달·소분류는 0(미공개 셀의 몫은 이미 공개 셀에 비례 배분되어 있음, paper 19의 B2)
 foreach v of local num {
     foreach mm in 04 05 {
         generate double z_`v'`mm' = cond(in_share, cond(missing(`v'`mm'), 0, `v'`mm'), .)
@@ -227,7 +237,7 @@ generate double tbar    = `tbar'
 generate double tau_eff = tbar * shB / shA
 generate double hrs_wk  = H / emp / `wk2mo'
 generate double ts_cover = (cond(missing(sw_ts04), 0, sw_ts04) + cond(missing(sw_ts05), 0, sw_ts05)) / ///
-    (cond(missing(sw04), 0, sw04) + cond(missing(sw05), 0, sw05)) if in_share
+    (cond(missing(sw04), 0, sw04) + cond(missing(sw05), 0, sw05)) if obs_share
 generate byte small = n_obs < 30
 display as text "tbar(대화당 평균 절감 시간, 분) = " %6.2f `tbar'
 * 확인: 점유율 합 100, 비중이 있으면 절감 시간 덮개 1, D의 GLOBAL 가중 평균 1, RU의 규모 가중 평균 1
@@ -235,8 +245,12 @@ foreach v in shA shB shC shA0 shA_glb {
     quietly summarize `v'
     assert abs(r(sum) - 100) < 1e-9
 }
-assert abs(ts_cover - 1) < 1e-9 if in_share
-assert !missing(spD) if in_share
+assert abs(ts_cover - 1) < 1e-9 if obs_share
+assert !missing(spD) if obs_share
+* 사용 0 소분류: A·B·C·A0 = 0, D는 0(GLOBAL 몫이 있을 때) 또는 결측, tau_eff 결측
+assert shA == 0 & shB == 0 & shC == 0 & shA0 == 0 if zero_use
+assert shA > 0 & shB > 0 if obs_share
+assert missing(tau_eff) if zero_use
 generate double chk1 = ru1 * es
 generate double chk2 = ru2 * hs
 quietly summarize chk1
@@ -263,7 +277,9 @@ label variable hrs_mo_est   "고용형태별근로실태조사 `base' 임금근�
 label variable hrs_mo_hh_wage "지역별고용조사 `base' 임금근로자 월 주업시간(대분류, 주당 × 4.345)"
 label variable emp_b`alt'   "취업자 수(`alt' 상반기)"
 label variable H_b`alt'     "월 총 주업 근로시간(`alt' 상반기)"
-label variable in_share     "1 = 지표 표본(한국 업무용 대화 비중이 한 달이라도 있음)"
+label variable in_share     "1 = 지표 표본(2026-11-01부터 163개 전부)"
+label variable obs_share    "1 = 한국 업무용 대화 비중이 한 달이라도 관측됨(129개)"
+label variable zero_use     "1 = 두 달 모두 관측되지 않아 사용 0으로 둔 소분류(34개)"
 label variable n_month_conv "한국 비중이 있는 달 수(0~2)"
 label variable conv_lb      "1 = 세분류 일부만 한국 비중 있음(하한값)"
 foreach mm in 04 05 {
@@ -308,7 +324,7 @@ label variable observed_exposure "Observed exposure(w_mean 평균)"
 label variable lm_aioe           "Felten 언어모델 AIOE(w_mean 평균)"
 label variable elo_gpt4_beta     "Eloundou GPT-4 β(w_mean 평균)"
 order ksco1 ksco1_title ksco2 ksco2_title ksco3 ksco3_title n_obs small emp emp_wage H H_tot H_est r_est ///
-    in_share n_month_conv conv_lb n_ksco8 shA shB shC spD shA0 shA_glb es hs ru1 ru2 ru2_est ru2_tot ///
+    in_share obs_share zero_use n_month_conv conv_lb n_ksco8 shA shB shC spD shA0 shA_glb es hs ru1 ru2 ru2_est ru2_tot ///
     ru1_b`alt' ru2_b`alt' ru1_m04 ru1_m05 ru2_m04 ru2_m05 tau_eff tbar hbar hrs_wk ts_cover `expo'
 sort ksco3
 isid ksco3
@@ -316,7 +332,23 @@ compress
 save "`outd'/kor_ai_usage_ksco3.dta", replace
 export delimited using "`outd'/kor_ai_usage_ksco3.csv", replace
 count
-count if in_share
+count if obs_share
+
+* 사용 0으로 둔 소분류 목록(별도 보관)
+preserve
+keep if zero_use
+generate byte glb_obs = shA_glb > 0
+label variable glb_obs "1 = GLOBAL 업무용 대화 비중은 관측됨(한국만 미관측)"
+keep ksco1 ksco1_title ksco2 ksco2_title ksco3 ksco3_title n_obs small emp H es hs hbar n_ksco8 ///
+    shA_glb glb_obs spD `expo'
+order ksco3 ksco3_title ksco2 ksco2_title ksco1 ksco1_title emp es H hs n_obs small hbar n_ksco8 shA_glb glb_obs spD `expo'
+gsort -emp ksco3
+compress
+save "`outd'/kor_ksco3_zero_usage.dta", replace
+export delimited using "`outd'/kor_ksco3_zero_usage.csv", replace
+quietly summarize es
+display "사용 0 소분류: " _N "개, 취업자 비중 " %5.2f r(sum) "%"
+restore
 summarize shA shB shC spD ru1 ru2 ru2_est tau_eff hrs_wk, detail
 
 * -----------------------------------------------------------------------------
@@ -324,7 +356,7 @@ summarize shA shB shC spD ru1 ru2 ru2_est tau_eff hrs_wk, detail
 * -----------------------------------------------------------------------------
 foreach lv in 2 1 {
     use "`outd'/kor_ai_usage_ksco3.dta", clear
-    generate double emp_conv = emp * in_share
+    generate double emp_conv = emp * obs_share
     foreach v in H_est H_tot emp_b`alt' H_b`alt' {
         quietly summarize `v'
         generate double s_`v' = 100 * `v' / r(sum)
@@ -339,13 +371,13 @@ foreach lv in 2 1 {
     local up = cond(`lv' == 2, "ksco1 ksco1_title", "")
     collapse (sum) emp emp_wage H H_tot H_est emp_b`alt' H_b`alt' shA shB shC shA0 shA_glb p_sw04 p_sw05 p_sv04 p_sv05 ///
         es hs s_* emp_conv n_obs `nd' (first) tbar ///
-        (count) n_ksco3 = emp (sum) n_ksco3_conv = in_share n_ksco3_lb = conv_lb, by(ksco`lv' ksco`lv'_title `up')
+        (count) n_ksco3 = emp (sum) n_ksco3_conv = obs_share n_ksco3_zero = zero_use n_ksco3_lb = conv_lb, by(ksco`lv' ksco`lv'_title `up')
     foreach v of local expo {
         generate double `v' = n_`v' / d_`v' if d_`v' > 0
         drop n_`v' d_`v'
     }
     foreach v in shA shB shC shA0 shA_glb p_sw04 p_sw05 p_sv04 p_sv05 {
-        replace `v' = . if n_ksco3_conv == 0
+        assert !missing(`v')                 // 사용 0 소분류를 포함하므로 모든 중·대분류에 값이 있음(0 가능)
     }
     generate double spD       = shA / shA_glb
     generate double ru1       = shA / es
@@ -364,9 +396,10 @@ foreach lv in 2 1 {
     generate double emp_cover = emp_conv / emp
     drop emp_conv
     label variable n_ksco3      "소분류 수(지역별고용조사 2022에 있는 것)"
-    label variable n_ksco3_conv "그중 지표 표본 소분류 수"
+    label variable n_ksco3_conv "그중 한국 비중이 관측된 소분류 수"
+    label variable n_ksco3_zero "그중 사용 0으로 둔 소분류 수"
     label variable n_ksco3_lb   "그중 비중이 하한값인 소분류 수"
-    label variable emp_cover    "지표 표본 소분류의 취업자 비중"
+    label variable emp_cover    "한국 비중이 관측된 소분류의 취업자 비중"
     label variable shA          "지표 A: 대화 점유율(%, 소분류 합)"
     label variable shB          "지표 B: 절감 시간 점유율(%, 소분류 합)"
     label variable shC          "지표 C: 취업자 환산 절감 점유율(%, 소분류 합)"
@@ -381,7 +414,7 @@ foreach lv in 2 1 {
     label variable ru2_tot      "상대 활용도 2(분모 주업+부업)"
     label variable tau_eff      "대화당 실효 절감 시간(분)"
     label variable hrs_wk       "취업자 1인당 주당 주업 근로시간(`base')"
-    order ksco`lv' ksco`lv'_title n_ksco3 n_ksco3_conv n_ksco3_lb emp_cover emp H shA shB shC spD shA0 shA_glb es hs ///
+    order ksco`lv' ksco`lv'_title n_ksco3 n_ksco3_conv n_ksco3_zero n_ksco3_lb emp_cover emp H shA shB shC spD shA0 shA_glb es hs ///
         ru1 ru2 ru2_est ru2_tot ru1_b`alt' ru2_b`alt' ru1_m04 ru1_m05 ru2_m04 ru2_m05 tau_eff tbar hrs_wk `expo'
     sort ksco`lv'
     isid ksco`lv'

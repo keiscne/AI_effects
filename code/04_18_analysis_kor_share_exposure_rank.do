@@ -13,8 +13,10 @@
 *        A30, B30, C30  지표 A·B·C 상위·하위 30과 노출도 3개(값, 순위)
 *   35_spearman.tex, 35_cross.tex, 35_cross_rev.tex, 35_topC10.tex, 35_notes.tex   (paper 35 표)
 *
-* 표본: A~C와 노출도 3개가 모두 있는 KSCO 8차 소분류 129개(paper 27·28과 같은 표본, assert).
-* 순위: 129개 안, 값 내림차순(1 = 가장 큼), 같은 값은 소분류 코드 순. 상위 30 = 순위 1~30, 하위 30 = 순위 100~129.
+* 표본: KSCO 8차 소분류 163개(사용 0인 34개 포함, 2026-11-01; paper 27·28과 같은 표본, assert).
+* 순위: 163개 안, 값 내림차순(1 = 가장 큼), 같은 값은 평균 순위(사용 0인 34개는 모두 146.5).
+*   상위 30 = 순위 순 30번째와 같거나 높은 순위, 하위 30 = 뒤에서 30번째와 같거나 낮은 순위(경계 동점 포함이라 30개보다 많을 수 있다).
+*   지표 A·B·C 하위 목록은 사용 0인 34개 전부다.
 *   한 시트 안에 상위 30(순위 순) 다음 하위 30(순위 순)을 놓고 "구분" 열로 나눈다.
 * 매칭 키: ksco3(str3).
 * =============================================================================
@@ -54,15 +56,14 @@ program define texesc, rclass
     return local s `"`s'"'
 end
 
-* key 순위 상위·하위 n개를 한 시트로(구분 열, 순위 순). vars = 구분 뒤에 놓을 열.
+* key 상위·하위 목록(t_key, b_key)을 한 시트로(구분 열, 순위 순). vars = 구분 뒤에 놓을 열.
 capture program drop topbot
 program define topbot
     syntax varlist, key(varname) sheet(string) xl(string) [n(integer 30)]
     preserve
-    quietly count
-    local N = r(N)
-    keep if r_`key' <= `n' | r_`key' > `N' - `n'
-    generate str12 grp = cond(r_`key' <= `n', "상위", "하위")
+    keep if t_`key' | b_`key'
+    assert !(t_`key' & b_`key')
+    generate str12 grp = cond(t_`key', "상위", "하위")
     label variable grp "구분"
     sort r_`key'
     export excel grp `varlist' using "`xl'", sheet("`sheet'") firstrow(varlabels) sheetreplace
@@ -76,11 +77,15 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title shA shB shC lm_aioe elo_gpt4_beta observed_exposure n_month_conv
 keep if !missing(shA, shB, shC, lm_aioe, elo_gpt4_beta, observed_exposure)
 count
-assert r(N) == 129
+assert r(N) == 163
 rename (lm_aioe elo_gpt4_beta observed_exposure) (FEL ELO OE)
 foreach v of local vars {
-    gsort -`v' ksco3
-    generate int r_`v' = _n
+    egen double r_`v' = rank(-`v')
+    * 상위·하위 `ntop'(경계 동점 포함)
+    gsort r_`v' ksco3
+    generate byte t_`v' = r_`v' <= r_`v'[`ntop']
+    gsort -r_`v' ksco3
+    generate byte b_`v' = r_`v' >= r_`v'[`ntop']
 }
 sort ksco3
 
@@ -98,6 +103,10 @@ label variable r_shC       "지표 C 순위"
 label variable r_FEL       "Felten AIOE 순위"
 label variable r_ELO       "Eloundou β 순위"
 label variable r_OE        "Observed Exposure 순위"
+foreach v of local vars {
+    label variable t_`v' "상위 `ntop'(경계 동점 포함)"
+    label variable b_`v' "하위 `ntop'(경계 동점 포함)"
+}
 tempfile k3
 save `k3'
 
@@ -187,11 +196,11 @@ file write `fh' "% 04_18_analysis_kor_share_exposure_rank.do가 생성. 직접 �
 foreach x in FEL ELO OE {
     local row "`lab_`x''"
     foreach m in A B C {
-        quietly count if r_`x' <= `ntop' & r_sh`m' <= `ntop'
+        quietly count if t_`x' & t_sh`m'
         local t = r(N)
-        quietly count if r_`x' > _N - `ntop' & r_sh`m' > _N - `ntop'
+        quietly count if b_`x' & b_sh`m'
         local b = r(N)
-        quietly summarize r_sh`m' if r_`x' <= `ntop', detail
+        quietly summarize r_sh`m' if t_`x', detail
         fmt r(p50) %5.1f
         local row "`row' & `t' & `b' & `r(s)'"
     }
@@ -205,9 +214,9 @@ file write `fh' "% 04_18_analysis_kor_share_exposure_rank.do가 생성. 직접 �
 foreach m in A B C {
     local row "`lab_sh`m''"
     foreach x in FEL ELO OE {
-        quietly summarize r_`x' if r_sh`m' <= `ntop', detail
+        quietly summarize r_`x' if t_sh`m', detail
         local t = r(p50)
-        quietly summarize r_`x' if r_sh`m' > _N - `ntop', detail
+        quietly summarize r_`x' if b_sh`m', detail
         local b = r(p50)
         fmt `t' %5.1f
         local row "`row' & `r(s)'"
@@ -244,16 +253,25 @@ quietly count if FEL < 0
 local felneg = r(N)
 quietly count if n_month_conv == 1
 local m1 = r(N)
-quietly count if n_month_conv == 1 & r_shC > _N - `ntop'
+quietly count if n_month_conv == 1 & b_shC
 local m1b = r(N)
+quietly count if shA == 0
+local n0 = r(N)
+foreach v of local vars {
+    quietly count if t_`v'
+    local nt_`v' = r(N)
+    quietly count if b_`v'
+    local nb_`v' = r(N)
+}
 quietly duplicates report ELO
 local elo_u = r(unique_value)
 file open `fh' using "`out'/35_notes.tex", write replace
 file write `fh' "% 04_18_analysis_kor_share_exposure_rank.do가 생성. 직접 고치지 말 것." _n
-file write `fh' "비교 소분류 수 & `=_N' \\" _n
-file write `fh' "Observed Exposure가 0인 소분류 수(하위 순위는 코드 순) & `oe0' \\" _n
+file write `fh' "비교 소분류 수 / 그중 사용 0(지표 A·B·C = 0, 평균 순위 동점) & `=_N' / `n0' \\" _n
+file write `fh' "Observed Exposure가 0인 소분류 수(평균 순위 동점) & `oe0' \\" _n
 file write `fh' "Felten AIOE가 음수인 소분류 수 & `felneg' \\" _n
 file write `fh' "Eloundou \$\beta\$의 서로 다른 값 수 & `elo_u' \\" _n
-file write `fh' "한 달만 공개된 소분류 수 / 그중 지표 C 하위 `ntop'에 든 수 & `m1' / `m1b' \\" _n
+file write `fh' "한 달만 공개된 소분류 수 / 그중 지표 C 하위 목록에 든 수 & `m1' / `m1b' \\" _n
+file write `fh' "상위 / 하위 목록 크기(A, B, C, Felten, Eloundou, OE; 경계 동점 포함) & `nt_shA'/`nb_shA', `nt_shB'/`nb_shB', `nt_shC'/`nb_shC', `nt_FEL'/`nb_FEL', `nt_ELO'/`nb_ELO', `nt_OE'/`nb_OE' \\" _n
 file close `fh'
 display "OE=0 `oe0' | FEL<0 `felneg' | ELO unique `elo_u' | one-month `m1' (C bottom `m1b')"

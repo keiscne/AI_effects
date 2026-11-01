@@ -11,11 +11,15 @@
 *   33_disp.tex, 33_conc.tex, 33_curve.tex, 33_dist.tex, 33_hhi.tex, 33_bdiff.tex, 33_elas.tex,
 *   33_dsum.tex, 33_d_pos.tex, 33_d_neg.tex, 33_top_C.tex, 33_ksco1.tex   (paper 33 표)
 *
-* 같은 척도(소분류 129개 안에서 다시 정규화, 작업자 판단):
+* 2026-11-01(사용자 결정): 표본을 소분류 163개로. 한국 사용이 관측되지 않은 34개는 사용 0으로 포함한다.
+*   0을 그대로 다룰 수 있는 값(지니, 집중지수, Theil, HHI, DI, CV, 상위 몫, 분위수)은 163개로 계산하고,
+*   로그를 쓰는 값(로그 분산, d, 로버스트 z, 탄력성, KL)은 사용 > 0인 129개로 계산한다.
+*   KL은 129개 안에서 XS를 다시 정규화한다(사용 0인데 XS > 0이면 무한대). 순위는 평균 순위.
+* 같은 척도(소분류 163개 안에서 다시 정규화, 작업자 판단):
 *   취업자 비중 w_j = E_j / Σ E, 점유율 s^m_j(합 1), m ∈ {A, B, C}(04_12와 같은 정의)
 *   노출도 기반 점유율 XS^x_j = E_j x_j / Σ E x(합 1), x ∈ {OE, ELO}(Felten은 음수가 있어 만들 수 없음)
 *   상대 사용 강도 R^m_j = s^m_j / w_j, 상대 노출도 RX^x_j = XS^x_j / w_j = x_j / x̄_E(둘 다 취업자 가중 평균 1)
-*   R^A는 RU1, R^C는 RU2에 비례(129개 안 정규화 상수만 다름).
+*   R^A = RU1(163개 같은 분모), R^C는 RU2에 비례.
 * 방법(paper 33 1절):
 *   방법 1 중심까지의 거리: d^{m,x}_j = ln R^m_j − ln RX^x_j(= ln(s^m / XS^x), paper 29의 LR와 같음; OE = 0인 13개 결측)
 *          로버스트 z: z(v) = (v − 중위값) / (1.4826 × MAD), v = ln R^m, ln RX^x, Felten 원값(비가중),
@@ -23,9 +27,9 @@
 *   방법 2 분산: 취업자 가중 CV, 로그 분산, p90/p10, 지니, Theil T(대분류 간·내 분해)
 *   방법 3 쏠림: 집중지수 CI(s^m | x 순) = 1 − 2 × (노출도 오름차순 집중곡선 아래 면적), 같은 노출도는 한 점으로 묶음.
 *          CI(XS^x | x 순) = Gini(RX^x)(assert). 노출도 상위 q 취업자의 몫, 비유사성 지수 DI = ½ Σ|s^m − XS^x|,
-*          KL 거리 D(XS^x ‖ s^m) = Σ XS ln(XS / s^m)(XS = 0 항은 0; s^m > 0이라 유한), HHI, 상위 10개 합
+*          KL 거리 D(XS^x ‖ s^m) = Σ XS ln(XS / s^m)(XS = 0 항은 0; 사용 > 0인 소분류 안), HHI, 상위 10개 합
 *   방법 4 탄력성: ln R^m = α + β ln RX^x(취업자 가중 OLS, robust SE; 비가중 OLS, 분위수 회귀 τ = .1 .5 .9)
-* 불확실성: 소분류 129개를 복원추출하는 부트스트랩 999회(seed 20261025), 매 회 정규화부터 다시 계산, 백분위 95% 구간.
+* 불확실성: 소분류 163개를 복원추출하는 부트스트랩 999회(seed 20261025), 매 회 정규화부터 다시 계산, 백분위 95% 구간.
 * 매칭 키: ksco3(str3), ksco1(str1).
 * =============================================================================
 
@@ -128,10 +132,10 @@ real scalar wslope(real colvector yv, real colvector xv, real colvector w)
     return(wmean((yv :- wmean(yv, w)) :* (xv :- wmean(xv, w)), w) / wvar(xv, w))
 }
 
-// 현재 자료(129개 또는 부트스트랩 표본)에서 모든 요약 통계를 다시 계산해 Stata 스칼라 S_*로 남긴다.
+// 현재 자료(163개 또는 부트스트랩 표본)에서 모든 요약 통계를 다시 계산해 Stata 스칼라 S_*로 남긴다.
 void calcall()
 {
-    real colvector emp, w, f, R, RX, k
+    real colvector emp, w, f, R, RX, k, ku
     real matrix S, XS, X
     string rowvector mn, xn, kn
     real scalar m, x, j
@@ -144,27 +148,30 @@ void calcall()
     for (j = 1; j <= 2; j++) XS[., j] = XS[., j] / sum(XS[., j])
     mn = ("A", "B", "C"); xn = ("OE", "FEL", "ELO"); kn = ("OE", "ELO")
 
+    // 2026-11-01: 사용 0 소분류 포함. 로그를 쓰는 값(로그 분산, KL, 탄력성)은 사용 > 0인 소분류만(ku).
+    //   KL은 그 안에서 XS를 다시 정규화(사용 0인데 XS > 0이면 무한대가 되므로).
     for (m = 1; m <= 3; m++) {
         R = S[., m] :/ w
+        ku = selectindex(R :> 0)
         st_numscalar("S_gini_" + mn[m],  conc(S[., m], w, R))
         st_numscalar("S_theil_" + mn[m], theil(S[., m], w))
         st_numscalar("S_cv_" + mn[m],    sqrt(wvar(R, w)))
-        st_numscalar("S_vln_" + mn[m],   wvar(ln(R), w))
+        st_numscalar("S_vln_" + mn[m],   wvar(ln(R[ku]), w[ku]))
         st_numscalar("S_hhi_" + mn[m],   sum(S[., m]:^2))
         for (x = 1; x <= 3; x++) {
             st_numscalar("S_ci_" + mn[m] + "_" + xn[x], conc(S[., m], w, X[., x]))
         }
         for (j = 1; j <= 2; j++) {
             RX = XS[., j] :/ w
-            k  = selectindex(RX :> 0)
+            k  = selectindex((RX :> 0) :& (R :> 0))
             st_numscalar("S_di_" + mn[m] + "_" + kn[j], 0.5 * sum(abs(S[., m] - XS[., j])))
-            st_numscalar("S_kl_" + mn[m] + "_" + kn[j], theil(XS[., j], S[., m]))
+            st_numscalar("S_kl_" + mn[m] + "_" + kn[j], theil(XS[ku, j] / sum(XS[ku, j]), S[ku, m]))
             st_numscalar("S_b_" + mn[m] + "_" + kn[j],  wslope(ln(R[k]), ln(RX[k]), w[k]))
         }
     }
     for (j = 1; j <= 2; j++) {
         RX = XS[., j] :/ w
-        k  = selectindex(RX :> 0)
+        k  = selectindex((RX :> 0) :& (S[., 1] :> 0))     // 로그 분산은 사용 > 0인 소분류 안(사용 쪽과 같은 표본)
         st_numscalar("S_gini_X" + kn[j],  conc(XS[., j], w, RX))
         st_numscalar("S_theil_X" + kn[j], theil(XS[., j], w))
         st_numscalar("S_cv_X" + kn[j],    sqrt(wvar(RX, w)))
@@ -198,10 +205,13 @@ use "$proc/merged/kor_ai_usage_ksco3.dta", clear
 keep ksco1 ksco1_title ksco3 ksco3_title emp hbar shA shB observed_exposure lm_aioe elo_gpt4_beta
 keep if !missing(shA, shB, observed_exposure, lm_aioe, elo_gpt4_beta)
 count
-assert r(N) == 129
+assert r(N) == 163
 rename (observed_exposure lm_aioe elo_gpt4_beta) (OE FEL ELO)
-assert shA > 0 & shB > 0 & emp > 0 & ELO > 0
-count if OE == 0
+assert emp > 0 & ELO > 0
+assert (shA > 0) == (shB > 0)                          // 사용 0 소분류는 A·B 모두 0(2026-11-01)
+count if shA == 0
+assert r(N) == 34
+count if OE == 0 & shA > 0
 assert r(N) == 13
 tempfile raw
 save `raw'
@@ -234,10 +244,10 @@ foreach v in R_A R_B R_C RX_OE RX_ELO {
 }
 * R^A ∝ RU1이 아니라 129개 안 정규화를 다시 했으므로 순위만 확인(RU1·RU2는 163개 분모)
 foreach v in OE FEL ELO {
-    egen int r_`v' = rank(-`v'), unique
+    egen double r_`v' = rank(-`v')
 }
 foreach m in A B C {
-    egen int r_`m' = rank(-s_`m'), unique
+    egen double r_`m' = rank(-s_`m')
 }
 
 * 방법 1: 중심까지의 거리
@@ -248,19 +258,20 @@ foreach m in A B C {
         label variable d_`m'_`x' "방법1 로그 거리 ln R^`m' - ln RX^`x'"
     }
     foreach x in OE FEL ELO {
-        generate int RG_`m'_`x' = r_`x' - r_`m'
+        generate double RG_`m'_`x' = r_`x' - r_`m'
         label variable RG_`m'_`x' "순위 격차 r(`x') - r(`m')(paper 29 방법 1)"
     }
 }
 generate double zsrc_FEL = FEL
+* 로버스트 z는 사용 > 0인 소분류 안에서 표준화(2026-11-01: 사용 0은 ln R이 없어 Δz도 없음)
 foreach v in lnR_A lnR_B lnR_C lnRX_OE lnRX_ELO zsrc_FEL {
-    quietly summarize `v', detail
+    quietly summarize `v' if s_A > 0, detail
     local med = r(p50)
     tempvar ad
-    generate double `ad' = abs(`v' - `med')
+    generate double `ad' = abs(`v' - `med') if s_A > 0
     quietly summarize `ad', detail
     local mad = 1.4826 * r(p50)
-    generate double z_`v' = (`v' - `med') / `mad'
+    generate double z_`v' = (`v' - `med') / `mad' if s_A > 0
     drop `ad'
 }
 drop zsrc_FEL
@@ -378,7 +389,7 @@ foreach v in A B C XOE XELO {
     local p10 = r(r1)
     local p50 = r(r2)
     local p90 = r(r3)
-    quietly count if `R' > 0
+    quietly count if `R' > 0 & shA > 0                // 로그 분산 표본(사용 > 0, 노출도 > 0)
     local nln = r(N)
     * Theil 대분류 간: Σ_g S_g ln(S_g / W_g)
     preserve
@@ -568,14 +579,22 @@ foreach m in A B C {
         preserve
         collapse (sum) S = s_`m' X = XS_`x' W = w, by(ksco1)
         generate double ad = abs(S - X)
-        generate double kb = cond(X > 0, X * ln(X / S), 0)
         quietly summarize ad
         local dib = r(sum) / 2
+        restore
+        * KL 대분류 간 항: 전체 KL과 같은 표본(사용 > 0, XS를 그 안에서 다시 정규화)
+        preserve
+        keep if s_`m' > 0
+        quietly summarize XS_`x'
+        replace XS_`x' = XS_`x' / r(sum)
+        collapse (sum) S = s_`m' X = XS_`x', by(ksco1)
+        generate double kb = cond(X > 0, X * ln(X / S), 0)
         quietly summarize kb
         local klb = r(sum)
         restore
-        generate double kr = s_`m' * ln(s_`m' / XS_`x') if XS_`x' > 0
-        quietly count if XS_`x' == 0
+        * 반대 방향 KL D(s‖XS): s = 0 항은 0, XS = 0인데 s > 0이면 무한대(결측)
+        generate double kr = cond(s_`m' > 0, s_`m' * ln(s_`m' / XS_`x'), 0) if XS_`x' > 0
+        quietly count if XS_`x' == 0 & s_`m' > 0
         if r(N) > 0 local klr = .
         else {
             quietly summarize kr
@@ -819,7 +838,7 @@ foreach sd in pos neg {
         local ex = exp(d_C_ELO[`k'])
         if `ex' >= 1 local e = string(`ex', "%6.1f")
         else         local e = "1/" + string(1 / `ex', "%4.0f")
-        fmt RG_C_ELO[`k'] %4.0f sign
+        fmt RG_C_ELO[`k'] %9.0g sign
         local g "`r(s)'"
         fmt emp[`k']/1000 %6.0fc
         local h "`r(s)'"
@@ -858,14 +877,27 @@ file close `fh'
 * -----------------------------------------------------------------------------
 * 7. 대분류: 점유율, 상대 강도, KL 대분류 간 항의 기여(지표 C)
 * -----------------------------------------------------------------------------
+* KL 기여는 전체 KL과 같은 표본(사용 > 0, XS를 그 안에서 다시 정규화)으로 계산
+use `d', clear
+keep if s_C > 0
+foreach x in OE ELO {
+    quietly summarize XS_`x'
+    replace XS_`x' = XS_`x' / r(sum)
+}
+collapse (sum) Ck = s_C XOk = XS_OE XEk = XS_ELO, by(ksco1)
+generate double klE = XEk * ln(XEk / Ck)
+generate double klO = cond(XOk > 0, XOk * ln(XOk / Ck), 0)
+keep ksco1 klE klO
+tempfile klk
+save `klk'
 use `d', clear
 generate byte n = 1
-collapse (sum) n W = w C = s_C XO = XS_OE XE = XS_ELO, by(ksco1 ksco1_title)
+generate byte n0 = s_C == 0
+collapse (sum) n n0 W = w C = s_C XO = XS_OE XE = XS_ELO, by(ksco1 ksco1_title)
+merge 1:1 ksco1 using `klk', assert(match) nogenerate
 generate double RC  = C / W
 generate double RXO = XO / W
 generate double RXE = XE / W
-generate double klE = XE * ln(XE / C)
-generate double klO = cond(XO > 0, XO * ln(XO / C), 0)
 sort ksco1
 export excel using "`xl'", sheet("ksco1") firstrow(variables) sheetreplace
 file open `fh' using "`out'/33_ksco1.tex", write replace
