@@ -1,0 +1,212 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 성별·연령대·교육수준·임금수준 집단의 AI 사용(점유율 지표 A·B·C)과 노출도 비교.
+% 표 본문: results/table/38_main.tex, 38_abc.tex, 38_decomp.tex, 38_top.tex, 38_cuts.tex
+%          (code/04_22_analysis_kor_group_usage.do가 생성; 집단 자료는 code/01_09_import_kostat_regional_groups.do)
+% 설명 대상: results/table/38_kor_group_usage.xlsx, results/figure/38_fig_group_{R,decomp}.{png,pdf}
+% 관련: paper 25·27(지표), 33·37(같은 척도와 부트스트랩)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{집단별 AI 사용과 노출도\\[2mm]
+\large --- 성별, 연령대, 교육수준, 임금수준(월평균급여$\cdot$시간당 임금) ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 직업(KSCO 8차 소분류) 단위로 만든 AI 사용 점유율 지표 A$\cdot$B$\cdot$C(paper 27)와 노출도 3개(Felten AIOE\parencite{felten-2023-how-will-language-modelers-like-chatgpt}, Eloundou $\beta$\parencite{eloundou-2023-gpts-are-gpts-an-early}, Observed Exposure\parencite{massenkoff-2026-labor-market-impacts-of-ai})를 지역별고용조사 2022년 상반기의 직업 $\times$ 집단 취업자 구성으로 성별$\cdot$연령대$\cdot$교육수준$\cdot$임금수준 집단에 나누어 비교했다. AEI는 사용자의 인구 특성을 공개하지 않으므로, 같은 직업 안에서는 집단과 관계없이 1인당 사용이 같다고 가정한다. 따라서 아래의 집단 차이는 모두 직업 구성의 차이에서 나온다. 임금 집단은 임금근로자만 대상으로 하고, 교차 집단과 OpenAI Signals 대조는 이번 작업에서 뺐다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{교육과 임금에 따른 차이가 가장 크다.} 취업자 가중 평균을 1로 둔 사용 강도 $R$(지표 C)은 대졸 이상 2.08, 고졸 이하 0.28이다. 대졸 이상은 취업자의 35.5\%인데 사용의 73.8\%를 차지한다. 월평균급여 5분위의 $R$은 2.25(1분위 0.48), 시간당 임금 5분위는 2.11(1분위 0.41)이다.
+  \item \textbf{연령은 30대에서 가장 높고 60세 이상에서 크게 낮다.} $R$은 15$\sim$29세 1.40, 30$\sim$39세 1.53, 40$\sim$49세 1.17, 50$\sim$59세 0.80, 60세 이상 0.29다.
+  \item \textbf{성별 차이는 작다.} $R$은 남자 1.05, 여자 0.94이고 구간이 서로 겹친다. 다만 노출도는 여자가 조금 높아(Eloundou $\beta$ 1.05, Observed 1.14), 노출도에 비해서는 여자의 사용이 낮은 편이다(로그 거리 $-0.11$, 구간은 0 포함).
+  \item \textbf{사용의 집단 차이는 노출도의 차이보다 크다.} 예를 들어 대졸 이상의 상대 노출도는 1.38($\beta$)$\cdot$1.58(OE)이지만 사용 강도는 2.08이고, 고졸 이하는 노출도 0.71$\cdot$0.57에 사용 0.28이다. 사용이 노출도의 몇 배인지를 나타내는 로그 거리는 대졸 이상 $+0.41$, 고졸 이하 $-0.92$, 60세 이상 $-0.79$, 월급 5분위 $+0.48$이다.
+  \item \textbf{차이는 대부분 전문가 대분류에서 나온다.} 대졸 이상의 사용 몫이 취업자 몫보다 38.3\%p 큰데, 그중 43.1\%p가 전문가 대분류다. 노출도 기준으로는 13.4\%p 크고 사무 대분류의 기여(9.1\%p)가 전문가(6.5\%p)만큼 크다.
+\end{itemize}
+\end{abstract}
+
+\section{자료와 집단}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{집단 자료}: 지역별고용조사 2022년 상반기(B형, 전국, 소분류) 개인 자료의 취업자. 가중치 \texttt{시도전국가중값}, 근로시간은 조사 주간의 주업 시간(일시휴직자 0시간), 월 환산 $\times 4.345$(paper 25와 같음). 직업은 KSCO 8차 소분류 163개다.
+  \item \textbf{성별}: 남자, 여자. \textbf{연령대}(5구간): 15$\sim$29세, 30$\sim$39세, 40$\sim$49세, 50$\sim$59세, 60세 이상.
+  \item \textbf{교육수준}: 고졸 이하, 전문대졸, 대졸 이상. 졸업은 그 학력, 재학$\cdot$중퇴$\cdot$휴학$\cdot$수료는 한 단계 아래로 보고, 4년제 대학 미졸업은 고졸, 대학원은 졸업 여부와 관계없이 대졸 이상이다. 통계청 \texttt{교육정도변환코드}와 같은 규칙임을 do 파일에서 확인했다.
+  \item \textbf{임금수준}(임금근로자만): \texttt{최근3개월\_월평균급여}(만 원)의 가중 5분위, 그리고 시간당 임금 = 월평균급여 / (주업시간 $\times$ 4.345)의 가중 5분위. 조사 주간에 일하지 않은 임금근로자(주업시간 0)는 시간당 임금이 없어 시간당 임금 분위에서 빠진다. 급여가 만 원 단위로 몰려 있어 월급 분위의 인원은 16$\sim$24\%로 고르지 않다(표~\ref{tab:cuts}).
+\end{itemize}
+
+\begin{longtable}{L{2.0cm}R{3.2cm}R{2.0cm}R{3.6cm}R{2.0cm}}
+\caption{임금 5분위의 경계와 인원 비중(임금근로자, 가중)}\label{tab:cuts}\\
+\toprule
+분위 & 월평균급여(만 원) & 비중(\%) & 시간당 임금(원) & 비중(\%) \\
+\midrule
+\endfirsthead
+\input{../table/38_cuts.tex}
+\bottomrule
+\end{longtable}
+
+\section{방법}
+
+직업 $j$, 집단 $g$의 취업자를 $E_{jg}$, 월 주업 근로시간을 $H_{jg}$라 하고, $E_j$와 $H_j$는 직업 전체의 값이다. 직업 점유율을 그 직업 안 집단 구성비대로 나누고, 구분(예: 성별) 안에서 합이 1이 되게 정규화한다.
+\[
+A_g \propto \sum_j A_j \frac{E_{jg}}{E_j}, \qquad
+B_g \propto \sum_j B_j \frac{H_{jg}}{H_j}, \qquad
+C_g \propto \sum_j C_j \frac{E_{jg}}{E_j}.
+\]
+B는 절감 시간이라 근로시간 비중으로 나누고, 취업자 비중으로 나눈 값은 강건성으로 둔다. 임금 집단은 임금근로자에게 배분된 몫 안에서 다시 정규화한다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{사용 강도}: $R^{\mathrm{A}}_g = A_g / W_g$, $R^{\mathrm{B}}_g = B_g / \eta_g$, $R^{\mathrm{C}}_g = C_g / W_g$. $W_g$는 집단의 취업자 비중, $\eta_g$는 근로시간 비중이다. 1이면 인원만큼 쓰고 2이면 두 배 쓴다. 취업자 가중 평균은 1이다.
+  \item \textbf{노출도}: $\bar x_g = \sum_j E_{jg} x_j / \sum_j E_{jg}$(취업자 가중 평균), 상대 노출도 $RX_g = \bar x_g / \bar x$. 이는 노출도 기반 점유율(paper 28) $XS_g$를 $W_g$로 나눈 것과 같다. Felten은 음수가 있어 차이 $\bar x_g - \bar x$만 쓴다.
+  \item \textbf{로그 거리}: $d_g = \ln R_g - \ln RX_g$. 사용이 노출도의 $e^{d}$배다(paper 33$\cdot$37의 집단판).
+  \item \textbf{분해}: $C_g - W_g = \sum_k \sum_{j \in k} (c_j - w_j)\, E_{jg}/E_j$. $k$는 KSCO 대분류, $c_j$와 $w_j$는 그 구분 모집단 안의 사용$\cdot$취업자 비중이다. 노출도 기반 점유율도 같은 식으로 나눈다.
+  \item \textbf{구간}: 소분류 163개를 복원추출해 같은 계산을 999번 반복한 95\% 백분위 구간(seed 20261025, paper 33과 같은 방식). 조사의 표본오차와 AEI 비중의 오차는 반영하지 않으므로, ``어떤 직업이 표본에 들었느냐''에 대한 민감도로 읽는다.
+  \item 사용 0인 소분류 34개(2026-11-01 결정)는 사용 0으로 들어간다. 집단 값에는 로그를 쓰지 않으므로 빼지 않는다.
+\end{itemize}
+
+\section{결과}
+
+\subsection{사용 강도와 노출도}
+
+\begin{small}
+\begin{longtable}{L{3.0cm}R{1.3cm}R{1.3cm}R{2.9cm}R{1.4cm}R{1.4cm}R{2.9cm}R{1.4cm}}
+\caption{집단별 사용(지표 C)과 노출도. $R$ = 사용 강도, $RX$ = 상대 노출도, $d = \ln R - \ln RX$. 대괄호는 부트스트랩 95\% 구간}\label{tab:main}\\
+\toprule
+집단 & 취업자(\%) & C(\%) & $R$ & $RX$($\beta$) & $RX$(OE) & $d$($\beta$) & $d$(OE) \\
+\midrule
+\endfirsthead
+\toprule
+집단 & 취업자(\%) & C(\%) & $R$ & $RX$($\beta$) & $RX$(OE) & $d$($\beta$) & $d$(OE) \\
+\midrule
+\endhead
+\input{../table/38_main.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{../figure/38_fig_group_R.pdf}
+\caption{집단별 사용 강도 $R$(지표 C, 95\% 구간)과 상대 노출도 $RX$(Eloundou $\beta$, Observed). 로그 축, 1 = 그 구분 전체 평균}\label{fig:R}
+\end{figure}
+
+\paragraph{교육.} 대졸 이상의 사용 강도는 2.08 [1.72, 2.52]로 평균의 두 배이고, 고졸 이하는 0.28 [0.21, 0.40]이다. 전문대졸은 0.86으로 평균에 조금 못 미친다. 노출도도 같은 방향이지만 폭이 훨씬 작다(대졸 이상 1.38$\cdot$1.58, 고졸 이하 0.71$\cdot$0.57). 그래서 로그 거리는 대졸 이상 $+0.41$, 고졸 이하 $-0.92$로, 고졸 이하의 사용은 Eloundou $\beta$가 예상하는 것의 약 40\%($e^{-0.92}$)다.
+
+\paragraph{임금.} 월평균급여와 시간당 임금 어느 쪽으로 나눠도 결과가 거의 같다. 사용 강도는 1분위 0.48$\cdot$0.41에서 5분위 2.25$\cdot$2.11로 분위가 오를수록 커진다. 5분위는 임금근로자의 16\%$\cdot$20\%인데 사용의 35\%$\cdot$42\%를 가진다. 노출도의 기울기는 완만해(1분위 0.67, 5분위 1.40; $\beta$ 기준) 1$\sim$3분위는 로그 거리가 음수, 5분위는 $+0.48$$\cdot$$+0.44$다. 1분위의 구간은 넓다($R$ [0.26, 0.82]). 저임금 집단의 사용이 몇 개 사무 직업(372 비서 및 사무 지원, 332 통계$\cdot$데이터 사무원)에 몰려 있어(표~\ref{tab:top}), 그 직업이 표본에 드느냐에 따라 값이 크게 움직이기 때문으로 보인다.
+
+\paragraph{연령.} 사용 강도는 30대(1.53)가 가장 높고 20대 이하(1.40), 40대(1.17) 순이다. 50대는 0.80, 60세 이상은 0.29로 낮다. 노출도도 나이가 들수록 낮아지지만 폭이 작아, 60세 이상의 로그 거리는 $-0.79$ [$-1.13$, $-0.41$]다. 이 결과는 직업 구성만 반영한 것이다. 같은 직업 안에서도 젊은 층이 더 많이 쓴다면 실제 연령 차이는 이보다 크다.
+
+\paragraph{성별.} 사용 강도는 남자 1.05 [0.87, 1.23], 여자 0.94 [0.73, 1.21]로 구간이 겹친다. 노출도는 여자가 조금 높다($\beta$ 1.05, OE 1.14, Felten $+0.16$). 사무직 비중이 높기 때문이다. 그래서 노출도에 비한 사용은 여자가 낮은 편이지만($d$ $-0.11$$\cdot$$-0.19$), 구간이 0을 포함한다.
+
+\subsection{지표 A$\cdot$B$\cdot$C와 배분 방식}
+
+\begin{small}
+\begin{longtable}{L{3.0cm}R{1.8cm}R{1.5cm}R{1.5cm}R{2.4cm}R{1.5cm}R{3.4cm}}
+\caption{근로시간 비중, 지표별 사용 강도, Felten AIOE 평균의 차이(집단 평균 $-$ 전체 평균, 대괄호는 95\% 구간)}\label{tab:abc}\\
+\toprule
+집단 & 근로시간(\%) & $R^{\mathrm{A}}$ & $R^{\mathrm{B}}$ & $R^{\mathrm{B}}$(취업자 배분) & $R^{\mathrm{C}}$ & Felten 차이 \\
+\midrule
+\endfirsthead
+\toprule
+집단 & 근로시간(\%) & $R^{\mathrm{A}}$ & $R^{\mathrm{B}}$ & $R^{\mathrm{B}}$(취업자 배분) & $R^{\mathrm{C}}$ & Felten 차이 \\
+\midrule
+\endhead
+\input{../table/38_abc.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+지표를 A(대화)$\cdot$B(절감 시간)$\cdot$C(취업자 환산) 중 무엇으로 하든, B를 근로시간과 취업자 중 무엇으로 배분하든 사용 강도의 차이는 대부분 0.1 이내다. 직업 단위에서 세 지표의 순위상관이 0.98 이상이므로(paper 27) 집단에서도 같은 결과가 나온다. Felten AIOE로 보면 여자와 젊은 층, 대졸 이상, 고임금이 평균보다 높게 노출된다. 여자의 Felten 차이($+0.16$)는 구간이 0을 포함하지 않는다.
+
+\subsection{차이는 어느 직업에서 오는가}
+
+\begin{small}
+\begin{longtable}{L{4.0cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.3cm}}
+\caption{집단 몫 $-$ 취업자 몫(\%p)의 대분류별 기여: 사용(지표 C)과 노출도(Eloundou $\beta$ 기반 점유율)}\label{tab:decomp}\\
+\toprule
+ & \multicolumn{2}{c}{여자} & \multicolumn{2}{c}{60세 이상} & \multicolumn{2}{c}{대졸 이상} & \multicolumn{2}{c}{월급 5분위} \\
+대분류 & 사용 & 노출도 & 사용 & 노출도 & 사용 & 노출도 & 사용 & 노출도 \\
+\midrule
+\endfirsthead
+\input{../table/38_decomp.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{../figure/38_fig_group_decomp.pdf}
+\caption{집단 몫 $-$ 취업자 몫의 대분류별 기여(대분류 4묶음). 집단마다 위는 사용, 아래는 노출도}\label{fig:decomp}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{대졸 이상}: 사용 몫이 취업자 몫보다 38.3\%p 큰데, 전문가 대분류가 43.1\%p, 관리자가 5.6\%p를 더하고 나머지 대분류는 조금씩 뺀다. 노출도 기준으로는 13.4\%p 크고, 사무(9.1\%p)와 전문가(6.5\%p)가 비슷하게 기여한다. 노출도는 사무직에도 높은 값을 주지만, 실제 사용은 전문가 직업에 몰려 있기 때문이다(paper 28$\cdot$29와 같은 그림).
+  \item \textbf{여자}: 사용 몫은 취업자 몫보다 2.7\%p 작다. 전문가 대분류가 $+16.6$\%p를 더하지만 서비스($-7.0$), 단순노무($-6.8$), 판매($-4.4$)가 더 많이 뺀다. 노출도 기준으로는 오히려 2.3\%p 크고, 그 대부분이 사무($+9.6$\%p)다.
+  \item \textbf{60세 이상}: 사용 몫이 14.7\%p 작다. 단순노무($-6.3$), 농림어업($-3.8$), 서비스($-2.3$), 장치$\cdot$기계 조작($-2.1$)에 많이 몰려 있기 때문이다. 노출도 기준의 차이($-7.4$\%p)는 그 절반이다.
+  \item \textbf{월급 5분위}: 사용 몫이 19.7\%p 크고 전문가(19.8\%p)와 관리자(5.2\%p)에서 나온다. 노출도 기준으로는 6.2\%p 크다.
+\end{itemize}
+
+\subsection{집단 안 사용의 분포}
+
+\begin{footnotesize}
+\begin{longtable}{L{2.2cm}L{4.4cm}L{4.4cm}L{4.4cm}R{1.4cm}}
+\caption{집단 사용(지표 C) 중 몫이 큰 소분류 상위 3(괄호 = 집단 안 몫, \%)과 집단 안 실효 직업 수(1/HHI)}\label{tab:top}\\
+\toprule
+집단 & 1위 & 2위 & 3위 & 실효 직업 수 \\
+\midrule
+\endfirsthead
+\toprule
+집단 & 1위 & 2위 & 3위 & 실효 직업 수 \\
+\midrule
+\endhead
+\input{../table/38_top.tex}
+\bottomrule
+\end{longtable}
+\end{footnotesize}
+
+거의 모든 집단에서 222 컴퓨터 시스템 및 소프트웨어 전문가와 291 작가 및 언론 관련 전문가가 상위에 든다. 남자는 222(16.1\%), 여자는 291(16.0\%)이 1위다. 고졸 이하와 저임금(월급$\cdot$시간당 임금 1$\sim$2분위)에서는 372 비서 및 사무 지원 종사자가 1위이고, 332 통계$\cdot$데이터 관련 사무원이 상위 3에 든다. 이 집단의 사용은 적은 수의 사무 직업에 몰려 있어 실효 직업 수가 10개 안팎으로 작다(월급 1분위 10.0, 시간당 임금 1분위 9.6). 50대(31.3)와 60세 이상(27.6)은 사용이 여러 직업에 퍼져 있다.
+
+\section{해석상 주의}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{직업 구성만 반영한다.} 같은 직업 안에서는 성별$\cdot$나이$\cdot$학력$\cdot$임금과 관계없이 1인당 사용이 같다고 가정했다. 같은 직업 안에서 젊은 층이나 고학력자가 더 많이 쓴다면 실제 집단 차이는 이 결과보다 크다. 반대 방향의 차이가 있다면 작다. AEI는 사용자 특성을 공개하지 않아 이 가정을 직접 점검할 수 없다(OpenAI Signals의 연령$\cdot$성별 자료와의 대조는 이번 작업에서 뺐다).
+  \item \textbf{직업 지표의 한계를 물려받는다.} 소분류 점유율은 연계표 배분(paper 21)과 AEI 공개 범위에 따라 달라지고, 사용 0인 34개 소분류는 실제 사용이 없다기보다 공개되지 않은 것이다. 이들은 장치$\cdot$기계 조작 직업에 많아 고연령$\cdot$저학력 집단의 값을 낮추는 방향으로 작용할 수 있다.
+  \item \textbf{시점이 다르다.} 집단 구성은 2022년 상반기, 사용은 2026년 4$\cdot$5월이다.
+  \item \textbf{임금 분위.} 월평균급여는 최근 3개월 평균이고 근로시간은 조사 주간 한 주이므로, 시간당 임금에는 측정 시점 차이에서 오는 잡음이 있다. 두 기준의 결과가 거의 같아 결론에는 영향이 작다.
+  \item \textbf{구간의 의미.} 구간은 소분류 표본 구성에 대한 민감도이고, 조사 표본오차는 반영하지 않았다. 집단을 나눌수록 칸이 작아지므로 교차 집단은 따로 다루지 않았다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item 코드: \texttt{code/01\_09\_import\_kostat\_regional\_groups.do}(지역별고용조사 2022 상반기 → 소분류 $\times$ 집단 취업자$\cdot$근로시간, 임금 분위 경계), \texttt{code/04\_22\_analysis\_kor\_group\_usage.do}(집단 지표, 부트스트랩, 분해, 표$\cdot$그림). 둘 다 \texttt{00\_master.do}에 포함.
+  \item 가공 자료: \texttt{data/proc/macro/kostat\_lfs\_regional/kostat\_lfs\_regional\_ksco3\_groups.\{dta,csv\}}, \texttt{kostat\_lfs\_regional\_wage\_cuts.\{dta,csv\}}.
+  \item 엑셀: \texttt{results/table/38\_kor\_group\_usage.xlsx}. 시트 \texttt{groups}(집단별 모든 값과 구간, 지표 A$\cdot$B의 로그 거리 포함), \texttt{cuts}(임금 분위 경계), \texttt{decomp}(모든 집단의 대분류 9개별 기여, OE 포함), \texttt{top}(집단마다 상위 5 소분류).
+  \item 이 노트의 표: \texttt{results/table/38\_main.tex}, \texttt{38\_abc.tex}, \texttt{38\_decomp.tex}, \texttt{38\_top.tex}, \texttt{38\_cuts.tex}.
+  \item 그림: \texttt{results/figure/38\_fig\_group\_R.\{pdf,png\}}, \texttt{38\_fig\_group\_decomp.\{pdf,png\}}.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

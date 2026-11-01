@@ -31,6 +31,7 @@ do "$code/01_05_import_onet_task_soc.do"                // O*NET Task ID → SOC
 do "$code/01_06_import_soc2018_ksco8_crosswalk.do"      // SOC 2018–KSCO 8차 연계표
 do "$code/01_07_import_kostat_regional_employment.do"   // 지역별고용조사 소분류 취업자·근로시간
 do "$code/01_08_import_moel_wage_structure_hours.do"    // 고용형태별근로실태조사 대분류 근로시간
+do "$code/01_09_import_kostat_regional_groups.do"       // 지역별고용조사 2022 소분류 × 성별·연령·교육·임금·산업 집단 ← 01_07
 
 * -----------------------------------------------------------------------------
 * 03 merge: 결합
@@ -65,3 +66,5 @@ do "$code/04_18_analysis_kor_share_exposure_rank.do"         // paper 35
 do "$code/04_19_analysis_kor_share_exposure_rankgap.do"      // paper 36
 do "$code/04_20_analysis_kor_share_figures.do"            // 그림(paper 34~36) → results/figure
 do "$code/04_21_analysis_kor_share_exposure_metrics.do"     // paper 37
+do "$code/04_22_analysis_kor_group_usage.do"                 // paper 38(그림 포함) ← 01_09, 03_05
+do "$code/04_23_analysis_kor_industry_usage.do"              // paper 39(그림 포함) ← 01_09, 03_05
