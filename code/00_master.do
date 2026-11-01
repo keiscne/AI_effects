@@ -64,3 +64,4 @@ do "$code/04_17_analysis_kor_share_top30.do"                 // paper 34
 do "$code/04_18_analysis_kor_share_exposure_rank.do"         // paper 35
 do "$code/04_19_analysis_kor_share_exposure_rankgap.do"      // paper 36
 do "$code/04_20_analysis_kor_share_figures.do"            // 그림(paper 34~36) → results/figure
+do "$code/04_21_analysis_kor_share_exposure_metrics.do"     // paper 37

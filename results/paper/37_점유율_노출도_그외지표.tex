@@ -1,0 +1,217 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- 순위 격차 외 지표(누적 점유율, 집중지수·HHI, 탄력성, 로그 거리, 로버스트 z) 엑셀 파일 설명.
+% 표 본문: results/table/37_topshare.tex, 37_conc.tex, 37_hhi.tex, 37_elas.tex, 37_dzsum.tex, 37_d_C_ELO.tex, 37_z_C_FEL.tex
+%          (code/04_21_analysis_kor_share_exposure_metrics.do가 생성)
+% 설명 대상: results/table/37_kor_share_exposure_metrics.xlsx
+% 관련: paper 33(같은 정의의 분포 비교, 부트스트랩 구간), 35·36(순위 비교와 순위 격차)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{AI 점유율 지표와 노출도: 순위 격차 외 지표 엑셀 파일 설명\\[2mm]
+\large --- 누적 점유율, 집중지수$\cdot$HHI, 탄력성, 로그 거리, 로버스트 $z$ ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 이 노트는 \texttt{results/table/37\_kor\_share\_exposure\_metrics.xlsx}를 설명한다. 파일은 \texttt{code/04\_21\_analysis\_kor\_share\_exposure\_metrics.do}가 만든다. 순위 격차(paper 35$\cdot$36)는 값의 크기와 쏠림을 담지 못하므로, 점유율 지표 A$\cdot$B$\cdot$C와 노출도 3개(Felten AIOE\parencite{felten-2023-how-will-language-modelers-like-chatgpt}, Eloundou $\beta$\parencite{eloundou-2023-gpts-are-gpts-an-early}, Observed Exposure\parencite{massenkoff-2026-labor-market-impacts-of-ai})를 값 자체로 비교하는 지표 다섯 가지를 KSCO 8차 소분류 129개에서 계산했다. 정의는 paper 33과 같고 값도 같다. 이 파일은 그 지표를 직업 목록과 함께 한곳에 정리한 것이다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{누적 점유율}: 사용은 상위 10개 소분류가 55\%, 상위 30개가 81$\sim$84\%를 차지한다. 취업자 비중(38\%, 68\%)보다 훨씬 쏠려 있다. 노출도 순으로 줄 세우면 Observed Exposure 상위 10개가 사용의 43\%를, Felten 상위 10개는 7$\sim$8\%만 가진다.
+  \item \textbf{집중도}: 노출도 순 집중지수는 0.52$\sim$0.63으로 사용이 노출도 높은 직업에 몰려 있다. Observed Exposure로 만든 노출도 기반 점유율(0.60)과는 비슷하고 Eloundou $\beta$(0.34)보다는 크다. 실효 직업 수(1/HHI)는 사용 22개로, 취업자(43개)의 절반이다.
+  \item \textbf{탄력성}: 사용 강도의 Observed Exposure 탄력성은 1.00$\sim$1.07(비례), Eloundou $\beta$ 탄력성은 1.80$\sim$2.21이다. $\beta$의 차이가 사용에서 두 배 가까이 증폭된다.
+  \item \textbf{로그 거리와 로버스트 $z$}: 지표 C와 Eloundou $\beta$의 로그 거리는 절댓값 평균 2.22(약 9배 차이)다. 퍼짐을 맞춘 로버스트 $z$ 차이는 절댓값 평균 0.63$\sim$0.75다. 두 거리 모두에서 213 생명 및 자연과학 관련 시험원이 ``사용 $>$ 노출도'' 1위, 451 조리사가 ``노출도 $>$ 사용'' 1위다.
+\end{itemize}
+\end{abstract}
+
+\section{파일 구성}
+
+\begin{small}
+\begin{longtable}{L{1.7cm}L{3.0cm}L{10.0cm}}
+\caption{시트 구성(요청 목록 번호)}\label{tab:sheets}\\
+\toprule
+시트 & 내용 & 열과 행 \\
+\midrule
+\endfirsthead
+\texttt{topshare} & (1) 누적 점유율 & 분포, 정렬 기준, 상위 10$\cdot$20$\cdot$30개 합(\%). 위 6행은 각 분포를 자기 값 순으로 줄 세운 것(지표 A$\cdot$B$\cdot$C, 노출도 기반 점유율 2개, 참고로 취업자 비중). 아래 12행은 노출도 순으로 줄 세웠을 때 노출도 상위 $k$개 소분류가 가진 사용 점유율(Felten 포함). \\
+\texttt{conc} & (2) 집중도 & 왼쪽: 집중지수(사용 지표 $\times$ 노출도 9개, 노출도 기반 점유율 2개). 오른쪽(E열부터): HHI와 실효 직업 수. \\
+\texttt{elas} & (3) 탄력성 & 사용 지표 $\times$ 노출도 9행. $\beta$(취업자 가중 OLS)와 robust SE, 95\% 구간, $R^2$, 소분류 수, 비가중 OLS, 분위수 회귀 $\tau = 0.1, 0.5, 0.9$. Felten 행은 준탄력성. \\
+\texttt{d\_all} & (4) 로그 거리 & 129개 소분류의 취업자 수, 취업자 비중 $w$, 점유율 $s$, 노출도 기반 점유율 $XS$, 상대 강도 $R$, $RX$, 로그 거리 $d$ 6개. \\
+\texttt{d\_top30} & (4) 로그 거리 상위 30 & 쌍(6개) $\times$ 방향(사용 $>$ 노출도, 노출도 $>$ 사용) $\times$ 30행. 열: 사용 지표, 노출도, 방향, 순위, 코드, 직업명, $d$, $e^d$, $R$, $RX$, 취업자 수. \\
+\texttt{z\_all} & (5) 로버스트 $z$ & 129개 소분류의 노출도 원값 3개, 로버스트 $z$ 6개, $\Delta z$ 9개. \\
+\texttt{z\_top30} & (5) $z$ 차이 상위 30 & 쌍(9개) $\times$ 방향 $\times$ 30행. 열: 사용 지표, 노출도, 방향, 순위, 코드, 직업명, $\Delta z$, $z$(사용), $z$(노출도), 취업자 수. \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{``큰 상위 30개''의 뜻}: 로그 거리와 $z$ 차이는 부호가 있다. 절댓값으로 30개를 고르면 두 방향이 섞이므로, 쌍마다 양수 쪽 30개(사용 $>$ 노출도)와 음수 쪽 30개(노출도 $>$ 사용)를 따로 실었다(작업자 판단).
+  \item \textbf{Felten}: 음수가 있어 노출도 기반 점유율, 상대 강도, 로그 거리, 탄력성을 만들 수 없다. 순서만 쓰는 누적 점유율(노출도 순)$\cdot$집중지수와 원값으로 만든 로버스트 $z$에는 넣었고, 탄력성 시트에는 원값에 회귀한 준탄력성을 참고로 실었다.
+  \item \textbf{Observed Exposure = 0인 소분류 13개}: 로그를 쓰는 값(로그 거리, $z$(OE), $\Delta z$(OE), OE 탄력성)에서 빠진다(116개).
+\end{itemize}
+
+\section{공통 척도와 정의}
+
+모든 지표는 소분류 129개 안에서 다시 정규화한 같은 척도에서 계산한다(paper 33의 1절과 같다).
+\begin{itemize}[leftmargin=*]
+  \item 취업자 비중 $w_j = E_j / \sum E$, 사용 점유율 $s^m_j$(합 1, $m$ = A, B, C), 노출도 기반 점유율 $XS^x_j = E_j x_j / \sum_k E_k x_k$($x$ = OE, $\beta$). $XS$는 ``노출도만큼 쓴다면 이 직업이 가졌을 몫''이다.
+  \item 상대 강도: 사용 $R^m_j = s^m_j / w_j$, 노출도 $RX^x_j = XS^x_j / w_j = x_j / \bar{x}_E$. 둘 다 취업자 가중 평균이 1이다.
+\end{itemize}
+
+\paragraph{(1) 누적 점유율.} 값 내림차순(같은 값은 코드 순) 상위 $k$개의 점유율 합이다. 자기 값 순은 그 분포가 얼마나 소수에 몰렸는지를, 노출도 순은 노출도 상위 직업이 실제 사용을 얼마나 가졌는지를 본다.
+
+\paragraph{(2) 집중지수와 HHI.} 집중지수 $\mathrm{CI}(s \mid x) = 1 - 2 \times$(노출도 오름차순으로 취업자 $w$를 누적했을 때 사용 $s$의 누적 곡선 아래 면적)이다. 0이면 사용이 노출도와 무관하게 퍼져 있고, $+1$에 가까울수록 노출도 높은 직업에 몰린다. 같은 노출도는 한 점으로 묶는다. $\mathrm{CI}(XS \mid x)$는 RX의 지니와 같다(do 파일에서 assert). HHI $= \sum s^2$, 실효 직업 수 $= 1/\mathrm{HHI}$는 ``같은 크기의 직업 몇 개에 고르게 나눈 것과 같은 쏠림인가''다.
+
+\paragraph{(3) 탄력성.} $\ln R^m_j = \alpha + \beta \ln RX^x_j$의 $\beta$다. 노출도 강도가 1\% 높을 때 사용 강도가 몇 \% 높은가를 뜻한다. $\beta = 1$이면 사용이 노출도에 비례하고, 1보다 크면 노출도 차이가 사용에서 증폭된다. 주 추정은 취업자 가중 OLS(robust SE)이고, 비가중 OLS와 분위수 회귀를 함께 실었다.
+
+\paragraph{(4) 로그 거리.} $d^{m,x}_j = \ln R^m_j - \ln RX^x_j = \ln(s^m_j / XS^x_j)$다. $e^d$는 ``사용 강도가 노출도 강도의 몇 배인가''이며, paper 29의 로그 비율 LR와 같다.
+
+\paragraph{(5) 로버스트 $z$와 $z$ 차이.} $z(v) = (v - \mathrm{med}(v)) / (1.4826\,\mathrm{MAD}(v))$이고, $v$는 $\ln R^m$, $\ln RX^x$, Felten 원값이다(비가중). $\Delta z = z(\text{사용}) - z(\text{노출도})$는 두 분포의 퍼짐을 맞춘 뒤 ``각자의 분포 안 위치''를 비교한다. 1은 대략 표준편차 하나만큼의 위치 차이다.
+
+\section{결과 개관}
+
+\subsection{누적 점유율}
+
+\begin{small}
+\begin{longtable}{L{6.2cm}L{3.6cm}R{1.8cm}R{1.8cm}R{1.8cm}}
+\caption{상위 10$\cdot$20$\cdot$30개 누적 점유율(\%)}\label{tab:topshare}\\
+\toprule
+분포 & 정렬 기준 & 상위 10 & 상위 20 & 상위 30 \\
+\midrule
+\endfirsthead
+\input{../table/37_topshare.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+자기 값 순으로 보면 사용 점유율은 상위 10개가 55\%, 상위 30개가 81$\sim$84\%다. 취업자 비중(38\%, 68\%)보다 훨씬 몰려 있다. Observed Exposure로 만든 노출도 기반 점유율도 비슷하게 몰려 있다(57\%, 85\%). Eloundou $\beta$ 기반은 덜하다(44\%, 74\%). $\beta$는 직업 사이 값의 차이가 작아 취업자 분포와 가깝기 때문이다.
+
+노출도 순으로 보면 세 노출도의 성격이 갈린다. Observed Exposure 상위 10개 소분류는 취업자의 5\%인데 사용의 43\%를 가진다. Eloundou $\beta$ 상위 10개는 취업자 11\%, 사용 38\%다. 반면 Felten 상위 10개는 취업자 4\%, 사용 7$\sim$8\%에 그친다. Felten 상위 10에는 교육$\cdot$법률$\cdot$인문 전문가(261, 271, 269, 212)처럼 사용 점유율이 1$\sim$2\%인 직업과 531 통신 관련 판매, 254 종교, 245 영양사, 532 방문 판매처럼 사용이 거의 없는 직업이 섞여 있고, 사용 최상위인 222$\cdot$291은 없다. Felten 상위 20개로 넓히면 291(Felten 12위)과 332(11위)가 들어오면서 사용 몫이 33$\sim$35\%로 크게 늘어난다.
+
+\subsection{집중도}
+
+\begin{longtable}{L{6.4cm}R{2.6cm}R{2.6cm}R{2.6cm}}
+\caption{집중지수 CI(노출도 오름차순 누적)}\label{tab:conc}\\
+\toprule
+분포 & Felten 순 & Eloundou $\beta$ 순 & Observed 순 \\
+\midrule
+\endfirsthead
+\input{../table/37_conc.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{8.0cm}R{3.0cm}R{3.0cm}}
+\caption{HHI와 실효 직업 수}\label{tab:hhi}\\
+\toprule
+분포 & HHI & 실효 직업 수 \\
+\midrule
+\endfirsthead
+\input{../table/37_hhi.tex}
+\bottomrule
+\end{longtable}
+
+사용의 집중지수는 0.52$\sim$0.63으로 모두 양수다. 노출도가 높은 직업일수록 사용 몫이 크다. Observed Exposure 순(0.62$\sim$0.63)이 가장 크고 Felten 순(0.52$\sim$0.55)이 가장 작다. 노출도 기반 점유율과 비교하면, 사용은 Observed Exposure 기반(0.60)과 거의 같은 정도로, Eloundou $\beta$ 기반(0.34)보다는 훨씬 강하게 노출도 쪽에 몰려 있다. 두 비교의 차이가 통계적으로 의미 있는지는 paper 33의 부트스트랩 구간으로 본다(OE와의 차이는 구간이 0을 포함하고, $\beta$와의 차이는 포함하지 않는다).
+
+HHI로 보면 사용 점유율은 실효 직업 수 22개로, 129개 소분류 중 22개에 고르게 나눈 것과 같은 쏠림이다. Observed Exposure 기반(24개)과 비슷하고, Eloundou $\beta$ 기반(35.5개)과 취업자(43.4개)보다 쏠려 있다. 쏠림의 크기가 비슷해도 몰린 직업이 같은 것은 아니다(로그 거리 참고).
+
+\subsection{탄력성}
+
+\begin{footnotesize}
+\begin{longtable}{L{1.2cm}L{2.9cm}R{0.9cm}R{0.9cm}R{1.9cm}R{0.8cm}R{0.8cm}R{1.2cm}R{1.0cm}R{1.0cm}R{1.0cm}}
+\caption{탄력성 $\ln R = \alpha + \beta \ln RX$(Felten은 원값에 회귀한 준탄력성)}\label{tab:elas}\\
+\toprule
+사용 & 노출도 & $\beta$ & SE & 95\% 구간 & $R^2$ & $N$ & 비가중 $\beta$ & $\tau$=0.1 & $\tau$=0.5 & $\tau$=0.9 \\
+\midrule
+\endfirsthead
+\input{../table/37_elas.tex}
+\bottomrule
+\end{longtable}
+\end{footnotesize}
+
+Observed Exposure 탄력성은 1.00$\sim$1.07로, 사용 강도가 노출도 강도에 거의 비례한다. Eloundou $\beta$ 탄력성은 1.80$\sim$2.21이고 95\% 구간이 1을 포함하지 않는다. $\beta$가 평균보다 10\% 높은 직업은 사용 강도가 약 20\% 높다. 비가중 OLS(2.31$\sim$2.84)와 분위수 회귀에서도 $\beta$ 탄력성은 1보다 크다. 즉 $\beta$가 보는 노출도의 차이보다 실제 사용의 차이가 훨씬 크다. Felten 준탄력성은 2.18$\sim$2.57이다(원값 1 증가당 $\ln R$ 증가). $R^2$는 0.29$\sim$0.41로, 노출도가 사용 강도 차이의 3분의 1 남짓만 설명한다.
+
+\subsection{로그 거리}
+
+\begin{small}
+\begin{longtable}{R{0.5cm}L{5.0cm}R{2.2cm}L{4.4cm}R{2.4cm}}
+\caption{지표 C와 Eloundou $\beta$의 로그 거리 상위$\cdot$하위 10(괄호 = $e^d$)}\label{tab:dCELO}\\
+\toprule
+ & 사용 $>$ 노출도 & $d$ & 노출도 $>$ 사용 & $d$ \\
+\midrule
+\endfirsthead
+\input{../table/37_d_C_ELO.tex}
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{5.6cm}R{1.6cm}R{1.6cm}R{1.8cm}R{1.8cm}R{1.8cm}}
+\caption{지표 C의 거리 요약. $d$ = 로그 거리, $\Delta z$ = 로버스트 $z$ 차이}\label{tab:dzsum}\\
+\toprule
+항목 & $d$($\beta$) & $d$(OE) & $\Delta z$(Felten) & $\Delta z$($\beta$) & $\Delta z$(OE) \\
+\midrule
+\endfirsthead
+\input{../table/37_dzsum.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+지표 C와 Eloundou $\beta$의 로그 거리는 절댓값 평균 2.22로, 전형적인 소분류에서 사용 강도와 노출도 강도가 $e^{2.2} \approx 9$배 차이 난다. 129개 중 109개가 두 배 넘게, 51개가 열 배 넘게 차이 난다. 위쪽에는 213 생명 및 자연과학 관련 시험원(사용 강도가 노출도 강도의 59배), 149 기타 건설$\cdot$전기 및 생산 관련 관리자(55배), 332 통계$\cdot$데이터 관련 사무원(29배)이 있다. 아래쪽은 451 조리사(약 5만분의 1), 611 작물 재배 종사자, 872 자동차 운전원처럼 사용 점유율이 거의 0인 직업이 차지한다. 로그 거리는 취업자 수와 음의 상관($-0.57$, $-0.64$)이 있다. 큰 직업일수록 사용이 노출도에 못 미친다.
+
+\subsection{로버스트 $z$ 차이}
+
+\begin{small}
+\begin{longtable}{R{0.5cm}L{5.4cm}R{1.6cm}L{5.4cm}R{1.6cm}}
+\caption{지표 C와 Felten AIOE의 로버스트 $z$ 차이 상위$\cdot$하위 10}\label{tab:zCFEL}\\
+\toprule
+ & 사용 $>$ 노출도 & $\Delta z$ & 노출도 $>$ 사용 & $\Delta z$ \\
+\midrule
+\endfirsthead
+\input{../table/37_z_C_FEL.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+$\Delta z$는 퍼짐을 맞춘 값이라 로그 거리보다 극단값이 훨씬 작다(절댓값 평균 0.63$\sim$0.75, 표~\ref{tab:dzsum}). 사용 쪽 로그 분산이 노출도 쪽보다 훨씬 커서($\beta$ 기준 약 15배, paper 33), 로그 거리는 사실상 사용 강도의 순서를 따르기 때문이다. $\Delta z$는 그 영향을 빼고 위치만 비교하므로, Felten처럼 로그 거리를 만들 수 없는 노출도도 비교할 수 있다. Felten과의 $\Delta z$ 위쪽에는 213, 149와 함께 852 냉난방 관련 설비 조작원, 799 기타 기능 관련 종사자, 730 목재$\cdot$가구 관련 기능 종사자처럼 Felten이 매우 낮게 매긴 기능직이 들어온다. 아래쪽에는 451 조리사와 함께 531 통신 관련 판매, 532 방문 및 노점 판매, 245 영양사처럼 Felten이 높게 매긴 대면 직업이 있다.
+
+\section{읽을 때 유의사항}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{paper 33과 같은 값이다.} 정의와 표본이 같아 수치가 일치한다. 부트스트랩 신뢰구간과 대분류 분해는 paper 33에 있고, 이 파일에는 탄력성의 해석적(robust SE) 구간만 실었다.
+  \item \textbf{로그 거리의 아래쪽 끝은 불안정하다.} 사용 점유율이 거의 0인 소분류는 $d$가 $-5\sim-11$까지 내려간다. 451$\cdot$611$\cdot$952처럼 한 달만 공개된 소분류가 많고, 이들은 비공개 달을 0으로 둔 영향으로 값이 절반이다. 이 끝은 $\Delta z$와 함께 읽는다.
+  \item \textbf{$\Delta z$는 ``몇 배''가 아니다.} 각자의 분포 안 위치 차이이며, 0도 ``사용 = 노출도''가 아니라 ``두 분포에서 같은 상대 위치''다. 비가중이므로 취업자 가중 통계(집중지수, 탄력성)와 직접 맞대지 않는다. Felten은 원값, 나머지는 로그 상대 강도로 $z$를 만들었으므로 Felten과 다른 노출도의 $\Delta z$를 같은 눈금으로 비교하는 것은 근사다.
+  \item \textbf{점유율은 직업 규모가 들어간 값이다.} 누적 점유율$\cdot$HHI는 큰 직업의 영향을 받는다. 상대 강도($R$, $RX$)와 그 위의 지표(탄력성, 로그 거리, $\Delta z$)는 규모를 뺀 비교다.
+  \item \textbf{두 쪽 모두 SOC 값을 연계표로 옮긴 것이다}(paper 21, 23). 한 SOC에 쏠린 소분류는 그 SOC의 값에 따라 거리가 크게 움직인다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item 코드: \texttt{code/04\_21\_analysis\_kor\_share\_exposure\_metrics.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}). 확인하는 항등식: 상대 강도의 취업자 가중 평균 1, $d = \ln(s / XS)$, CI($XS^x \mid x$) = 지니($RX^x$).
+  \item 엑셀: \texttt{results/table/37\_kor\_share\_exposure\_metrics.xlsx}(시트 7개).
+  \item 이 노트의 표: \texttt{results/table/37\_topshare.tex}, \texttt{37\_conc.tex}, \texttt{37\_hhi.tex}, \texttt{37\_elas.tex}, \texttt{37\_d\_C\_ELO.tex}, \texttt{37\_dzsum.tex}, \texttt{37\_z\_C\_FEL.tex}.
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}
