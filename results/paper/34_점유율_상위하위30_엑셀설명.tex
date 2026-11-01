@@ -17,6 +17,7 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{graphicx}
 
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
@@ -120,6 +121,14 @@ $T_t$는 \texttt{03\_05}가 소분류 지표 표본(129개)으로 정규화할 �
 
 소분류 상위 10은 정보 통신$\cdot$글쓰기$\cdot$사무 지원$\cdot$연구 직업으로 세 지표가 거의 같다. 차이는 대화당 절감 시간에서 나온다(paper 31). 225 정보 시스템 및 웹 운영자는 A 3위(8.32\%)지만 대화당 절감 시간이 짧아 B 5.34\%로 줄어든다. 332 통계$\cdot$데이터 관련 사무원은 반대로 A 9위에서 B$\cdot$C 6위로 오른다. C는 B를 1인당 근로시간으로 나눈 값이라 B와 순서가 거의 같다. 372 비서 및 사무 지원 종사자는 225보다 1인당 근로시간이 짧아 C에서 225를 앞서 3위가 된다. 상위 30 겹침은 A와 B, A와 C 모두 26개다(표~\ref{tab:notes}).
 
+그림~\ref{fig:top30}은 \texttt{ksco3\_C} 시트의 상위 30 전체를 막대로 그린 것이다. 1$\cdot$2위(222, 291)가 각각 11\% 남짓으로 3위 이하의 두 배가 넘고, 막대 색으로 보면 상위 30 대부분이 전문가(대분류 2)이며 사무(3)와 관리자(1)가 그 뒤를 잇는다.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{../figure/34_fig_ksco3_top30_C.pdf}
+\caption{지표 C 상위 30 소분류(색 = 대분류)}\label{fig:top30}
+\end{figure}
+
+
 \begin{small}
 \begin{longtable}{R{0.4cm}L{4.4cm}R{1.2cm}R{1.6cm}R{1.6cm}L{6.0cm}}
 \caption{KSCO 대분류: 지표 A, B, C(\%, 괄호는 순위)와 지표 A 기여 1위 중분류(몫, \%)}\label{tab:ksco1}\\
@@ -161,6 +170,7 @@ $T_t$는 \texttt{03\_05}가 소분류 지표 표본(129개)으로 정규화할 �
   \item 코드: \texttt{code/04\_17\_analysis\_kor\_share\_top30.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{kor\_soc6\_conv\_ai\_indicators}(\texttt{03\_03}), SOC 2018--KSCO 8차 연계표(\texttt{01\_06}), \texttt{kor\_ai\_usage\_ksco\{3,2,1\}}(\texttt{03\_05}).
   \item 엑셀: \texttt{results/table/34\_kor\_share\_top30.xlsx}, \texttt{34\_kor\_share\_bottom30.xlsx}(시트 11개씩).
   \item 이 노트의 표: \texttt{results/table/34\_sheets.tex}, \texttt{34\_top10\_ksco3.tex}, \texttt{34\_ksco1.tex}, \texttt{34\_notes.tex}.
+  \item 그림: \texttt{results/figure/34\_fig\_ksco3\_top30\_C.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}).
 \end{itemize}
 
 \end{document}

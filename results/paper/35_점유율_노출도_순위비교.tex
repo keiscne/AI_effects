@@ -17,6 +17,7 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{graphicx}
 \usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
 \addbibresource{../../reference/references.bib}
 
@@ -107,6 +108,14 @@
 
 모든 상관은 1\% 수준에서 유의하다(p값은 엑셀 \texttt{spearman} 시트). 사용 지표와 노출도의 순위상관은 0.60$\sim$0.70으로, 노출도가 높은 직업이 대체로 많이 쓰지만 순서는 상당히 다르다. B와 C는 순위상관이 1.00(반올림)으로 사실상 같은 순서다. Felten과의 상관이 가장 낮다. 아래 사례에서 보듯 Felten은 판매$\cdot$상담$\cdot$교육 같은 대면 직업에도 높은 점수를 준다.
 
+그림~\ref{fig:scatter}는 지표 C 순위를 세 노출도 순위와 점으로 비교한 것이다. 두 축 모두 1위가 오른쪽$\cdot$위쪽이고, 대각선 위(왼쪽 위)는 사용 순위가 노출도 순위보다 높은 소분류, 아래(오른쪽 아래)는 그 반대다. 점선은 상위 30과 하위 30의 경계다. 격차가 60계단 이상인 소분류만 코드를 붙였다. Felten 칸에서 점이 가장 넓게 퍼져 있다(순위상관 0.63).
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/35_fig_rank_scatter_C.pdf}
+\caption{지표 C 순위와 노출도 순위(소분류 129개, 코드 = 격차 60계단 이상)}\label{fig:scatter}
+\end{figure}
+
+
 \subsection{상위$\cdot$하위 30의 겹침}
 
 \begin{small}
@@ -181,6 +190,7 @@
   \item 코드: \texttt{code/04\_18\_analysis\_kor\_share\_exposure\_rank.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}).
   \item 엑셀: \texttt{results/table/35\_kor\_share\_exposure\_rank.xlsx}(시트 7개).
   \item 이 노트의 표: \texttt{results/table/35\_spearman.tex}, \texttt{35\_cross.tex}, \texttt{35\_cross\_rev.tex}, \texttt{35\_topC10.tex}, \texttt{35\_notes.tex}.
+  \item 그림: \texttt{results/figure/35\_fig\_rank\_scatter\_C.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}).
 \end{itemize}
 
 \printbibliography[title={참고문헌}]

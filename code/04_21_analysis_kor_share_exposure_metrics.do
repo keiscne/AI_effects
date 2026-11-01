@@ -17,6 +17,11 @@
 *        z_all      129개 소분류의 로버스트 z(6개 지표)와 Δz(9개 쌍)
 *        z_top30    쌍마다 Δz 상위 30과 하위 30
 *   37_topshare.tex, 37_conc.tex, 37_hhi.tex, 37_elas.tex, 37_d_C_ELO.tex, 37_z_C_FEL.tex, 37_dzsum.tex  (paper 37 표)
+*   $results/figure/ (.png 가로 2400px, .pdf; paper 37 그림, 대표 쌍 = d: 지표 C × Eloundou β, Δz: 지표 C × Felten)
+*     37_fig_d_C_ELO_bar      d 상위 30·하위 30 발산형 가로 막대
+*     37_fig_z_C_FEL_bar      Δz 상위 30·하위 30 발산형 가로 막대
+*     37_fig_dz_scatter       129개 산점도 2칸(ln R 대 ln RX, z(사용) 대 z(노출도)), 45도선, 상위·하위 30 색
+*     색은 04_20과 같은 dataviz 참고 팔레트(파랑 = 사용 > 노출도, 주황 = 노출도 > 사용, 회색 = 그 밖).
 *
 * 같은 척도(129개 안에서 다시 정규화): w_j = E_j / ΣE, s^m_j(합 1, m ∈ A, B, C; C = (B / hbar) 정규화),
 *   XS^x_j = E_j x_j / Σ E x(x ∈ OE, ELO; Felten은 음수가 있어 없음), R^m = s^m / w, RX^x = XS^x / w = x / x̄_E.
@@ -550,4 +555,147 @@ foreach st in n p10 p50 p90 mabs n2 n10 rho {
     file write `fh' "`row' \\" _n
 }
 file close `fh'
+
+* -----------------------------------------------------------------------------
+* 7. 그림(paper 37): 대표 쌍의 상위·하위 30 막대, 129개 산점도
+* -----------------------------------------------------------------------------
+local fig "$results/figure"
+capture mkdir "`fig'"
+graph set window fontface "Malgun Gothic"
+set scheme s2color
+local c_blue   "42 120 214"
+local c_orange "235 104 52"
+local c_gray   "154 152 147"
+local c_light  "200 199 194"
+local c_ink    "82 81 78"
+local gopt "graphregion(color(white)) plotregion(color(white))"
+
+capture program drop savefig
+program define savefig
+    args path
+    graph export "`path'.png", width(2400) replace
+    graph export "`path'.pdf", replace
+end
+
+* (1)·(2) 발산형 가로 막대: 왼쪽 칸 = 상위 30(파랑, 0에서 오른쪽), 오른쪽 칸 = 하위 30(주황, 0에서 왼쪽, 라벨은 오른쪽)
+foreach spec in "d C ELO 37_fig_d_C_ELO_bar" "dz C FEL 37_fig_z_C_FEL_bar" {
+    local kind : word 1 of `spec'
+    local m    : word 2 of `spec'
+    local x    : word 3 of `spec'
+    local f    : word 4 of `spec'
+    local vname = cond("`kind'" == "d", "로그 거리 d", "로버스트 z 차이 Δz")
+    foreach side in pos neg {
+        use `k3', clear
+        keep if !missing(`kind'_`m'_`x')
+        if "`side'" == "pos" gsort -`kind'_`m'_`x' ksco3
+        else                 gsort  `kind'_`m'_`x' ksco3
+        keep in 1/`ntop'
+        generate int pos = _n
+        generate double v = `kind'_`m'_`x'
+        capture label drop bl`side'
+        forvalues i = 1/`ntop' {
+            local t = ksco3_title[`i']
+            if ustrlen("`t'") > 15 local t = usubstr("`t'", 1, 14) + "…"
+            if "`kind'" == "d" {
+                local e = exp(v[`i'])
+                if `e' >= 1 local es = "×" + strtrim(string(`e', "%5.1f"))
+                else        local es = "×1/" + string(round(1 / `e'))
+            }
+            else local es = cond(v[`i'] > 0, "+", "") + strtrim(string(v[`i'], "%5.2f"))
+            label define bl`side' `i' `"`=ksco3[`i']' `t' (`es')"', add
+        }
+        label values pos bl`side'
+        if "`side'" == "pos" {
+            local col "`c_blue'"
+            local ttl "사용 > 노출도: 상위 30"
+            local yopt "ylabel(1/`ntop', valuelabel angle(0) labsize(tiny) noticks nogrid)"
+        }
+        else {
+            local col "`c_orange'"
+            local ttl "노출도 > 사용: 하위 30"
+            local yopt "ylabel(1/`ntop', valuelabel angle(0) labsize(tiny) noticks nogrid) yscale(alt)"
+        }
+        twoway (bar v pos, horizontal base(0) barwidth(0.7) color("`col'") lwidth(none)), ///
+            yscale(reverse) `yopt' ytitle("") ///
+            xline(0, lcolor("`c_ink'") lwidth(thin)) ///
+            xlabel(, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+            xtitle("`vname'", size(small) margin(t=3)) ///
+            title("`ttl'", size(medsmall) color("`c_ink'")) ///
+            legend(off) `gopt' name(g_`side', replace) nodraw
+    }
+    if "`kind'" == "d" {
+        local gt "지표 C와 Eloundou β의 로그 거리 d = ln R − ln RX (괄호 = e^d, 사용 강도 / 노출도 강도)"
+        local nt "d > 0: 사용 강도가 노출도 강도보다 큼. Observed Exposure = 0인 소분류는 d가 없어 OE 쌍에서 빠진다."
+    }
+    else {
+        local gt "지표 C와 Felten AIOE의 로버스트 z 차이 Δz = z(사용) − z(노출도) (괄호 = Δz)"
+        local nt "z = (값 − 중위값) / (1.4826 × MAD), 비가중. Δz > 0: 사용 분포 안 위치가 노출도 분포 안 위치보다 높음."
+    }
+    graph combine g_pos g_neg, cols(2) title("`gt'", size(small) color("`c_ink'")) ///
+        note("`nt'", size(vsmall) span) graphregion(color(white)) xsize(12) ysize(8)
+    savefig "`fig'/`f'"
+}
+
+* (3) 129개 산점도 2칸: 대각선에서 세로로 떨어진 정도가 거리. 상위·하위 30 색, 상위·하위 5 코드
+foreach spec in "d C ELO lnR_C lnRX_ELO" "dz C FEL z_C z_FEL" {
+    local kind : word 1 of `spec'
+    local m    : word 2 of `spec'
+    local x    : word 3 of `spec'
+    local yv   : word 4 of `spec'
+    local xv   : word 5 of `spec'
+    use `k3', clear
+    keep if !missing(`kind'_`m'_`x')
+    gsort -`kind'_`m'_`x' ksco3
+    generate int rk_hi = _n
+    gsort `kind'_`m'_`x' ksco3
+    generate int rk_lo = _n
+    generate byte grp = cond(rk_hi <= `ntop', 1, cond(rk_lo <= `ntop', 2, 0))
+    generate str3 code = ksco3 if rk_hi <= 5 | rk_lo <= 5
+    * 같은 칸에서 가까운 라벨은 코드가 큰 쪽을 왼쪽 위(11시)에
+    generate byte lpos = 3
+    quietly summarize `xv'
+    local dx = (r(max) - r(min)) / 25
+    quietly summarize `yv'
+    local dy = (r(max) - r(min)) / 30
+    forvalues i = 1/`=_N' {
+        if code[`i'] == "" continue
+        forvalues j = 1/`=_N' {
+            if `j' == `i' | code[`j'] == "" continue
+            if abs(`xv'[`i'] - `xv'[`j']) < `dx' & abs(`yv'[`i'] - `yv'[`j']) < `dy' & code[`i'] > code[`j'] ///
+                quietly replace lpos = 11 in `i'
+        }
+    }
+    quietly summarize `xv'
+    local x0 = r(min)
+    local x1 = r(max)
+    if "`kind'" == "d" {
+        local xt "Eloundou β 상대 노출도 ln RX"
+        local yt "지표 C 상대 사용 강도 ln R"
+        local tt "로그 거리 d(지표 C × Eloundou β)"
+    }
+    else {
+        local xt "z(Felten AIOE 원값)"
+        local yt "z(ln R, 지표 C)"
+        local tt "로버스트 z 차이 Δz(지표 C × Felten)"
+    }
+    twoway (function y = x, range(`x0' `x1') lcolor("`c_light'") lwidth(medthin)) ///
+        (scatter `yv' `xv' if grp == 0, msymbol(O) msize(small) mcolor("`c_gray'%60") mlwidth(none)) ///
+        (scatter `yv' `xv' if grp == 1, msymbol(O) msize(small) mcolor("`c_blue'") mlwidth(none) ///
+            mlabel(code) mlabsize(vsmall) mlabcolor("`c_ink'") mlabvposition(lpos)) ///
+        (scatter `yv' `xv' if grp == 2, msymbol(O) msize(small) mcolor("`c_orange'") mlwidth(none) ///
+            mlabel(code) mlabsize(vsmall) mlabcolor("`c_ink'") mlabvposition(lpos)), ///
+        xtitle("`xt'", size(small) margin(t=2)) ytitle("`yt'", size(small)) ///
+        xlabel(, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+        ylabel(, labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin)) ///
+        title("`tt'", size(medsmall) color("`c_ink'")) ///
+        legend(order(3 "사용 > 노출도 상위 30" 4 "노출도 > 사용 하위 30" 2 "그 밖" 1 "45도선(거리 0)") ///
+            rows(2) size(small) region(lcolor(white))) ///
+        `gopt' name(s_`kind', replace) nodraw
+}
+graph combine s_d s_dz, cols(2) ///
+    title("129개 소분류의 거리: 대각선에서 세로로 떨어진 정도 = d 또는 Δz", size(small) color("`c_ink'")) ///
+    note("왼쪽: 사용의 퍼짐(세로)이 노출도의 퍼짐(가로)보다 훨씬 커서 d는 사실상 사용 강도 순서를 따른다." ///
+        "오른쪽: 두 축을 각자의 중위값·MAD로 맞춰 퍼짐 차이를 지운 비교. 코드 = 상위·하위 5.", size(vsmall) span) ///
+    graphregion(color(white)) xsize(12) ysize(6.5)
+savefig "`fig'/37_fig_dz_scatter"
 display "done"

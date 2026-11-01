@@ -17,6 +17,7 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{graphicx}
 \usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
 \addbibresource{../../reference/references.bib}
 
@@ -178,6 +179,14 @@ Observed Exposure 탄력성은 1.00$\sim$1.07로, 사용 강도가 노출도 강
 
 지표 C와 Eloundou $\beta$의 로그 거리는 절댓값 평균 2.22로, 전형적인 소분류에서 사용 강도와 노출도 강도가 $e^{2.2} \approx 9$배 차이 난다. 129개 중 109개가 두 배 넘게, 51개가 열 배 넘게 차이 난다. 위쪽에는 213 생명 및 자연과학 관련 시험원(사용 강도가 노출도 강도의 59배), 149 기타 건설$\cdot$전기 및 생산 관련 관리자(55배), 332 통계$\cdot$데이터 관련 사무원(29배)이 있다. 아래쪽은 451 조리사(약 5만분의 1), 611 작물 재배 종사자, 872 자동차 운전원처럼 사용 점유율이 거의 0인 직업이 차지한다. 로그 거리는 취업자 수와 음의 상관($-0.57$, $-0.64$)이 있다. 큰 직업일수록 사용이 노출도에 못 미친다.
 
+그림~\ref{fig:dbar}은 지표 C $\times$ Eloundou $\beta$ 쌍의 \texttt{d\_top30} 시트를 막대로 그린 것이다. 왼쪽 상위 30은 1.2$\sim$4.1 사이에 고르게 퍼져 있지만, 오른쪽 하위 30은 451 조리사($-10.8$)부터 $-2.8$까지 길게 늘어진다. 로그 거리의 아래쪽 꼬리가 훨씬 긴 것은 사용 점유율이 거의 0인 직업 때문이다(4절 2).
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/37_fig_d_C_ELO_bar.pdf}
+\caption{지표 C와 Eloundou $\beta$의 로그 거리 상위 30$\cdot$하위 30(괄호 = $e^d$)}\label{fig:dbar}
+\end{figure}
+
+
 \subsection{로버스트 $z$ 차이}
 
 \begin{small}
@@ -193,6 +202,21 @@ Observed Exposure 탄력성은 1.00$\sim$1.07로, 사용 강도가 노출도 강
 \end{small}
 
 $\Delta z$는 퍼짐을 맞춘 값이라 로그 거리보다 극단값이 훨씬 작다(절댓값 평균 0.63$\sim$0.75, 표~\ref{tab:dzsum}). 사용 쪽 로그 분산이 노출도 쪽보다 훨씬 커서($\beta$ 기준 약 15배, paper 33), 로그 거리는 사실상 사용 강도의 순서를 따르기 때문이다. $\Delta z$는 그 영향을 빼고 위치만 비교하므로, Felten처럼 로그 거리를 만들 수 없는 노출도도 비교할 수 있다. Felten과의 $\Delta z$ 위쪽에는 213, 149와 함께 852 냉난방 관련 설비 조작원, 799 기타 기능 관련 종사자, 730 목재$\cdot$가구 관련 기능 종사자처럼 Felten이 매우 낮게 매긴 기능직이 들어온다. 아래쪽에는 451 조리사와 함께 531 통신 관련 판매, 532 방문 및 노점 판매, 245 영양사처럼 Felten이 높게 매긴 대면 직업이 있다.
+
+그림~\ref{fig:zbar}는 지표 C $\times$ Felten 쌍의 \texttt{z\_top30} 시트다. 양쪽 모두 절댓값 0.6$\sim$2.5 범위로 비슷하게 퍼져 있어, 로그 거리와 달리 한쪽 꼬리만 길지 않다.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/37_fig_z_C_FEL_bar.pdf}
+\caption{지표 C와 Felten AIOE의 로버스트 $z$ 차이 상위 30$\cdot$하위 30}\label{fig:zbar}
+\end{figure}
+
+그림~\ref{fig:dzsc}는 129개 소분류 전체에서 두 거리를 비교한다. 두 칸 모두 거리는 $y = x$ 선에서 세로로 떨어진 정도다. 왼쪽(로그 거리)은 세로축 $\ln R$($-11\sim4$)이 가로축 $\ln RX$(대부분 $-1.5\sim1$)보다 훨씬 넓어 점들이 거의 세로로 늘어서 있다. 그래서 $d$는 사실상 $\ln R$의 위아래 순서다. 오른쪽($\Delta z$)은 두 축을 각자의 중위값$\cdot$MAD로 맞춰 퍼짐이 비슷하고, 점들이 대각선을 따라 흩어진다. 대각선 위(파랑)는 Felten이 낮게 매긴 기능직(852, 799, 730)이, 아래(주황)는 Felten이 높게 매긴 판매$\cdot$사무 직업(531, 532, 311)이 차지한다.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/37_fig_dz_scatter.pdf}
+\caption{129개 소분류의 로그 거리(왼쪽)와 로버스트 $z$ 차이(오른쪽): $y = x$ 선에서 세로 거리 = $d$ 또는 $\Delta z$}\label{fig:dzsc}
+\end{figure}
+
 
 \section{읽을 때 유의사항}
 
@@ -210,6 +234,7 @@ $\Delta z$는 퍼짐을 맞춘 값이라 로그 거리보다 극단값이 훨씬
   \item 코드: \texttt{code/04\_21\_analysis\_kor\_share\_exposure\_metrics.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}). 확인하는 항등식: 상대 강도의 취업자 가중 평균 1, $d = \ln(s / XS)$, CI($XS^x \mid x$) = 지니($RX^x$).
   \item 엑셀: \texttt{results/table/37\_kor\_share\_exposure\_metrics.xlsx}(시트 7개).
   \item 이 노트의 표: \texttt{results/table/37\_topshare.tex}, \texttt{37\_conc.tex}, \texttt{37\_hhi.tex}, \texttt{37\_elas.tex}, \texttt{37\_d\_C\_ELO.tex}, \texttt{37\_dzsum.tex}, \texttt{37\_z\_C\_FEL.tex}.
+  \item 그림: \texttt{results/figure/37\_fig\_d\_C\_ELO\_bar}, \texttt{37\_fig\_z\_C\_FEL\_bar}, \texttt{37\_fig\_dz\_scatter}(각 \texttt{.pdf}, \texttt{.png}; 같은 do 파일이 생성).
 \end{itemize}
 
 \printbibliography[title={참고문헌}]
