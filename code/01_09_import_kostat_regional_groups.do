@@ -17,9 +17,11 @@
 *   교차 집단 없음):
 *   sex    1 남자, 2 여자                                                  (취업자 전체)
 *   age    1 15–29세, 2 30–39세, 3 40–49세, 4 50–59세, 5 60세 이상          (취업자 전체)
-*   edu    1 고졸 이하, 2 전문대졸, 3 대졸 이상                              (취업자 전체)
-*          졸업은 그 학력, 재학·중퇴·휴학·수료는 한 단계 아래 학력으로 본다. 다만 4년제 대학 미졸업은 고졸,
-*          대학원은 졸업 여부와 관계없이 대졸 이상(통계청 교육정도변환코드와 같은 규칙, 변환코드와 일치함을 assert).
+*   edu    1 중졸 이하, 2 고졸, 3 전문대졸, 4 대졸, 5 대학원 이상              (취업자 전체; 2026-11-02 5구간으로 변경)
+*          졸업은 그 학력, 재학·중퇴·휴학·수료는 한 단계 아래 학력으로 본다. 다만 4년제 대학 미졸업은 고졸
+*          (통계청 교육정도변환코드와 같은 규칙), 석사 미졸업은 대졸, 박사 미졸업은 석사(대학원 이상).
+*          중졸 이하·고졸·전문대졸 이상의 경계가 변환코드와 일치함을 assert.
+*          (이전 3구간의 '고졸 이하'는 고졸을 포함해 변환코드의 '중졸 이하'와 범위가 달랐다.)
 *   wage_m 임금근로자 월평균급여 5분위(1 = 가장 낮음), 가중 분위
 *   wage_h 임금근로자 시간당 임금 5분위. 시간당 임금 = 월평균급여 × 10,000 / (주업시간 × 4.345)(원).
 *          조사 주간에 일하지 않은 임금근로자(주업시간 0, 일시휴직 등)는 시간당 임금이 없어 wage_h에서 빠진다.
@@ -88,12 +90,12 @@ count if status <= 3
 * -----------------------------------------------------------------------------
 generate byte g_sex = sex
 generate byte g_age = cond(agey < 30, 1, cond(agey < 40, 2, cond(agey < 50, 3, cond(agey < 60, 4, 5))))
-* 학력: 졸업이면 그 단계, 아니면 한 단계 아래(대학원 미졸업은 대졸 이상 그대로)
+* 학력: 졸업이면 그 단계, 아니면 한 단계 아래
+*   lev 0 무학 1 초졸 2 중졸 3 고졸 4 전문대졸 5 대졸 6 석사 7 박사
 generate byte lev = edul
-replace lev = edul - 1 if edus != 1 & inrange(edul, 1, 4)
+replace lev = edul - 1 if edus != 1 & inlist(edul, 1, 2, 3, 4, 6, 7)
 replace lev = 3 if edus != 1 & edul == 5                // 4년제 미졸업 = 고졸(통계청 변환코드와 같음)
-replace lev = 5 if inlist(edul, 6, 7)
-generate byte g_edu = cond(lev <= 3, 1, cond(lev == 4, 2, 3))
+generate byte g_edu = cond(lev <= 2, 1, cond(lev == 3, 2, cond(lev == 4, 3, cond(lev == 5, 4, 5))))
 * 통계청 변환코드(1 중졸 이하 2 고졸 3 전문대졸 이상)와 일치하는지 확인
 assert (lev <= 2) == (educ3 == 1)
 assert (lev == 3) == (educ3 == 2)
@@ -172,9 +174,9 @@ generate str60 grp_lab = ""
 replace grp_lab = cond(grp == 1, "남자", "여자") if dim == "sex"
 replace grp_lab = word("15–29세 30–39세 40–49세 50–59세 60세이상", grp) if dim == "age"
 replace grp_lab = "60세 이상" if dim == "age" & grp == 5
-replace grp_lab = word("고졸이하 전문대졸 대졸이상", grp) if dim == "edu"
-replace grp_lab = "고졸 이하" if dim == "edu" & grp == 1
-replace grp_lab = "대졸 이상" if dim == "edu" & grp == 3
+replace grp_lab = word("중졸이하 고졸 전문대졸 대졸 대학원이상", grp) if dim == "edu"
+replace grp_lab = "중졸 이하" if dim == "edu" & grp == 1
+replace grp_lab = "대학원 이상" if dim == "edu" & grp == 5
 replace grp_lab = string(grp) + "분위" if inlist(dim, "wage_m", "wage_h")
 * 산업 이름: KSIC 11차 대분류, 국민계정 제조업 13개 산업
 local i1 `""A 농업, 임업 및 어업" "B 광업" "C 제조업" "D 전기, 가스, 증기 및 공기 조절 공급업" "E 수도, 하수 및 폐기물 처리, 원료 재생업" "F 건설업" "G 도매 및 소매업" "H 운수 및 창고업" "I 숙박 및 음식점업" "J 정보통신업" "K 금융 및 보험업" "L 부동산업" "M 전문, 과학 및 기술 서비스업" "N 사업시설 관리, 사업 지원 및 임대 서비스업" "O 공공 행정, 국방 및 사회보장 행정" "P 교육 서비스업" "Q 보건업 및 사회복지 서비스업" "R 예술, 스포츠 및 여가관련 서비스업" "S 협회 및 단체, 수리 및 기타 개인 서비스업" "T 가구 내 고용활동 및 자가 소비 생산활동" "U 국제 및 외국기관""'

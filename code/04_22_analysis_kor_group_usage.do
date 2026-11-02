@@ -469,12 +469,12 @@ forvalues i = 1/`=_N' {
 }
 file close `fh'
 
-* (3) 분해: 대표 집단 4개(여자, 60세 이상, 대졸 이상, 월급 5분위)의 C − W와 XS(β) − W
+* (3) 분해: 대표 집단 4개(여자, 60세 이상, 대졸, 월급 5분위)의 C − W와 XS(β) − W
 use `decl', clear
 generate str4 key = ""
 replace key = "f"  if dim == "sex" & grp == 2
 replace key = "o"  if dim == "age" & grp == 5
-replace key = "u"  if dim == "edu" & grp == 3
+replace key = "u"  if dim == "edu" & grp == 4
 replace key = "w5" if dim == "wage_m" & grp == 5
 keep if key != ""
 keep key ksco1 ksco1_title dC dELO
@@ -598,7 +598,7 @@ twoway (rcap loRC hiRC pos, horizontal lcolor("`c_blue'%60") lwidth(medthin)) //
     (scatter pos vRXO, msymbol(T) msize(small) mcolor("`c_aqua'") mlwidth(none)) ///
     (scatter pos vRC, msymbol(O) msize(medsmall) mcolor("`c_blue'") mlwidth(none)), ///
     yscale(reverse range(0.5 `=`np' + 0.5')) ylabel(`ylab', angle(0) labsize(vsmall) noticks nogrid) ytitle("") ///
-    xscale(log) xlabel(0.125 "0.125" 0.25 "0.25" 0.5 "0.5" 1 "1" 2 "2" 4 "4", labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+    xscale(log) xlabel(0.0625 "0.0625" 0.125 "0.125" 0.25 "0.25" 0.5 "0.5" 1 "1" 2 "2" 4 "4", labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
     xline(1, lcolor("`c_ink'") lwidth(thin)) ///
     xtitle("평균 대비 배수(로그 축, 1 = 그 구분 전체 평균)", size(small) margin(t=2)) ///
     legend(order(4 "사용 강도 R(지표 C)" 1 "R의 95% 구간" 2 "노출도 RX(Eloundou β)" 3 "노출도 RX(Observed)") ///
@@ -616,8 +616,8 @@ generate byte go = .
 replace go = 1 if dim == "sex" & grp == 2
 replace go = 2 if dim == "age" & grp == 1
 replace go = 3 if dim == "age" & grp == 5
-replace go = 4 if dim == "edu" & grp == 3
-replace go = 5 if dim == "edu" & grp == 1
+replace go = 4 if dim == "edu" & grp == 4
+replace go = 5 if dim == "edu" & grp == 2
 replace go = 6 if dim == "wage_m" & grp == 5
 replace go = 7 if dim == "wage_m" & grp == 1
 keep if !missing(go)
@@ -625,7 +625,7 @@ collapse (sum) dC dELO, by(go cat)
 rename (dC dELO) (d1 d2)
 reshape long d, i(go cat) j(meas)
 reshape wide d, i(go meas) j(cat)
-label define golab 1 "여자" 2 "15–29세" 3 "60세 이상" 4 "대졸 이상" 5 "고졸 이하" 6 "월급 5분위" 7 "월급 1분위"
+label define golab 1 "여자" 2 "15–29세" 3 "60세 이상" 4 "대졸" 5 "고졸" 6 "월급 5분위" 7 "월급 1분위"
 label values go golab
 label define measlab 1 "사용(C)" 2 "노출도(β)"
 label values meas measlab
