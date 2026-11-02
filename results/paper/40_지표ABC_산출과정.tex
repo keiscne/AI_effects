@@ -1,0 +1,332 @@
+% !TEX program = xelatex
+% AI-effects 프로젝트 --- AEI 원자료(pct, use_case_work_pct, human_only/with_ai_time_mean)에서 KSCO 소분류 점유율 지표 A·B·C까지의 산출 과정.
+% 표 본문: results/table/40_counts.tex, 40_soc.tex, 40_cw.tex, 40_ksco3_a.tex, 40_ksco3_bc.tex
+%          (code/04_24_analysis_kor_share_construction.do가 생성; 앞 단계 산출물의 값을 옮겨 적음)
+% 설명 대상 코드: code/01_03, 01_06, 03_02, 03_03, 03_05
+% 관련: paper 19(업무용 대화 비중), 21(연계표), 23(KSCO 결합), 25(활용도), 27(지표 A~D)
+% 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
+\documentclass[11pt]{article}
+
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=authoryear,maxcitenames=2,uniquelist=false,sorting=nyt]{biblatex}
+\addbibresource{../../reference/references.bib}
+
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+
+\title{지표 A$\cdot$B$\cdot$C의 산출 과정\\[2mm]
+\large --- AEI \texttt{pct}, \texttt{use\_case\_work\_pct}, \texttt{human\_with\_ai\_time\_mean}에서 KSCO 소분류 점유율까지 ---}
+\author{AI-effects 프로젝트}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 한국 직업(KSCO 8차 소분류 163개)별 AI 사용 점유율 지표 A(업무용 대화), B(절감 시간), C(취업자 환산)가 Anthropic Economic Index(AEI) Claude.ai 원자료의 세 변수 --- 직업별 대화 비중 \texttt{pct}, 직업 안 업무용 비중 \texttt{use\_case\_work\_pct}, 과업 소요 시간 \texttt{human\_only\_time\_mean}$\cdot$\texttt{human\_with\_ai\_time\_mean} --- 에서 어떻게 만들어지는지를 단계마다 수식으로 정리했다. 과정은 다섯 단계다. (1) SOC 대분류의 업무용 대화 비중, (2) 세부 직업과 SOC 2018 6자리로 나누기, (3) 직업별 대화당 절감 시간과 ``비중 $\times$ 절감 시간'', (4) SOC 2018 $\to$ KSCO 8차 세분류$\cdot$소분류 배분, (5) 소분류 163개 안 정규화, 두 달 평균, 근로시간 환산. 각 단계의 행 수와 합계(표~\ref{tab:counts}), SOC 직업 두 개의 추적(표~\ref{tab:soc}, \ref{tab:cw}), 지표 상위 소분류 다섯 개의 추적(표~\ref{tab:ka}, \ref{tab:kbc})을 함께 실었다. 지표의 정의와 결과 해석은 paper 27, 연계표는 paper 21, 업무용 비중은 paper 19를 따른다.
+\end{abstract}
+
+\section{개요}
+
+\subsection{원자료와 표기}
+
+원자료는 AEI 2026-06-26 공개본의 \texttt{aei\_claude\_ai\_2026-06-26.csv}다\parencite{handa-2025-which-economic-tasks-are}. 과업 소요 시간 지표는 \textcite{appel-2026-economic-primitives}에서 도입되었다. 한 행은 (월, 지역 \texttt{geo\_id}, 분류 \texttt{category\_name}, 계층 \texttt{hierarchy\_level}, 지표 \texttt{metric\_id}, 항목 \texttt{node})이고 값은 소수 둘째 자리에서 반올림되어 있다. 직업 분류(\texttt{category\_name} = \texttt{soc\_occupation})는 2026년 4월과 5월 두 달만 있다. 여기서 직업은 \emph{사용자의 직업이 아니라 대화 내용이 해당하는 O*NET 과업의 직업}이다.
+
+\begin{longtable}{L{4.6cm}L{2.0cm}L{2.2cm}L{7.4cm}}
+\caption{사용하는 AEI 변수}\label{tab:vars}\\
+\toprule
+\texttt{metric\_id} & 지역 & 계층 & 뜻(이 노트의 기호) \\
+\midrule
+\endfirsthead
+\texttt{pct} & KOR, GLOBAL & 대분류(1), 세부(0) & 그 지역 전체 대화 중 직업의 비중(\%, 모든 용도). 대분류 $p_{gt}$, 세부 직업 $p_{dt}$ \\
+\texttt{use\_case\_work\_pct} & KOR, GLOBAL & 대분류(1) & 직업 $g$의 대화 중 용도가 업무(work)인 비중(\%). $u_{gt}$. 한국 세부 직업에는 공개되지 않는다 \\
+\texttt{human\_only\_time\_mean} & GLOBAL & 세부(0) & AI 없이 사람이 그 과업을 하는 데 걸리는 시간의 대화 평균(\textbf{시간} 단위). $\times 60$ 해서 $T^{0}$(분) \\
+\texttt{human\_with\_ai\_time\_mean} & GLOBAL & 세부(0) & AI와 함께 그 과업을 하는 데 걸리는 시간의 대화 평균(\textbf{분} 단위). $T^{AI}$ \\
+\bottomrule
+\end{longtable}
+
+\noindent 첨자는 다음과 같다.
+\begin{itemize}[leftmargin=*]
+  \item $t \in \{\text{2026-04}, \text{2026-05}\}$: 월. $g$: SOC 대분류(22개). $d$: O*NET-SOC 8자리 세부 직업(XX-XXXX.XX). $o$: SOC 2018 6자리 세부 직업(XX-XXXX).
+  \item $k$: KSCO 8차 세분류(4자리, 494개). $j$: KSCO 8차 소분류(3자리; 지역별고용조사에 있는 163개).
+  \item $s$: 업무용 대화 비중(합 1). $\tau$: 대화 1건당 절감 시간(분). $v = s \times \tau$: ``비중 $\times$ 절감 시간''.
+\end{itemize}
+
+\subsection{단계와 코드}
+
+\begin{longtable}{L{0.6cm}L{4.3cm}L{5.0cm}L{6.2cm}}
+\caption{산출 단계, do 파일, 산출물}\label{tab:pipeline}\\
+\toprule
+ & 단계 & do 파일 & 산출물(주요 변수) \\
+\midrule
+\endfirsthead
+1 & SOC 대분류 업무용 비중 & \texttt{03\_02\_merge\_aei\_kor\_soc\_work\_share.do} & \texttt{aei\_soc\_work\_share\_major} (\texttt{share\_work} $= s_{gt}$) \\
+2 & 세부 직업, SOC 2018 6자리 & 같은 파일 & \texttt{aei\_soc\_work\_share\_detailed}, \texttt{aei\_soc6\_work\_share} ($s_{dt}$, $s_{ot}$) \\
+3a & 대화당 절감 시간 & \texttt{01\_03\_import\_aei\_soc\_time\_savings.do} & \texttt{aei\_soc6\_time\_savings} (\texttt{time\_saved\_min} $= \tau_o$) \\
+3b & 비중 $\times$ 절감 시간 & \texttt{03\_03\_merge\_kor\_conv\_ai\_ksco8.do} 1절 & \texttt{kor\_soc6\_conv\_ai\_indicators} (\texttt{saved\_w} $= v_{ot}$) \\
+4 & KSCO 세분류$\cdot$소분류 배분 & \texttt{03\_03} 2$\cdot$3절, 연계표 \texttt{01\_06} & \texttt{kor\_ksco8\_conv\_ai\_indicators}, \texttt{kor\_ksco3\_conv\_ai\_indicators} \\
+5 & 163개 정규화, 두 달 평균, 지표 & \texttt{03\_05\_merge\_kor\_ksco3\_ai\_usage.do} & \texttt{kor\_ai\_usage\_ksco3} (\texttt{shA}, \texttt{shB}, \texttt{shC}) \\
+\bottomrule
+\end{longtable}
+
+\noindent 산출물은 모두 \texttt{data/proc/}에 있다(1$\cdot$2$\cdot$3a는 \texttt{usage/anthropic\_economic\_index/}, 3b$\cdot$4$\cdot$5는 \texttt{merged/}). 표~\ref{tab:counts}는 각 단계의 행 수와 합계다.
+
+\begin{longtable}{L{11.0cm}R{2.5cm}R{2.5cm}}
+\caption{단계별 행 수와 합계(한국)}\label{tab:counts}\\
+\toprule
+항목 & 2026-04 & 2026-05 \\
+\midrule
+\endfirsthead
+\input{../table/40_counts.tex}
+\bottomrule
+\end{longtable}
+
+\section{1단계: SOC 대분류의 업무용 대화 비중}
+
+한국(KOR)의 대분류 22개마다 $p_{gt}$(\texttt{pct})와 $u_{gt}$(\texttt{use\_case\_work\_pct})가 공개된다. $p_{gt} u_{gt} / 10^4$은 ``한국 대화 중 직업 $g$이면서 용도가 업무인 대화''의 비중이다. 이를 대분류 합이 1이 되게 나눈다.
+\begin{equation}
+s_{gt} = \frac{p_{gt}\, u_{gt}}{\sum_{g'} p_{g't}\, u_{g't}}, \qquad \sum_g s_{gt} = 1.
+\label{eq:sg}
+\end{equation}
+\begin{itemize}[leftmargin=*]
+  \item 공개된 대분류 \texttt{pct}의 합은 100\%보다 작다(표~\ref{tab:counts}: 97.37$\cdot$98.94\%). 표본 하한에 못 미친 셀은 공개되지 않기 때문이다. 식~\eqref{eq:sg}의 정규화는 이 몫을 공개된 셀에 비례해 나눈다는 가정(B2)과 같다.
+  \item 분모를 \texttt{pct} 합으로 나눈 $\sum_g p_{gt} u_{gt} / \sum_g p_{gt}$는 한국 대화 전체의 업무용 비중(약 47$\sim$50\%)이다. 이 값은 지표에 쓰이지 않는다. 지표는 모두 비중의 비율이므로 대화의 절대량과 업무용 비중의 수준이 필요 없다(2026-10-24 결정).
+  \item 모든 용도 기준 비중 $p_{gt} / \sum_{g'} p_{g't}$도 같이 만든다(\texttt{share\_all}, 참고 지표 A0용).
+\end{itemize}
+코드: \texttt{03\_02} 1절, \texttt{work\_w = pct * work\_pct}, \texttt{share\_work = work\_w / work\_w\_sum}.
+
+\section{2단계: 세부 직업과 SOC 2018 6자리}
+
+\subsection{세부 직업(O*NET-SOC 8자리)}
+
+한국 세부 직업에는 \texttt{pct}만 있고 업무용 비중은 없다. 그래서 세부 직업의 업무용 비중이 소속 대분류와 같다고 둔다(B3). 대분류 $g$ 안 세부 직업 $d$의 비중을 공개된 세부 직업끼리 나눠
+\begin{equation}
+\pi_{dt} = \frac{p_{dt}}{\sum_{d' \in g} p_{d't}}, \qquad s_{dt} = s_{gt}\, \pi_{dt}, \qquad \sum_d s_{dt} = 1.
+\label{eq:sd}
+\end{equation}
+B3에서 $u_{dt} = u_{gt}$이면 $p_{dt} u_{dt} / \sum p u$는 정확히 식~\eqref{eq:sd}와 같다. 세부 직업이 하나도 공개되지 않은 대분류(2026-04의 45 농림어업)는 \texttt{45-XXXX.XX} 한 행에 대분류 몫 전체를 둔다($\pi = 1$).
+
+GLOBAL은 세부 직업 업무용 비중이 공개되지만 같은 식(대분류 $u_g$ 사용)으로 만든다. 지표 D(한국 특화도)가 직업 구성의 차이만 반영하게 하려는 것이다.
+
+\subsection{SOC 2018 6자리}
+
+O*NET-SOC 8자리의 앞 7자리가 SOC 2018 세부 직업 코드다. 같은 6자리에 속하는 8자리 코드를 더한다.
+\begin{equation}
+s_{ot} = \sum_{d:\, \text{앞 7자리}(d) = o} s_{dt}.
+\label{eq:so}
+\end{equation}
+6자리 행은 한국 337개(4월, 45-XXXX 포함)$\cdot$365개(5월)다(표~\ref{tab:counts}). 코드: \texttt{03\_02} 2$\cdot$3절.
+
+\section{3단계: 대화당 절감 시간과 비중 $\times$ 절감 시간}
+
+\subsection{대화당 절감 시간 $\tau_o$ (GLOBAL)}
+
+과업 소요 시간은 GLOBAL 세부 직업에만 공개된다. 한국 직업의 대화당 절감 시간은 전 세계 값과 같다고 둔다. 세부 직업 $d$, 월 $t$에서 단위를 분으로 맞추고 차이를 구한다.
+\begin{equation}
+T^{0}_{dt} = 60 \times \texttt{human\_only\_time\_mean}_{dt}, \qquad
+T^{AI}_{dt} = \texttt{human\_with\_ai\_time\_mean}_{dt}, \qquad
+\tau_{dt} = T^{0}_{dt} - T^{AI}_{dt}.
+\label{eq:taud}
+\end{equation}
+\texttt{human\_only\_time\_mean}은 시간, \texttt{human\_with\_ai\_time\_mean}은 분 단위다(AEI \texttt{data\_documentation.md}). 2026-05의 51-5113.00은 $T^{0}$가 공개되지 않아 뺐다.
+
+6자리 직업 $o$의 값은 두 달의 8자리 값을 GLOBAL 대화 비중으로 가중평균한다. 각 시간 지표가 ``대화 평균''이므로 대화 수에 비례하는 가중치를 쓰는 것이다.
+\begin{equation}
+\tau_o = \frac{\sum_{t} \sum_{d \in o} \omega_{dt}\, \tau_{dt}}{\sum_{t} \sum_{d \in o} \omega_{dt}}, \qquad
+\omega_{dt} = \begin{cases} p^{\text{GLB}}_{dt} & p^{\text{GLB}}_{dt} > 0 \\ 0.0025 & p^{\text{GLB}}_{dt} = 0.00\ (\text{반올림}) \end{cases}
+\label{eq:tauo}
+\end{equation}
+\begin{itemize}[leftmargin=*]
+  \item 같은 가중치를 쓰므로 $\tau_o = T^{0}_o - T^{AI}_o$(각각 같은 식으로 평균한 값의 차이)다. 코드에서 이를 assert한다.
+  \item 두 달을 한 번에 가중평균하므로 두 달의 전체 대화 수가 같다고 가정한 것이다. 결과는 613개 6자리 직업이며 월과 무관한 하나의 값이다.
+  \item 0.00으로 반올림된 비중(실제 0$\sim$0.005\%)은 구간 중점 0.0025로 둔다.
+\end{itemize}
+코드: \texttt{01\_03} 1$\cdot$3절. 이후 \texttt{03\_01}이 이 값을 노출도 지표와 함께 \texttt{soc6\_ai\_indicators}(808개)에 붙인다.
+
+\subsection{비중 $\times$ 절감 시간 $v_{ot}$ (SOC 단계에서 곱함)}
+
+\begin{equation}
+v_{ot} = s_{ot}\, \tau_o \quad (\tau_o\text{가 있는 } o\text{만}), \qquad
+\bar\tau_t = \sum_o v_{ot} \Big/ \sum_o s_{ot}.
+\label{eq:v}
+\end{equation}
+$v_{ot}$는 ``한국 업무용 대화 1건을 무작위로 뽑았을 때 그 대화가 직업 $o$이면서 절감하는 시간의 기댓값''이다. 따라서 $\sum_o v_{ot}$는 한국 업무용 대화 1건당 평균 절감 시간 $\bar\tau_t$(표~\ref{tab:counts}: 258.86$\cdot$259.88분)다. 한국 비중이 공개된 6자리 직업은 45-XXXX 자리표시 행을 빼고 모두 $\tau_o$가 있다(assert).
+
+\textbf{곱하는 위치가 중요하다.} $v$는 반드시 SOC 단계에서 곱한 뒤 KSCO로 배분한다. KSCO 단계에서 배분된 비중과 KSCO 평균 절감 시간을 곱하면, 한 KSCO에 연결된 SOC들의 비중과 절감 시간의 공분산이 사라져 값이 달라진다(paper 23).
+
+\subsection{예시: 소프트웨어 개발자와 작가}
+
+표~\ref{tab:soc}는 SOC 15-1252(Software Developers, 대분류 15 컴퓨터$\cdot$수학)와 27-3043(Writers and Authors, 대분류 27 예술$\cdot$디자인$\cdot$미디어)이 식~\eqref{eq:sg}$\sim$\eqref{eq:v}를 거치는 과정이다. (3)$\times$(6) = (7), (7)$\times$(10) = (11)이 반올림 안에서 성립한다. 두 직업은 대화당 절감 시간이 비슷하지만(약 295분과 290분), 한국 업무용 대화 중 비중이 11배쯤 달라 $v$도 그만큼 다르다.
+
+\begin{longtable}{L{7.4cm}R{2.1cm}R{2.1cm}R{2.1cm}R{2.1cm}}
+\caption{SOC 직업 예시: 1$\sim$3단계(한국)}\label{tab:soc}\\
+\toprule
+ & \multicolumn{2}{c}{15-1252 소프트웨어 개발자} & \multicolumn{2}{c}{27-3043 작가} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & 2026-04 & 2026-05 & 2026-04 & 2026-05 \\
+\midrule
+\endfirsthead
+\input{../table/40_soc.tex}
+\bottomrule
+\end{longtable}
+
+\section{4단계: SOC 2018 $\to$ KSCO 8차 배분}
+
+\subsection{연계표와 배분 가중치}
+
+공식 SOC 2018--KSCO 연계표가 없으므로 BLS$\cdot$통계청 연계표 세 개를 이어 SOC 2018 $\to$ SOC 2010 $\to$ ISCO-08 $\to$ KSCO 8차 세분류 경로를 만든다(\texttt{01\_06}, paper 21). 각 단계에서 대응 코드 사이를 균등하게 나누면, SOC $o$에서 KSCO $k$로 가는 배분 가중치는 경로 $\ell$마다 단계별 1/(대응 수)를 곱해 더한 것이다.
+\begin{equation}
+w^{\text{alloc}}_{ok} = \sum_{\ell:\, o \to k} \frac{1}{n_{2010}(o)} \cdot \frac{1}{n_{\text{ISCO}}(o_{2010})} \cdot \frac{1}{n_{\text{KSCO}}(i)}, \qquad \sum_k w^{\text{alloc}}_{ok} = 1.
+\label{eq:walloc}
+\end{equation}
+$n_{2010}(o)$는 SOC 2018 $o$에 대응하는 SOC 2010 수, $n_{\text{ISCO}}(\cdot)$는 그 SOC 2010에 대응하는 ISCO 수, $n_{\text{KSCO}}(i)$는 ISCO $i$에 대응하는 KSCO 수다. 고용 가중은 하지 않는다. 비중$\cdot$$v$ 같은 ``양''은 이 $w^{\text{alloc}}$으로 나눠 SOC 합계가 KSCO 합계로 그대로 옮겨지게 한다(노출도 같은 ``비율'' 지표는 KSCO 안 합 1인 $w^{\text{mean}}$으로 평균한다; 표~\ref{tab:cw}의 마지막 열).
+
+\subsection{세분류와 소분류}
+
+\begin{equation}
+s_{kt} = \sum_{o \in \mathcal{P}_t} w^{\text{alloc}}_{ok}\, s_{ot}, \qquad
+v_{kt} = \sum_{o \in \mathcal{P}_t} w^{\text{alloc}}_{ok}\, v_{ot},
+\label{eq:sk}
+\end{equation}
+$\mathcal{P}_t$는 월 $t$에 한국 비중이 공개된 SOC다. 연결된 SOC 중 공개된 것이 하나도 없으면 $s_{kt}$는 결측(0이 아님)이다. 소분류는 세분류를 더한다.
+\begin{equation}
+s_{jt} = \sum_{k \in j} s_{kt} = \sum_{o \in \mathcal{P}_t} \Big( \sum_{k \in j} w^{\text{alloc}}_{ok} \Big) s_{ot}, \qquad
+v_{jt} = \sum_{k \in j} v_{kt}.
+\label{eq:sj}
+\end{equation}
+\begin{itemize}[leftmargin=*]
+  \item 연계표에 없는 45-XXXX(2026-04 농림어업 세부 미공개 몫)는 배분되지 않는다. 그래서 4월 한국 비중의 KSCO 합은 1보다 작다($1 - 0.00039$; 표~\ref{tab:counts}).
+  \item 군인 소분류(A01$\sim$A09)는 연계표에는 있으나 지역별고용조사에 없어 5단계에서 빠진다. 한국 비중이 이들에 배분되지는 않았다(5월 합계가 정확히 1).
+  \item 코드에서 ``월별 KSCO 합 = SOC 합 $-$ 45-XXXX''를 assert한다.
+\end{itemize}
+
+표~\ref{tab:cw}는 예시 SOC의 배분이다. 15-1252는 KSCO 2222$\cdot$2223에 반씩 가므로 전부 소분류 222로 들어간다. 27-3043은 283(상품 기획$\cdot$홍보)에 1/2, 291(작가$\cdot$언론)에 1/2로 나뉜다.
+
+\begin{longtable}{L{1.8cm}L{7.0cm}L{1.6cm}R{2.4cm}R{2.4cm}}
+\caption{예시 SOC의 연계표 가중치}\label{tab:cw}\\
+\toprule
+SOC 2018 & KSCO 8차 세분류 & 소분류 & $w^{\text{alloc}}$(SOC 안 합 1) & $w^{\text{mean}}$(KSCO 안 합 1) \\
+\midrule
+\endfirsthead
+\input{../table/40_cw.tex}
+\bottomrule
+\end{longtable}
+
+\section{5단계: 소분류 163개 안 정규화와 지표 A$\cdot$B$\cdot$C}
+
+\subsection{표본과 월별 점유율}
+
+지표의 표본은 지역별고용조사 2022년 상반기에 있는 소분류 163개 전부다. 두 달 모두 한국 비중이 없는 34개는 빼지 않고 사용 0으로 둔다(2026-11-01 결정). 어느 달에 값이 없는 소분류도 그 달은 0이다. 월마다 표본 안에서 다시 합 1로 나눈다.
+\begin{equation}
+a_{jt} = \frac{\tilde s_{jt}}{S^a_t}, \quad S^a_t = \sum_{j'=1}^{163} \tilde s_{j't}; \qquad
+b_{jt} = \frac{\tilde v_{jt}}{S^b_t}, \quad S^b_t = \sum_{j'=1}^{163} \tilde v_{j't}; \qquad
+\tilde x_{jt} = \begin{cases} x_{jt} & \text{관측} \\ 0 & \text{결측} \end{cases}
+\label{eq:ab}
+\end{equation}
+$S^b_t$는 $\bar\tau_t$와 같다(표~\ref{tab:counts}). 0을 더해도 합이 같으므로, 관측된 129개의 값은 34개를 넣든 빼든 바뀌지 않는다.
+
+\subsection{지표 A: 업무용 대화 점유율}
+
+\begin{equation}
+A_j = 100 \times \frac{a_{j,04} + a_{j,05}}{2}, \qquad \sum_j A_j = 100.
+\label{eq:A}
+\end{equation}
+두 달은 월별 비중의 단순평균으로 합친다(CLAUDE.md의 원칙). $A_j$는 ``한국 업무용 Claude 대화 100건 중 소분류 $j$의 과업에 해당하는 건수''다.
+
+\subsection{지표 B: 절감 시간 점유율}
+
+\begin{equation}
+B_j = 100 \times \frac{b_{j,04} + b_{j,05}}{2}, \qquad \sum_j B_j = 100.
+\label{eq:B}
+\end{equation}
+$B_j$는 ``한국 업무용 대화가 줄인 시간 100분 중 소분류 $j$의 몫''이다. 식~\eqref{eq:v}$\cdot$\eqref{eq:ab}에서 $b_{jt} / a_{jt} = \tau^{\text{eff}}_{jt} / \bar\tau_t$이다. 여기서 $\tau^{\text{eff}}_{jt} = v_{jt} / s_{jt}$는 소분류 $j$의 대화당 실효 절감 시간이다. 따라서 B는 A에 ``대화당 절감 시간이 평균보다 긴 정도''를 곱한 것이다. 코드는 $\tau^{\text{eff}}_j = \bar\tau\, B_j / A_j$(\texttt{tau\_eff}, $\bar\tau$는 두 달 평균)를 함께 남긴다.
+
+\subsection{지표 C: 취업자 환산 점유율}
+
+$B_j$는 소분류 $j$에서 줄어든 총 시간에 비례한다. 이를 그 직업 취업자 1인의 월 근로시간으로 나누면 ``몇 명분의 근로시간이 줄었나''(취업자 환산 인원)에 비례하는 양이 된다.
+\begin{equation}
+\bar h_j = \frac{H_j}{E_j}, \qquad
+C_j = 100 \times \frac{B_j / \bar h_j}{\sum_{j'} B_{j'} / \bar h_{j'}}, \qquad \sum_j C_j = 100.
+\label{eq:C}
+\end{equation}
+$E_j$는 지역별고용조사 2022년 상반기 취업자 수(\texttt{시도전국가중값} 합), $H_j$는 월 총 주업 근로시간(조사 주간 주업 시간 $\times 52.143/12$, 일시휴직자 0시간)이다. $\bar h_j$는 1인당 월 주업 근로시간이다. 식~\eqref{eq:C}에서 $C_j / B_j = \bar h^{*} / \bar h_j$이고, $\bar h^{*} = 100 \big/ \sum_{j'} (B_{j'} / \bar h_{j'})$는 B로 가중한 $\bar h$의 조화평균이다. 따라서 1인당 근로시간이 $\bar h^{*}$보다 짧은 소분류는 C가 B보다 크고, 긴 소분류는 C가 B보다 작다. 같은 절감 시간이라도 근로시간이 짧은 직업에서는 더 많은 인원분에 해당하기 때문이다(표~\ref{tab:kbc}의 291과 222 비교, $\bar h^{*}$는 마지막 줄).
+
+\subsection{예시: 지표 A 상위 다섯 소분류}
+
+표~\ref{tab:ka}와 표~\ref{tab:kbc}는 식~\eqref{eq:sj}의 원값부터 지표까지다. 마지막 줄은 163개 합계다. 원값의 합이 정규화 분모 $S^a_t$, $S^b_t$이므로, 4월 점유율 $100a_{j,04}$는 원값을 $S^a_{04}$로 나눈 것이라 원값의 100배보다 조금 크다. 표~\ref{tab:kbc}의 $B_j/\bar h_j$ 열을 마지막 줄의 합계로 나누고 100을 곱하면 $C_j$가 된다. 마지막 줄의 $\bar h_j$ 칸은 B 가중 조화평균 $\bar h^{*}$이다.
+
+\begin{small}
+\begin{longtable}{L{5.2cm}R{1.9cm}R{1.9cm}R{1.9cm}R{1.9cm}R{1.9cm}}
+\caption{지표 A의 산출(상위 5개 소분류)}\label{tab:ka}\\
+\toprule
+소분류 & $s_{j,04}$ & $s_{j,05}$ & $100 a_{j,04}$ & $100 a_{j,05}$ & $A_j$ \\
+\midrule
+\endfirsthead
+\input{../table/40_ksco3_a.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{small}
+\begin{longtable}{L{4.2cm}R{1.45cm}R{1.45cm}R{1.45cm}R{1.45cm}R{1.45cm}R{1.45cm}R{1.45cm}R{1.45cm}}
+\caption{지표 B$\cdot$C의 산출(같은 5개 소분류). $v$는 분 단위}\label{tab:kbc}\\
+\toprule
+소분류 & $v_{j,04}$ & $v_{j,05}$ & $100 b_{j,04}$ & $100 b_{j,05}$ & $B_j$ & $\bar h_j$(시간) & $B_j / \bar h_j$ & $C_j$ \\
+\midrule
+\endfirsthead
+\input{../table/40_ksco3_bc.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+
+\section{한 줄 요약식}
+
+1$\sim$5단계를 합치면, 관측된 소분류 $j$와 월 $t$에 대해
+\[
+a_{jt} \propto \sum_{o} \Big(\sum_{k \in j} w^{\text{alloc}}_{ok}\Big)\,
+\underbrace{\frac{p_{g(o)t}\, u_{g(o)t}}{\sum_{g'} p_{g't} u_{g't}}}_{\text{1단계}}\,
+\underbrace{\sum_{d \in o} \frac{p_{dt}}{\sum_{d' \in g(o)} p_{d't}}}_{\text{2단계}},
+\qquad
+b_{jt} \propto \sum_{o} \Big(\sum_{k \in j} w^{\text{alloc}}_{ok}\Big)\, s_{ot}\,
+\underbrace{\big(T^{0}_o - T^{AI}_o\big)}_{\text{3단계}},
+\]
+이고, $A_j = 50(a_{j,04} + a_{j,05})$, $B_j = 50(b_{j,04} + b_{j,05})$, $C_j \propto B_j E_j / H_j$이다($\propto$는 163개 안 합이 1 또는 100이 되게 나누는 것).
+
+\section{가정과 주의}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{(B1) AEI = 한국 업무용 AI 사용.} 한국 업무용 AI 대화의 직업 구성이 AEI Claude.ai 한국 업무용 대화의 구성과 같다고 본다. 다른 서비스(ChatGPT 등) 사용자의 구성은 다를 수 있다.
+  \item \textbf{(B2) 미공개 셀 비례 배분.} 공개되지 않은 대분류$\cdot$세부 직업 몫은 공개된 셀에 비례해 나뉜다(식~\eqref{eq:sg}$\cdot$\eqref{eq:sd}의 정규화). 작은 직업이 다소 과소일 수 있다.
+  \item \textbf{(B3) 세부 직업 업무용 비중 = 대분류 값.} 한국 세부 직업의 \texttt{use\_case\_work\_pct}가 공개되지 않아서다.
+  \item \textbf{절감 시간은 전 세계 값.} $T^{0}$$\cdot$$T^{AI}$는 Claude가 대화마다 추정한 값의 평균이며 실측이 아니다. 한국 직업의 대화당 절감 시간이 전 세계와 같다고 본다.
+  \item \textbf{연계표 균등 배분.} SOC $\to$ KSCO 배분은 고용 가중 없이 단계마다 균등하다. 여러 KSCO에 걸친 SOC의 몫은 직업 규모와 무관하게 나뉜다.
+  \item \textbf{두 달 단순평균.} 4월과 5월의 대화 총량이 다르더라도 같은 무게로 평균한다.
+  \item \textbf{사용 0.} 34개 소분류의 0은 실제 사용이 없다기보다 AEI 공개 기준에 못 미치거나 연계되지 않은 것이다.
+  \item \textbf{분모 시점.} C의 근로시간은 2022년 상반기, 사용은 2026년 4$\cdot$5월이다.
+\end{enumerate}
+
+\section{산출 파일}
+
+\begin{itemize}[leftmargin=*]
+  \item 코드: \texttt{code/01\_03\_import\_aei\_soc\_time\_savings.do}, \texttt{03\_02\_merge\_aei\_kor\_soc\_work\_share.do}, \texttt{03\_03\_merge\_kor\_conv\_ai\_ksco8.do}, \texttt{03\_05\_merge\_kor\_ksco3\_ai\_usage.do}(지표), \texttt{01\_06\_import\_soc2018\_ksco8\_crosswalk.do}(연계표). 이 노트의 표는 \texttt{code/04\_24\_analysis\_kor\_share\_construction.do}가 앞 단계 산출물의 값을 옮겨 만든다. 모두 \texttt{00\_master.do}에 포함.
+  \item 이 노트의 표: \texttt{results/table/40\_counts.tex}, \texttt{40\_soc.tex}, \texttt{40\_cw.tex}, \texttt{40\_ksco3\_a.tex}, \texttt{40\_ksco3\_bc.tex}.
+  \item 지표 최종 자료: \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.\{dta,csv\}}(\texttt{shA}, \texttt{shB}, \texttt{shC}, 월별 원값 \texttt{sw04}$\cdot$\texttt{sv04} 등, 정규화 분모 \texttt{tot\_*}).
+\end{itemize}
+
+\printbibliography[title={참고문헌}]
+
+\end{document}

@@ -68,3 +68,4 @@ do "$code/04_20_analysis_kor_share_figures.do"            // 그림(paper 34~36)
 do "$code/04_21_analysis_kor_share_exposure_metrics.do"     // paper 37
 do "$code/04_22_analysis_kor_group_usage.do"                 // paper 38(그림 포함) ← 01_09, 03_05
 do "$code/04_23_analysis_kor_industry_usage.do"              // paper 39(그림 포함) ← 01_09, 03_05
+do "$code/04_24_analysis_kor_share_construction.do"          // paper 40(지표 A·B·C 산출 과정 예시표) ← 01_03, 01_06, 03_02, 03_03, 03_05
