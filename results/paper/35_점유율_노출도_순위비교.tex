@@ -4,6 +4,7 @@
 %          (code/04_18_analysis_kor_share_exposure_rank.do가 생성)
 % 설명 대상: results/table/35_kor_share_exposure_rank.xlsx
 % 관련: paper 23(노출도의 KSCO 변환), 27(점유율 지표 A~D), 28(점유율과 노출도 상관), 29(격차), 33(분포 비교)
+% 2026-11-04: 3.4절(전병유·신영민(2025) [그림 1] 형식의 사분면 그림, 표 results/table/35_quadrant.tex) 추가
 % 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
 \documentclass[11pt]{article}
 
@@ -164,6 +165,45 @@
 
 \paragraph{사용은 많고 노출도는 낮은 직업.} 지표 C 상위 30이면서 노출도 셋 모두 40위 밖인 소분류는 293 연극$\cdot$영화 및 영상 전문가(C 9위), 235 기계$\cdot$로봇공학 기술자(17위), 239 기타 공학 전문가(21위), 799 기타 기능 관련 종사자(28위), 236 소방$\cdot$방재$\cdot$산업안전 기술자(30위)다. 이 직업들의 사용이 많은 이유는 연계표로 들어온 SOC 구성(paper 26)을 함께 봐야 한다.
 
+\subsection{지표 C와 노출도의 사분면}
+
+\textcite{cheon-2025-ai-exposure-vs-ai-adoption}의 [그림 1]은 가로축에 AI 노출도, 세로축에 AI 적용도를 두고 평균값의 수평$\cdot$수직선으로 직업을 네 사분면에 나눈다. 같은 형식으로 세로축에 지표 C, 가로축에 노출도 3개를 두고 소분류 163개를 그렸다. 기준보다 큰 값이 위$\cdot$오른쪽이고, 기준과 같은 값은 아래$\cdot$왼쪽에 넣었다. 색은 그림~\ref{fig:scatter}와 같은 뜻이다(파랑 = 사용 높고 노출도 낮음, 주황 = 노출도 높고 사용 낮음, 청록 = 둘 다 높음, 회색 = 둘 다 낮음).
+
+두 판을 그렸다. 그림~\ref{fig:quadmean}은 원 그림대로 원값과 평균선이다. 지표 C는 163개 합이 100\%인 점유율이라 평균이 100/163 $\approx$ 0.61\%로 정해져 있고, 값이 상위 직업에 몰려 있어 평균선 위에 35개만 남는다. 그래서 이 판의 사분면은 사실상 노출도의 높고 낮음만 가른다. 그림~\ref{fig:quadmed}은 이를 보완해 세로축을 로그로 바꾸고 기준선을 163개 중앙값으로 했다. 로그축에 그릴 수 없는 사용 0인 34개는 맨 아래 ``0'' 줄에 따로 두었다.
+
+\begin{small}
+\begin{longtable}{L{1.3cm}L{3.0cm}R{1.3cm}R{1.4cm}R{1.3cm}R{1.3cm}R{1.3cm}R{1.4cm}R{1.8cm}}
+\caption{사분면별 소분류 수(소분류 163개)}\label{tab:quad}\\
+\toprule
+기준선 & 노출도 & 노출도 기준값 & C 기준값(\%) & 오른쪽 위 & 왼쪽 위 & 왼쪽 아래 & 오른쪽 아래 & 오른쪽 아래 중 사용 0 \\
+\midrule
+\endfirsthead
+\input{../table/35_quadrant.tex}
+\bottomrule
+\end{longtable}
+\end{small}
+\noindent 오른쪽 위 = 노출도와 지표 C 모두 기준보다 큼, 왼쪽 위 = 지표 C만 큼, 왼쪽 아래 = 둘 다 기준 이하, 오른쪽 아래 = 노출도만 큼.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{평균선 판}: 평균선 위의 35개는 대부분 오른쪽 위(26$\sim$33개)다. 왼쪽 위는 2$\sim$9개뿐이고(Felten에서는 213 생명 및 자연과학 관련 시험원 등 3개), 노출도가 평균보다 높은데 지표 C가 평균에 못 미치는 오른쪽 아래가 30$\sim$49개다. 지표 C 상위 6개(222, 291, 372, 225, 283, 332)는 세 노출도 모두에서 오른쪽 위다.
+  \item \textbf{중앙값$\cdot$로그축 판}: 사분면이 고르게 나뉘어, 오른쪽 위와 왼쪽 아래가 각각 64$\sim$69개, 대각선 밖 두 사분면이 각각 12$\sim$18개다. 노출도와 사용이 같은 쪽에 있는 소분류가 79$\sim$85\%다.
+  \item \textbf{대각선 밖 직업}: 그림~\ref{fig:quadmed}의 라벨은 대각선 밖 사분면마다 순위 격차가 큰 4개씩이다(사용 $>$ 0). 왼쪽 위(사용 높고 노출도 낮음)는 852 냉난방 관련 설비 조작원, 799 기타 기능 관련 종사자, 730 목재$\cdot$가구 관련 기능 종사자, 213, 999 기타 서비스 관련 단순 종사자 등이고, 오른쪽 아래(노출도 높고 사용 낮음)는 245 영양사, 243 약사 및 한약사, 322 운송 및 무역 사무원, 532 방문 및 노점 판매, 311 기획 및 마케팅 사무원 등이다. paper 36에서 9개 쌍 중 7개 이상의 격차 목록에 반복해 든 소분류와 겹친다.
+  \item 사용 0인 34개는 지표 C가 기준 이하라 모두 아래 사분면이고, 그중 노출도가 기준보다 높아 오른쪽 아래에 드는 것은 1$\sim$5개다(Eloundou에서는 853 자동 조립라인 및 산업용로봇 조작원 등).
+  \item 원 논문의 적용도는 직업별 적용 정도이지만 지표 C는 직업 규모가 들어간 점유율이다. 큰 직업은 위쪽에 오기 쉬우므로, 사분면은 ``노출도에 비해 사용 몫이 큰 직업''으로 읽어야 한다. 원 논문은 한국고용직업분류 기준이라 사분면별 수를 직접 비교할 수 없다.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/35_fig_quadrant_C_mean.pdf}
+\caption{지표 C와 노출도의 사분면(원값, 기준선 = 평균; 전병유$\cdot$신영민(2025) [그림 1] 형식)}\label{fig:quadmean}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/35_fig_quadrant_C_med.pdf}
+\caption{지표 C와 노출도의 사분면(세로 로그축, 기준선 = 중앙값)}\label{fig:quadmed}
+\end{figure}
+
 \section{읽을 때 유의사항}
 
 \begin{longtable}{L{12.5cm}R{2.5cm}}
@@ -190,7 +230,7 @@
   \item 코드: \texttt{code/04\_18\_analysis\_kor\_share\_exposure\_rank.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}).
   \item 엑셀: \texttt{results/table/35\_kor\_share\_exposure\_rank.xlsx}(시트 7개).
   \item 이 노트의 표: \texttt{results/table/35\_spearman.tex}, \texttt{35\_cross.tex}, \texttt{35\_cross\_rev.tex}, \texttt{35\_topC10.tex}, \texttt{35\_notes.tex}.
-  \item 그림: \texttt{results/figure/35\_fig\_rank\_scatter\_C.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}).
+  \item 그림: \texttt{results/figure/35\_fig\_rank\_scatter\_C.\{pdf,png\}}, \texttt{35\_fig\_quadrant\_C\_mean.\{pdf,png\}}, \texttt{35\_fig\_quadrant\_C\_med.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}). 사분면 표 \texttt{results/table/35\_quadrant.tex}도 같은 do 파일이 만든다.
 \end{itemize}
 
 \printbibliography[title={참고문헌}]

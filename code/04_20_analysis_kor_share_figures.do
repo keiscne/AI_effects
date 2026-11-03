@@ -11,6 +11,10 @@
 *   36_fig_heatmap_robust       9개 쌍 격차 목록 중 7개 이상에 든 소분류 × 9개 쌍의 순위 격차 히트맵
 *   36_fig_absgap_hist_C        지표 C × 노출도 3개의 절대 순위 격차 |G| 히스토그램(3칸, 평균선)
 *                               — 옥승빈·홍현우(2026) <그림 3> 형식(2026-11-04 추가)
+*   35_fig_quadrant_C_mean      지표 C × 노출도 3개 사분면 산점도(원값, 평균선)
+*   35_fig_quadrant_C_med       같은 그림의 보완판(세로 로그축, 중앙값선)
+*   ($results/table/35_quadrant.tex: 두 판의 사분면별 소분류 수, paper 35 노트용)
+*                               — 전병유·신영민(2025) [그림 1] 형식(2026-11-04 추가, 6절)
 *
 * 순위·격차 정의는 04_18·04_19와 같다: 163개 소분류(사용 0인 34개 포함), 값 내림차순(같은 값은 평균 순위),
 *   목록은 30번째와 같은 값을 모두 포함(경계 동점),
@@ -365,3 +369,139 @@ graph combine `gnames', rows(1) ycommon ///
         "형식은 옥승빈·홍현우(2026) <그림 3>을 따랐다.", size(vsmall) linegap(1.5)) ///
     graphregion(color(white)) xsize(12) ysize(4.6)
 savefig "`fig'/36_fig_absgap_hist_C"
+
+* -----------------------------------------------------------------------------
+* 6. (paper 35) 지표 C × 노출도 사분면 산점도 (2026-11-04 추가)
+*    전병유·신영민(2025) [그림 1](가로 = 노출도, 세로 = 적용도, 평균선으로 사분면)과 같은 형식.
+*    (a) 35_fig_quadrant_C_mean: 원값, 기준선 = 163개 평균(지표 C 평균 = 100/163 ≈ 0.61%)
+*    (b) 35_fig_quadrant_C_med : 세로축 로그, 기준선 = 163개 중앙값(치우침 보완판)
+*        로그축에서 사용 0인 34개는 양수 최솟값의 1/3 높이에 "0"으로 둔다.
+*    사분면: 노출도 > 기준 = 오른쪽, 지표 C > 기준 = 위(같은 값은 아래·왼쪽).
+*    색: 왼쪽 위(사용 높고 노출도 낮음) 파랑, 오른쪽 아래(노출도 높고 사용 낮음) 주황
+*        — 35_fig_rank_scatter_C와 같은 뜻 — 오른쪽 위 청록, 왼쪽 아래 회색.
+*    코드 라벨: (a) 지표 C 상위 6개, (b) 대각선 밖 두 사분면에서 순위 격차 |r(노출도) − r(C)|가
+*        큰 4개씩(사용 > 0인 소분류만).
+* -----------------------------------------------------------------------------
+use `k3', clear
+keep ksco3 C FEL ELO OE r_C r_FEL r_ELO r_OE
+quietly summarize C if C > 0
+local cpos = r(min)
+local cmax = r(max)
+local fl = `cpos' / 3
+generate double Cl = cond(C > 0, C, `fl')
+* 로그축 눈금: 0(바닥) + 10의 거듭제곱
+local ylog `"`fl' "0""'
+forvalues k = `=ceil(log10(`cpos'))'/`=floor(log10(`cmax'))' {
+    local s = cond(`k' >= 0, string(10^`k'), "0." + "0" * (-`k' - 1) + "1")
+    local ylog `"`ylog' `=10^`k'' "`s'""'
+}
+local xs "FEL ELO OE"
+local xn1 "Felten AIOE"
+local xn2 "Eloundou β"
+local xn3 "Observed Exposure"
+local qcols "c_gray c_orange c_blue c_aqua"
+* 사분면별 소분류 수 표(paper 35 노트용): $results/table/35_quadrant.tex
+tempname tq
+file open `tq' using "$results/table/35_quadrant.tex", write replace text
+foreach v in mean med {
+    local gnames ""
+    local j = 0
+    foreach x of local xs {
+        local ++j
+        if "`v'" == "mean" {
+            quietly summarize C, meanonly
+            local cy = r(mean)
+            quietly summarize `x', meanonly
+            local cx = r(mean)
+            local yv "C"
+        }
+        else {
+            quietly summarize C, detail
+            local cy = r(p50)
+            quietly summarize `x', detail
+            local cx = r(p50)
+            local yv "Cl"
+        }
+        quietly summarize `x'
+        local xmin = r(min)
+        local xmax = r(max)
+        foreach vv in q gap krank code {
+            capture drop `vv'
+        }
+        generate byte q = 1 + (`x' > `cx') + 2 * (C > `cy')   // 1 왼쪽 아래, 2 오른쪽 아래, 3 왼쪽 위, 4 오른쪽 위
+        forvalues g = 1/4 {
+            quietly count if q == `g'
+            local n`g' = r(N)
+        }
+        display "`v' × `x': 기준 x = " %9.4f `cx' ", C = " %9.4f `cy' ///
+            " | 오른쪽 위 `n4', 왼쪽 위 `n3', 왼쪽 아래 `n1', 오른쪽 아래 `n2'"
+        quietly count if q == 2 & C == 0
+        local nz = r(N)
+        local vn = cond("`v'" == "mean", "평균", "중앙값")
+        local xns = subinstr("`xn`j''", "β", "\(\beta\)", .)
+        file write `tq' "`vn' & `xns' & " %6.3f (`cx') " & " %5.3f (`cy') ///
+            " & `n4' & `n3' & `n1' & `n2' & `nz' \\" _n
+        generate double gap = abs(r_`x' - r_C)
+        if "`v'" == "mean" {
+            generate str3 code = ksco3 if r_C <= 6
+        }
+        else {
+            generate double ngap = -gap
+            bysort q (ngap ksco3): generate int krank = sum(C > 0) if C > 0
+            drop ngap
+            generate str3 code = ksco3 if inlist(q, 2, 3) & C > 0 & krank <= 4
+        }
+        list q ksco3 C `x' if code != "", noobs clean
+        * 사분면별 소분류 수는 그림 네 귀퉁이에
+        if "`v'" == "mean" {
+            local ytop = `cmax' * 1.08
+            local ybot = -`cmax' * 0.05
+            local ysc "yscale(range(`ybot' `ytop'))"
+            local ylb "ylabel(, labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin))"
+            local cys : display %4.2f `cy'
+        }
+        else {
+            local ytop = `cmax' * 2.5
+            local ybot = `fl' / 2.2
+            local ysc "yscale(log range(`=`fl' / 2.6' `=`cmax' * 3'))"
+            local ylb `"ylabel(`ylog', labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin))"'
+            local cys : display %5.3f `cy'
+        }
+        local layers ""
+        forvalues g = 1/4 {
+            local cc : word `g' of `qcols'
+            local layers `"`layers' (scatter `yv' `x' if q == `g', msymbol(O) msize(small) mcolor("``cc''%75") mlwidth(none) mlabel(code) mlabsize(vsmall) mlabcolor("`c_ink'") mlabposition(3))"'
+        }
+        local yt = cond(`j' == 1, cond("`v'" == "mean", "지표 C(%)", "지표 C(%, 로그축)"), "")
+        twoway `layers', ///
+            xline(`cx', lcolor("`c_ink'") lwidth(thin) lpattern(dash)) ///
+            yline(`cy', lcolor("`c_ink'") lwidth(thin) lpattern(dash)) ///
+            `ysc' `ylb' xlabel(, labsize(small) grid glcolor("`c_light'") glwidth(vthin)) ///
+            text(`ytop' `xmax' "`n4'", placement(w) size(medsmall) color("`c_aqua'")) ///
+            text(`ytop' `xmin' "`n3'", placement(e) size(medsmall) color("`c_blue'")) ///
+            text(`ybot' `xmin' "`n1'", placement(e) size(medsmall) color("`c_gray'")) ///
+            text(`ybot' `xmax' "`n2'", placement(w) size(medsmall) color("`c_orange'")) ///
+            xtitle("`xn`j''", size(small) margin(t=2)) ytitle("`yt'", size(small) color("`c_ink'")) ///
+            title("지표 C × `xn`j''", size(medsmall) color("`c_ink'")) ///
+            legend(off) `gopt' aspectratio(1) name(q_`x', replace) nodraw
+        local gnames "`gnames' q_`x'"
+    }
+    if "`v'" == "mean" {
+        local ttl "지표 C와 노출도의 사분면(기준선 = 평균)"
+        local nt1 "KSCO 8차 소분류 163개. 점선 = 163개 평균(지표 C 평균 = 100/163 ≈ 0.61%). 사용 0인 34개는 세로 0에 놓인다."
+        local nt2 "라벨 = 지표 C 상위 6개 코드. 귀퉁이 숫자 = 사분면별 소분류 수."
+    }
+    else {
+        local ttl "지표 C와 노출도의 사분면(세로 로그축, 기준선 = 중앙값)"
+        local nt1 "KSCO 8차 소분류 163개. 점선 = 163개 중앙값. 맨 아래 줄(눈금 0) = 사용 0인 34개(로그축에 그릴 수 없어 따로 둠)."
+        local nt2 "라벨 = 왼쪽 위·오른쪽 아래 사분면에서 순위 격차가 큰 4개씩(사용 > 0). 귀퉁이 숫자 = 사분면별 소분류 수."
+    }
+    graph combine `gnames', rows(1) `=cond("`v'" == "mean", "ycommon", "")' ///
+        title("`ttl'", size(medium) color("`c_ink'")) ///
+        note("`nt1'" "`nt2'" ///
+            "색: 파랑 = 사용 높고 노출도 낮음, 주황 = 노출도 높고 사용 낮음, 청록 = 둘 다 높음, 회색 = 둘 다 낮음." ///
+            "형식은 전병유·신영민(2025) [그림 1]을 따랐다.", size(vsmall) linegap(1.5)) ///
+        graphregion(color(white)) xsize(12) ysize(5.2)
+    savefig "`fig'/35_fig_quadrant_C_`v'"
+}
+file close `tq'
