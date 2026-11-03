@@ -9,6 +9,8 @@
 *   35_fig_rank_scatter_C       지표 C 순위 대 노출도 3개 순위 산점도(3칸, 45도선, 상위·하위 30 경계)
 *   36_fig_dumbbell_C_ELO       지표 C × Eloundou β 순위 격차 상위·하위 30 덤벨 그래프
 *   36_fig_heatmap_robust       9개 쌍 격차 목록 중 7개 이상에 든 소분류 × 9개 쌍의 순위 격차 히트맵
+*   36_fig_absgap_hist_C        지표 C × 노출도 3개의 절대 순위 격차 |G| 히스토그램(3칸, 평균선)
+*                               — 옥승빈·홍현우(2026) <그림 3> 형식(2026-11-04 추가)
 *
 * 순위·격차 정의는 04_18·04_19와 같다: 163개 소분류(사용 0인 34개 포함), 값 내림차순(같은 값은 평균 순위),
 *   목록은 30번째와 같은 값을 모두 포함(경계 동점),
@@ -303,3 +305,63 @@ twoway `layers' ///
         "G = 노출도 순위 − 사용 순위.", size(vsmall) span) ///
     `gopt' graphregion(margin(l=22 r=4)) xsize(12) ysize(11)
 savefig "`fig'/36_fig_heatmap_robust"
+
+* -----------------------------------------------------------------------------
+* 5. (paper 36) 지표 C와 노출도 3개의 절대 순위 격차 |G| 분포 히스토그램
+*    옥승빈·홍현우(2026) <그림 3>(LM Index와 OECD Index의 직업별 절대 순위 차이 분포)과
+*    같은 형식: 소분류 수 빈도, 구간 폭 10(0부터), 실선 = |G| 평균.
+*    더해 점선 = 두 순위가 서로 무관할 때 |G|의 기댓값 (N² − 1)/(3N)(동점 없을 때, N = 163이면 54.3).
+* -----------------------------------------------------------------------------
+use `k3', clear
+local rnd = (`N'^2 - 1) / (3 * `N')
+local xs "FEL ELO OE"
+local xn1 "Felten AIOE"
+local xn2 "Eloundou β"
+local xn3 "Observed Exposure"
+* 세 칸의 세로축을 맞추려고 구간별 최대 빈도를 먼저 구한다
+local ymax = 0
+foreach x of local xs {
+    generate double ag_`x' = abs(g_C_`x')
+    generate int bin_`x' = floor(ag_`x' / 10)
+    bysort bin_`x': generate int nb_`x' = _N
+    quietly summarize nb_`x'
+    local ymax = max(`ymax', r(max))
+}
+local ytop = ceil(`ymax' / 5) * 5
+local j = 0
+local gnames ""
+foreach x of local xs {
+    local ++j
+    quietly summarize ag_`x'
+    local mu = r(mean)
+    local mus : display %4.1f `mu'
+    local mx = r(max)
+    quietly count if ag_`x' >= 30
+    local n30 = r(N)
+    quietly count if ag_`x' < 20
+    local n20 = r(N)
+    quietly count if ag_`x' >= 50
+    local n50 = r(N)
+    quietly count if ag_`x' >= `rnd'
+    local nrd = r(N)
+    local yt = cond(`j' == 1, "소분류 수", "")
+    display "C × `x': |G| 평균 = `mus', 최대 = `mx', |G| < 20 = `n20', ≥ 30 = `n30', ≥ 50 = `n50', ≥ 54.3 = `nrd'"
+    twoway (histogram ag_`x', frequency start(0) width(10) color("`c_gray'") lcolor(white) lwidth(thin)), ///
+        xline(`mu', lcolor("`c_ink'") lwidth(medthin)) ///
+        xline(`rnd', lcolor("`c_orange'") lpattern(dash) lwidth(medthin)) ///
+        xscale(range(0 160)) xlabel(0(50)150, labsize(small) nogrid) ///
+        yscale(range(0 `ytop')) ylabel(0(5)`ytop', labsize(small) angle(0) grid glcolor("`c_light'") glwidth(vthin)) ///
+        xtitle("절대 순위 격차 |G|", size(small) margin(t=2)) ytitle("`yt'", size(small) color("`c_ink'")) ///
+        title("지표 C × `xn`j''", size(medsmall) color("`c_ink'")) ///
+        text(`=`ytop' * 0.95' `mu' "평균 `mus'", placement(e) size(small) color("`c_ink'")) ///
+        legend(off) `gopt' name(h_`x', replace) nodraw
+    local gnames "`gnames' h_`x'"
+}
+local rnds : display %4.1f `rnd'
+graph combine `gnames', rows(1) ycommon ///
+    title("지표 C와 노출도의 소분류별 절대 순위 격차 분포", size(medium) color("`c_ink'")) ///
+    note("KSCO 8차 소분류 163개(사용 0인 34개 포함, 순위 146.5). |G| = |노출도 순위 − 지표 C 순위|, 구간 폭 10." ///
+        "실선 = |G| 평균, 주황 점선 = 두 순위가 무관할 때의 기댓값 `rnds'((N² − 1)/(3N))." ///
+        "형식은 옥승빈·홍현우(2026) <그림 3>을 따랐다.", size(vsmall) linegap(1.5)) ///
+    graphregion(color(white)) xsize(12) ysize(4.6)
+savefig "`fig'/36_fig_absgap_hist_C"

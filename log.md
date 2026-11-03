@@ -748,3 +748,17 @@
     - Stata 문자열 안의 `$`는 `\$`로 써도 전역 매크로로 펼쳐져(`\$s_` → 빈 값) 표 라벨의 수식 구분자는 `\( \)`를 씀.
   - 새 노트 `results/paper/40_지표ABC_산출과정.{tex,md,pdf}`. 1단계 s_g = p·u / Σp·u, 2단계 π_d = p_d / Σp_d', s_d = s_g π_d, s_o = Σ s_d, 3단계 τ_o = 60·human_only − human_with_ai(GLOBAL pct 가중, 두 달 통합), v_o = s_o τ_o(SOC 단계 곱), 4단계 w_alloc 배분, 5단계 163개 정규화·두 달 단순평균·C = B/hbar 정규화. C/B = hbar*/hbar_j(hbar* = B 가중 조화평균 168.0시간)를 정리.
   - `.md`는 표를 results/table/40_*.tex에서 채우고 수식은 `$`(GitHub 렌더링). pdf는 `.md`를 HTML로 바꿔 KaTeX(cdn.jsdelivr.net, 0.16.11)로 수식을 그린 뒤 Edge headless로 인쇄. `results/paper/*.pdf`는 .gitignore 대상이지만 사용자 요청으로 이 pdf만 `git add -f`로 올림.
+
+## 2026-11-03
+
+- 참고문헌 추가(사용자 요청: D:/econ-wiki에 추가된 논문을 reference로): 옥승빈·홍현우(2026), 「한국 노동시장의 AI 노출 지형은 측정방식에 따라 달라지는가?: OECD와 Felten 기반 직업 및 산업 노출도 지수의 비교」, 『한국경제포럼』 19(3), 11-47.
+  - `reference/papers/ok-2026-ai-exposure-measurement-korean-labor-market.pdf`, `reference/notes/ok-2026-ai-exposure-measurement-korean-labor-market.md`(econ-wiki `sources/`에서 복사), `reference/references.bib`에 `ok-2026-ai-exposure-measurement-korean-labor-market` 추가.
+  - 이 저장소와 같은 KSCO 8차 소분류 163개를 쓰며, Felten Broad·LM AIOE와 OECD AI Capability Gap Index를 지역별고용조사(2025 상반기)로 직업·산업 수준에서 비교한다.
+
+## 2026-11-04
+
+- paper 36에 절대 순위 격차 히스토그램 추가(사용자 요청: 옥승빈·홍현우(2026) 〈그림 3〉(LM Index와 OECD Index의 직업별 절대 순위 차이 분포)과 같은 그래프를 지표 C와 기존 노출도에 대해 `04_20`에, 노트·pdf 수정, GitHub).
+  - `code/04_20_analysis_kor_share_figures.do`에 5절 추가 → `results/figure/36_fig_absgap_hist_C.{png,pdf}`: 지표 C × Felten AIOE·Eloundou β·Observed Exposure의 |G| = |노출도 순위 − 지표 C 순위|(163개, 평균 순위) 히스토그램 3칸. 원 그림처럼 빈도, 구간 폭 10(0부터), 실선 = 평균. 두 순위가 무관할 때의 기댓값 (N² − 1)/(3N) = 54.3을 주황 점선으로 더함(작업자 판단). 세로축 공통. Stata 17 배치 실행, 오류 없음.
+  - 결과: |G| 평균 25.6 / 24.0 / 26.3(paper 36 표 1과 같음), |G| < 20 소분류 86 / 93 / 77개, |G| ≥ 50 25 / 24 / 23개. 원 논문의 LM–OECD 평균 67.7위(무관 기댓값보다 큼)의 3분의 1 남짓. 원 논문은 동점에 최소 순위, 이 저장소는 평균 순위라 엄밀한 비교는 아님.
+  - `results/paper/36_점유율_노출도_순위격차.{tex,md}`에 2.4절 "격차 전체의 분포"와 그림 3, 산출 파일 목록, 참고문헌(ok-2026-ai-exposure-measurement-korean-labor-market) 추가. pdf(7쪽)는 `.md`를 HTML로 바꿔 Edge headless로 다시 인쇄, 사용자 요청으로 `git add -f`.
+  - 원 논문 그림은 PDF 페이지를 Windows.Data.Pdf(WinRT)로 렌더링해 확인(p.24).

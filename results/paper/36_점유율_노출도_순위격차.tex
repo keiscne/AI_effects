@@ -4,6 +4,7 @@
 %          (code/04_19_analysis_kor_share_exposure_rankgap.do가 생성)
 % 설명 대상: results/table/36_kor_share_exposure_rankgap.xlsx
 % 관련: paper 28(점유율과 노출도 상관), 29(점유율과 노출도의 격차), 35(순위 비교 목록)
+% 2026-11-04: 2.4절(옥승빈·홍현우(2026) <그림 3> 형식의 |G| 히스토그램) 추가
 % 컴파일: xelatex -> biber -> xelatex -> xelatex (kotex, biblatex/biber 필요)
 \documentclass[11pt]{article}
 
@@ -148,6 +149,21 @@
 \caption{지표 C와 Eloundou $\beta$의 순위 격차 상위 30$\cdot$하위 30(괄호 = 격차 $G$)}\label{fig:dumbbell}
 \end{figure}
 
+\subsection{격차 전체의 분포: 지표 C $\times$ 노출도 3개}
+
+그림~\ref{fig:hist}는 \textcite{ok-2026-ai-exposure-measurement-korean-labor-market}의 〈그림 3〉(LM Index와 OECD Index의 직업별 절대 순위 차이 분포)과 같은 형식으로, 지표 C와 노출도 3개의 절대 순위 격차 $|G|$를 163개 소분류 전부에 대해 그린 것이다. 구간 폭은 10이고, 실선은 $|G|$ 평균이다. 두 순위가 서로 무관할 때 $|G|$의 기댓값 $(N^2-1)/(3N) = 54.3$($N = 163$, 동점 없음)을 주황 점선으로 더했다.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{분포는 0 쪽에 몰려 있다.} $|G| < 20$인 소분류가 Felten 86개, Eloundou 93개, Observed 77개로 절반 안팎이고, 평균은 25.6, 24.0, 26.3계단이다(표~\ref{tab:summary}와 같은 값). $|G| \ge 50$인 소분류는 23$\sim$25개다.
+  \item \textbf{긴 오른쪽 꼬리는 소수 직업이다.} 100계단이 넘는 격차는 Eloundou 1개(853, $|G| = 141.5$)와 Observed 2개뿐이고, Felten은 최대 94다. 이 꼬리가 2.2$\cdot$2.3절의 목록에 든다.
+  \item \textbf{옥승빈$\cdot$홍현우(2026)와 비교.} 같은 163개 소분류에서 그 논문의 LM Index와 OECD Index의 평균 절대 순위 차이는 67.7위로, 무관할 때의 기댓값 54.3보다도 크다(두 지수의 Spearman 상관이 $-0.446$). 지표 C와 노출도 3개의 평균 격차(24$\sim$26)는 그 3분의 1 남짓이다. 실제 사용 순위와 노출도 순위의 차이가 서로 다른 노출도 지수끼리의 차이보다 훨씬 작다. 다만 그 논문은 같은 값에 가장 작은 순위를 함께 주고, 이 노트는 평균 순위를 주므로(사용 0인 34개는 146.5위) 수치를 엄밀히 맞댄 것은 아니다.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\textwidth]{../figure/36_fig_absgap_hist_C.pdf}
+\caption{지표 C와 노출도 3개의 소분류별 절대 순위 격차 분포(옥승빈$\cdot$홍현우(2026) 〈그림 3〉 형식)}\label{fig:hist}
+\end{figure}
+
 \section{읽을 때 유의사항}
 
 \begin{longtable}{L{12.5cm}R{2.5cm}}
@@ -174,7 +190,7 @@
   \item 코드: \texttt{code/04\_19\_analysis\_kor\_share\_exposure\_rankgap.do}(Stata 17, \texttt{00\_master.do}에 포함). 입력은 \texttt{data/proc/merged/kor\_ai\_usage\_ksco3.dta}(\texttt{03\_05}).
   \item 엑셀: \texttt{results/table/36\_kor\_share\_exposure\_rankgap.xlsx}(시트 19개).
   \item 이 노트의 표: \texttt{results/table/36\_summary.tex}, \texttt{36\_robust\_pos.tex}, \texttt{36\_robust\_neg.tex}, \texttt{36\_notes.tex}.
-  \item 그림: \texttt{results/figure/36\_fig\_heatmap\_robust.\{pdf,png\}}, \texttt{36\_fig\_dumbbell\_C\_ELO.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}).
+  \item 그림: \texttt{results/figure/36\_fig\_heatmap\_robust.\{pdf,png\}}, \texttt{36\_fig\_dumbbell\_C\_ELO.\{pdf,png\}}, \texttt{36\_fig\_absgap\_hist\_C.\{pdf,png\}}(\texttt{code/04\_20\_analysis\_kor\_share\_figures.do}).
 \end{itemize}
 
 \printbibliography[title={참고문헌}]
